@@ -1,6 +1,6 @@
 package com.proautokimium.api.repositories;
 
-import com.proautokimium.api.domain.user.User;
+import com.proautokimium.api.domain.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 

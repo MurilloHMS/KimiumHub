@@ -1,5 +1,6 @@
-package com.proautokimium.api.domain.user;
+package com.proautokimium.api.domain.entities;
 
+import com.proautokimium.api.domain.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;

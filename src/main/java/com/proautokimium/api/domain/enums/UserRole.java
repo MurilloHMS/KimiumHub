@@ -1,4 +1,4 @@
-package com.proautokimium.api.domain.user;
+package com.proautokimium.api.domain.enums;
 
 public enum UserRole {
     ADMIN("admin"),

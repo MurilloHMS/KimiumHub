@@ -4,7 +4,7 @@ import com.proautokimium.api.Infrastructure.security.TokenService;
 import com.proautokimium.api.domain.user.AuthenticationDTO;
 import com.proautokimium.api.domain.user.LoginResponseDTO;
 import com.proautokimium.api.domain.user.RegisterDTO;
-import com.proautokimium.api.domain.user.User;
+import com.proautokimium.api.domain.entities.User;
 import com.proautokimium.api.repositories.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
