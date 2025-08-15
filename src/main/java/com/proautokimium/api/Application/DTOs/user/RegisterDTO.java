@@ -1,4 +1,4 @@
-package com.proautokimium.api.domain.user;
+package com.proautokimium.api.Application.DTOs.user;
 
 import com.proautokimium.api.domain.enums.UserRole;
 

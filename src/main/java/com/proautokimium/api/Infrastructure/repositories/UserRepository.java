@@ -1,4 +1,4 @@
-package com.proautokimium.api.repositories;
+package com.proautokimium.api.Infrastructure.repositories;
 
 import com.proautokimium.api.domain.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;

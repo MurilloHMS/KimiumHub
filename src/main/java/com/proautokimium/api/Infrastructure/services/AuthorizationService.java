@@ -1,6 +1,6 @@
-package com.proautokimium.api.services;
+package com.proautokimium.api.Infrastructure.services;
 
-import com.proautokimium.api.repositories.UserRepository;
+import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

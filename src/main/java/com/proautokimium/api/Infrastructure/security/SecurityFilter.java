@@ -1,6 +1,6 @@
 package com.proautokimium.api.Infrastructure.security;
 
-import com.proautokimium.api.repositories.UserRepository;
+import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
