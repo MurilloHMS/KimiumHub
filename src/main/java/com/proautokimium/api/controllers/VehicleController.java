@@ -55,4 +55,13 @@ public class VehicleController {
         this.repository.save(vehicle);
         return ResponseEntity.ok("Vehicle has successfully update");
     }
+    
+    @DeleteMapping
+    public ResponseEntity deleteVehicle(@RequestBody @NotNull @Valid VehicleRequestDTO vehicleData){
+        var vehicle = this.repository.findByPlaca(vehicleData.placa());
+        if(vehicle == null) return ResponseEntity.notFound().build();
+
+        this.repository.deleteById(vehicle.getId());
+        return ResponseEntity.ok("vehicle has successfully deleted");
+    }
 }
