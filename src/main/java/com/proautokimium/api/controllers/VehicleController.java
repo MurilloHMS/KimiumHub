@@ -38,4 +38,21 @@ public class VehicleController {
         var vehicleList = this.repository.findAll();
         return ResponseEntity.ok(vehicleList);
     }
+
+    @PutMapping
+    public ResponseEntity updateVehicle(@RequestBody @NotNull @Valid VehicleRequestDTO vehicleData){
+        var vehicle = this.repository.findByPlaca(vehicleData.placa());
+        if(vehicle == null) return ResponseEntity.badRequest().build();
+
+        vehicle.nome = vehicleData.nome();
+        vehicle.placa = vehicleData.placa();
+        vehicle.marca = vehicleData.marca();
+        vehicle.consumoRodoviarioAlcool = vehicleData.consumoRodoviarioAlcool();
+        vehicle.consumoRodoviarioGasolina = vehicleData.consumoRodoviarioGasolina();
+        vehicle.consumoUrbanoAlcool = vehicleData.consumoUrbanoAlcool();
+        vehicle.consumoUrbanoGasolina = vehicleData.consumoUrbanoGasolina();
+
+        this.repository.save(vehicle);
+        return ResponseEntity.ok("Vehicle has successfully update");
+    }
 }
