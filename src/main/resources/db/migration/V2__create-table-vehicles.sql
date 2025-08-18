@@ -1,4 +1,4 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-oosp";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE vehicles(
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
