@@ -16,7 +16,7 @@ public class VehicleController {
     @Autowired
     VehicleRepository repository;
 
-    @PostMapping("create")
+    @PostMapping
     public ResponseEntity CreateVehicle(@RequestBody @NotNull @Valid VehicleRequestDTO vehicleData){
         if(this.repository.findByPlaca(vehicleData.placa()) != null) return ResponseEntity.badRequest().build();
 
@@ -33,7 +33,7 @@ public class VehicleController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("get-all")
+    @GetMapping
     public ResponseEntity getAllVehicle(){
         var vehicleList = this.repository.findAll();
         return ResponseEntity.ok(vehicleList);
