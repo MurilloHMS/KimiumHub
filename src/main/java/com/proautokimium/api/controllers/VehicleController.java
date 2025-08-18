@@ -44,13 +44,13 @@ public class VehicleController {
         var vehicle = this.repository.findByPlaca(vehicleData.placa());
         if(vehicle == null) return ResponseEntity.badRequest().build();
 
-        vehicle.nome = vehicleData.nome();
-        vehicle.placa = vehicleData.placa();
-        vehicle.marca = vehicleData.marca();
-        vehicle.consumoRodoviarioAlcool = vehicleData.consumoRodoviarioAlcool();
-        vehicle.consumoRodoviarioGasolina = vehicleData.consumoRodoviarioGasolina();
-        vehicle.consumoUrbanoAlcool = vehicleData.consumoUrbanoAlcool();
-        vehicle.consumoUrbanoGasolina = vehicleData.consumoUrbanoGasolina();
+        vehicle.setNome(vehicleData.nome());
+        vehicle.setPlaca(vehicleData.placa());
+        vehicle.setMarca(vehicleData.marca());
+        vehicle.setConsumoRodoviarioAlcool(vehicleData.consumoRodoviarioAlcool());
+        vehicle.setConsumoRodoviarioGasolina(vehicleData.consumoRodoviarioGasolina());
+        vehicle.setConsumoUrbanoAlcool(vehicleData.consumoUrbanoAlcool());
+        vehicle.setConsumoUrbanoGasolina(vehicleData.consumoUrbanoGasolina());
 
         this.repository.save(vehicle);
         return ResponseEntity.ok("Vehicle has successfully update");

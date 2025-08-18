@@ -5,20 +5,22 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "vehicles")
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Vehicle extends com.proautokimium.api.domain.abstractions.Entity {
 
-    public String nome;
-    public String placa;
-    public String marca;
-    public double consumoUrbanoAlcool;
-    public double consumoUrbanoGasolina;
-    public double consumoRodoviarioAlcool;
-    public double consumoRodoviarioGasolina;
+    private String nome;
+    private String placa;
+    private String marca;
+    private double consumoUrbanoAlcool;
+    private double consumoUrbanoGasolina;
+    private double consumoRodoviarioAlcool;
+    private double consumoRodoviarioGasolina;
 
 }
