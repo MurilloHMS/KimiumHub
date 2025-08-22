@@ -24,5 +24,5 @@ public abstract class Parceiro extends com.proautokimium.api.domain.abstractions
     @AttributeOverride(name = "address", column = @Column(name = "email", length = 200, nullable = false))
     private Email email;
     @Column(name = "ativo", nullable = false)
-    private boolean ativo;
+    private boolean ativo = true;
 }

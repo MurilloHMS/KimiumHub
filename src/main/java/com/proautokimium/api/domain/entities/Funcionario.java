@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@DiscriminatorValue("funcionarios")
+@DiscriminatorValue("FUNCIONARIO")
 @Getter
 @Setter
 @NoArgsConstructor
