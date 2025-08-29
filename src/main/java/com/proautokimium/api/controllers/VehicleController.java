@@ -3,6 +3,7 @@ package com.proautokimium.api.controllers;
 import com.proautokimium.api.Application.DTOs.vehicle.VehicleRequestDTO;
 import com.proautokimium.api.Infrastructure.repositories.VehicleRepository;
 import com.proautokimium.api.domain.entities.Vehicle;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
