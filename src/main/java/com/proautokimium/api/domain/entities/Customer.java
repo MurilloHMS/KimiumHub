@@ -1,5 +1,7 @@
 package com.proautokimium.api.domain.entities;
 
+import com.proautokimium.api.Application.DTOs.cliente.CustomerRequestDTO;
+import com.proautokimium.api.domain.valueObjects.Email;
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
@@ -7,6 +9,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.Date;
+import java.util.UUID;
 
 @Entity
 @DiscriminatorValue("CLIENTE")
@@ -19,4 +24,19 @@ public class Customer extends Partner {
     private boolean recebeEmail;
     @Column(name = "codigo_matriz", length = 9)
     private String codigoMatriz;
+
+    public Customer(String systemCode, String documento, Email email, boolean ativo, boolean recebeEmail, String codigoMatriz){
+        super(systemCode, documento, email, ativo);
+        this.recebeEmail = recebeEmail;
+        this.codigoMatriz = codigoMatriz;
+    }
+    public static Customer fromDTO(CustomerRequestDTO dto){
+        return new Customer(
+                dto.codParceiro(),
+                dto.documento(),
+                new Email(dto.email()),
+                dto.ativo(),
+                dto.recebeEmail(),
+                dto.codMatriz());
+    }
 }
