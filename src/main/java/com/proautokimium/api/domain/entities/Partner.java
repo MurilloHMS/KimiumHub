@@ -15,7 +15,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public abstract class Parceiro extends com.proautokimium.api.domain.abstractions.Entity {
+public abstract class Partner extends com.proautokimium.api.domain.abstractions.Entity {
     @Column(name = "cod_parceiro", length = 9, nullable = false)
     private String codParceiro;
     @Column(name = "documento", length = 14)

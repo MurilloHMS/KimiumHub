@@ -1,6 +1,6 @@
 package com.proautokimium.api.domain.enums;
 
-public enum Hierarquia {
+public enum Hierarchy {
     DIRETOR("diretor"),
     CEO("ceo"),
     SUPERVISOR("supervisor"),
@@ -11,7 +11,7 @@ public enum Hierarquia {
 
     private String hierarquia;
 
-    Hierarquia(String hierarquia){ this.hierarquia = hierarquia;}
+    Hierarchy(String hierarquia){ this.hierarquia = hierarquia;}
 
     public String getHierarquia() {
         return hierarquia;

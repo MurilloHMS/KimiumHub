@@ -9,12 +9,14 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@DiscriminatorValue("VENDEDOR")
+@DiscriminatorValue("CLIENTE")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Vendedor extends Funcionario {
-    @Column(name = "departamento")
-    private String departamento;
+public class Customer extends Partner {
+    @Column(name = "recebe_email", nullable = false)
+    private boolean recebeEmail;
+    @Column(name = "codigo_matriz", length = 9)
+    private String codigoMatriz;
 }
