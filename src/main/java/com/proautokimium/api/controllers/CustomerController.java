@@ -3,6 +3,8 @@ package com.proautokimium.api.controllers;
 import com.proautokimium.api.Application.DTOs.cliente.CustomerRequestDTO;
 import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
 import com.proautokimium.api.domain.entities.Customer;
+import com.proautokimium.api.domain.valueObjects.Email;
+import jakarta.validation.OverridesAttribute;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,5 +34,20 @@ public class CustomerController {
     public ResponseEntity<List<Customer>> GetAllCustumer(){
         var customerList = this.repository.findAll();
         return ResponseEntity.ok(customerList);
+    }
+
+    @PutMapping
+    public ResponseEntity<Void> UpdateCustomer(@RequestBody @NotNull @Valid CustomerRequestDTO dto){
+        var customer = this.repository.findByCodParceiro(dto.codParceiro());
+        if(customer == null) return ResponseEntity.notFound().build();
+
+        customer.setCodigoMatriz(dto.codMatriz());
+        customer.setAtivo(dto.ativo());
+        customer.setEmail(new Email(dto.email()));
+        customer.setDocumento(dto.documento());
+        customer.setRecebeEmail(dto.recebeEmail());
+
+        this.repository.save(customer);
+        return ResponseEntity.ok().build();
     }
 }
