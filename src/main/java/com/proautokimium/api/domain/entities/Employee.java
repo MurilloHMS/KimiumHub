@@ -9,6 +9,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
+import java.util.Date;
+
 @Entity
 @DiscriminatorValue("FUNCIONARIO")
 @Getter
@@ -20,4 +23,6 @@ public abstract class Employee extends Partner {
     private String codigoGerente;
     @Column(name = "hierarquia", length = 15)
     private Hierarchy hierarquia;
+    @Column(name = "data_aniversario")
+    private LocalDate birthday;
 }
