@@ -20,6 +20,8 @@ public abstract class Partner extends com.proautokimium.api.domain.abstractions.
     private String codParceiro;
     @Column(name = "documento", length = 14)
     private String documento;
+    @Column(name = "nome", length = 200)
+    private String name;
     @Embedded
     @AttributeOverride(name = "address", column = @Column(name = "email", length = 200, nullable = false))
     private Email email;
