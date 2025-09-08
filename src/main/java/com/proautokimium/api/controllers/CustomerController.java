@@ -4,7 +4,6 @@ import com.proautokimium.api.Application.DTOs.cliente.CustomerRequestDTO;
 import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
 import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.valueObjects.Email;
-import jakarta.validation.OverridesAttribute;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +30,7 @@ public class CustomerController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Customer>> GetAllCustumer(){
+    public ResponseEntity<List<Customer>> GetAllCustomer(){
         var customerList = this.repository.findAll();
         return ResponseEntity.ok(customerList);
     }
@@ -46,8 +45,18 @@ public class CustomerController {
         customer.setEmail(new Email(dto.email()));
         customer.setDocumento(dto.documento());
         customer.setRecebeEmail(dto.recebeEmail());
+        customer.setName(dto.nome());
 
         this.repository.save(customer);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> DeleteCustomer(@RequestBody @NotNull @Valid String codParceiro){
+        var customer = this.repository.findByCodParceiro(codParceiro);
+        if(customer == null) return ResponseEntity.notFound().build();
+
+        this.repository.delete(customer);
         return ResponseEntity.ok().build();
     }
 }
