@@ -34,8 +34,8 @@ public class PdfController {
         this.pdfWriterService = pdfWriterService;
     }
 
-    @PostMapping("/upload")
-    public ResponseEntity<?> upload(@RequestParam("file")MultipartFile file){
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> upload(@RequestParam("file") MultipartFile file){
         if(file == null || file.isEmpty()){
             return ResponseEntity.badRequest().body("Nenhum arquivo ou arquivo inválido enviado");
         }
@@ -62,7 +62,7 @@ public class PdfController {
         }
     }
 
-    @PostMapping("/save")
+    @PostMapping("/save/{uploadId}")
     public ResponseEntity<?> save(@PathVariable String uploadId, @RequestBody List<PdfPageInfo> pages){
         if (pages == null || pages.isEmpty()) {
             return ResponseEntity.badRequest().body("Nenhuma página fornecida para salvar.");
