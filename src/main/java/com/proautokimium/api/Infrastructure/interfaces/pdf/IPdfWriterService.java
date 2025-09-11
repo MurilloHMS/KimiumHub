@@ -1,4 +1,4 @@
-﻿package com.proautokimium.api.Infrastructure.interfaces.pdf;
+package com.proautokimium.api.Infrastructure.interfaces.pdf;
 
 import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfo;
 

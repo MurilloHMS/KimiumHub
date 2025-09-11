@@ -1,4 +1,4 @@
-﻿package com.proautokimium.api.controllers;
+package com.proautokimium.api.controllers;
 
 import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfo;
 import com.proautokimium.api.Infrastructure.services.pdf.PdfReaderService;

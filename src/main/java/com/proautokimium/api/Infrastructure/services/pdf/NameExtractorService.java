@@ -1,4 +1,4 @@
-﻿package com.proautokimium.api.Infrastructure.services.pdf;
+package com.proautokimium.api.Infrastructure.services.pdf;
 
 import com.proautokimium.api.Infrastructure.interfaces.pdf.INameExtractor;
 import org.springframework.stereotype.Service;

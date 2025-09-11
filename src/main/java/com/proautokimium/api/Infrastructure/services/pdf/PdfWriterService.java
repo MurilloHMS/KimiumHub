@@ -1,4 +1,4 @@
-﻿package com.proautokimium.api.Infrastructure.services.pdf;
+package com.proautokimium.api.Infrastructure.services.pdf;
 
 import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfo;
 import com.proautokimium.api.Infrastructure.interfaces.pdf.IFileNameSanitizerService;
@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 
 @Service
 public class PdfWriterService implements IPdfWriterService {
