@@ -1,6 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.pdf;
 
-import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfo;
+import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfoDTO;
 import com.proautokimium.api.Infrastructure.interfaces.pdf.IFileNameSanitizerService;
 import com.proautokimium.api.Infrastructure.interfaces.pdf.IPdfWriterService;
 import org.apache.pdfbox.Loader;
@@ -21,7 +21,7 @@ public class PdfWriterService implements IPdfWriterService {
     }
 
     @Override
-    public void SavePages(String inputPdfPath, String outputFolder, List<PdfPageInfo> pages) {
+    public void SavePages(String inputPdfPath, String outputFolder, List<PdfPageInfoDTO> pages) {
         File inputFile = new File(inputPdfPath);
 
         if (!inputFile.exists() || pages == null || pages.isEmpty()) {

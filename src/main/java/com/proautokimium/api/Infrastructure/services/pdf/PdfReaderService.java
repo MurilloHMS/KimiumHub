@@ -1,6 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.pdf;
 
-import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfo;
+import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfoDTO;
 import com.proautokimium.api.Infrastructure.interfaces.pdf.INameExtractor;
 import com.proautokimium.api.Infrastructure.interfaces.pdf.IPdfReader;
 import org.apache.pdfbox.Loader;
@@ -23,13 +23,13 @@ public class PdfReaderService implements IPdfReader {
     }
 
     @Override
-    public List<PdfPageInfo> getPdfByPage(String inputPdfPath){
+    public List<PdfPageInfoDTO> getPdfByPage(String inputPdfPath){
         File file = new File(inputPdfPath);
         if(!file.exists()){
             throw new IllegalArgumentException("PDF file not found: " + inputPdfPath);
         }
 
-        List<PdfPageInfo> files = new ArrayList<>();
+        List<PdfPageInfoDTO> files = new ArrayList<>();
 
         try (PDDocument document = Loader.loadPDF(file)) {
             PDFTextStripper stripper = new PDFTextStripper();
@@ -46,7 +46,7 @@ public class PdfReaderService implements IPdfReader {
                         ? employeeName
                         : "Page_" + i;
 
-                PdfPageInfo pageInfo = new PdfPageInfo(pageName);
+                PdfPageInfoDTO pageInfo = new PdfPageInfoDTO(pageName);
                 files.add(pageInfo);
             }
 

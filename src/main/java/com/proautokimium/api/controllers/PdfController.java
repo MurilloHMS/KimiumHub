@@ -1,6 +1,6 @@
 package com.proautokimium.api.controllers;
 
-import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfo;
+import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfoDTO;
 import com.proautokimium.api.Infrastructure.services.pdf.PdfReaderService;
 import com.proautokimium.api.Infrastructure.services.pdf.PdfWriterService;
 import org.springframework.http.HttpHeaders;
@@ -44,7 +44,7 @@ public class PdfController {
             File tempFile = File.createTempFile("upload_", ".pdf");
             file.transferTo(tempFile);
 
-            List<PdfPageInfo> result = pdfReaderService.getPdfByPage(tempFile.getAbsolutePath());
+            List<PdfPageInfoDTO> result = pdfReaderService.getPdfByPage(tempFile.getAbsolutePath());
 
             if(result.isEmpty()){
                 return ResponseEntity.badRequest().body("Não foi possível extrair as páginas do PDF");
@@ -63,7 +63,7 @@ public class PdfController {
     }
 
     @PostMapping("/save/{uploadId}")
-    public ResponseEntity<?> save(@PathVariable String uploadId, @RequestBody List<PdfPageInfo> pages){
+    public ResponseEntity<?> save(@PathVariable String uploadId, @RequestBody List<PdfPageInfoDTO> pages){
         if (pages == null || pages.isEmpty()) {
             return ResponseEntity.badRequest().body("Nenhuma página fornecida para salvar.");
         }

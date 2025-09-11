@@ -1,6 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.pdf;
 
-import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfo;
+import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfoDTO;
 import com.proautokimium.api.Infrastructure.interfaces.pdf.IPdfProcessingService;
 import com.proautokimium.api.Infrastructure.interfaces.pdf.IPdfReader;
 import com.proautokimium.api.Infrastructure.interfaces.pdf.IPdfWriterService;
@@ -19,12 +19,12 @@ public class PdfProcessingService implements IPdfProcessingService {
         this.pdfWriterService = writer;
     }
     @Override
-    public List<PdfPageInfo> GetPdfByPage(String inputPdfPath) {
+    public List<PdfPageInfoDTO> GetPdfByPage(String inputPdfPath) {
         return pdfReader.getPdfByPage(inputPdfPath);
     }
 
     @Override
-    public void SavePages(String inputPdfPath, String outputFolder, List<PdfPageInfo> pages) {
+    public void SavePages(String inputPdfPath, String outputFolder, List<PdfPageInfoDTO> pages) {
         pdfWriterService.SavePages(inputPdfPath, outputFolder, pages);
     }
 }

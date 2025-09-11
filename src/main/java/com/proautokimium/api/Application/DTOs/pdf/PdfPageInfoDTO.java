@@ -1,3 +1,3 @@
 package com.proautokimium.api.Application.DTOs.pdf;
 
-public record PdfPageInfo(String name) {}
+public record PdfPageInfoDTO(String name) {}
