@@ -1,29 +1,33 @@
 package com.proautokimium.api.controllers;
 
-import com.proautokimium.api.Infrastructure.services.email.NewsletterService;
-import com.proautokimium.api.domain.models.Newsletter;
-import jakarta.mail.MessagingException;
+import com.proautokimium.api.Application.DTOs.email.SmtpEmailRequestDTO;
+import com.proautokimium.api.Infrastructure.services.EmailService;
+import com.proautokimium.api.domain.abstractions.Entity;
+import com.proautokimium.api.domain.entities.EmailEntity;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Set;
 
 @RestController
-@RequestMapping("api/newsletter")
+@RequestMapping("api/email")
 public class EmailController {
+
     @Autowired
-    private NewsletterService newsletterService;
+    private EmailService service;
 
-    @PostMapping("send")
-    public ResponseEntity<Object> sendNewsletter(@RequestBody Newsletter newsletter) throws MessagingException, UnsupportedEncodingException {
-        newsletterService.sendMailWithInline(newsletter);
-
+    @PostMapping
+    public ResponseEntity<Object> createEmail(@RequestBody @NotNull @Valid SmtpEmailRequestDTO dto){
+        service.saveEmail(dto);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping
+    public ResponseEntity<Object> getAllEmails(){
+        Set<EmailEntity> emails = service.getAll();
+        return ResponseEntity.ok(emails);
     }
 }
