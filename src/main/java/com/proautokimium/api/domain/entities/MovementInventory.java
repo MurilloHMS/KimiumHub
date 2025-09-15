@@ -23,6 +23,9 @@ public class MovementInventory extends com.proautokimium.api.domain.abstractions
     @Column(name = "movement_date", nullable = false)
     private LocalDate movementDate;
 
+    @Column(name = "quantity", nullable = false)
+    private int quantity;
+
     @ManyToOne
     @JoinColumn(name = "product_id")
     private ProductInventory product;
