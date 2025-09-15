@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.UUID;
 
-public interface ProductMovementRepository extends JpaRepository<ProductMovementRepository, UUID> {
+public interface ProductMovementRepository extends JpaRepository<MovementInventory, UUID> {
     @Query(value = "SELECT * FROM products_movements WHERE product_id = :id", nativeQuery = true)
     List<MovementInventory> findMovementByProductId(@Param("id") UUID id);
 }
