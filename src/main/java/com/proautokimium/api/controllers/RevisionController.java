@@ -1,19 +1,17 @@
 package com.proautokimium.api.controllers;
 
 import com.proautokimium.api.Application.DTOs.vehicle.RevisionRequestDTO;
-import com.proautokimium.api.Application.DTOs.vehicle.VehicleRequestDTO;
 import com.proautokimium.api.Infrastructure.services.VehicleService;
 import com.proautokimium.api.domain.entities.Vehicle;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/vehicle/revision")
-public class RevisonController {
+public class RevisionController {
 
     @Autowired
     VehicleService service;
