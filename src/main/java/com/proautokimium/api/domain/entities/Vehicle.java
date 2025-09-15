@@ -1,11 +1,15 @@
 package com.proautokimium.api.domain.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "vehicles")
@@ -13,7 +17,8 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Vehicle extends com.proautokimium.api.domain.abstractions.Entity {
+public class Vehicle extends com.proautokimium.api.domain.abstractions.Entity implements Serializable {
+    private static final long serialVersionUID= 1L;
 
     private String nome;
     private String placa;
@@ -22,5 +27,9 @@ public class Vehicle extends com.proautokimium.api.domain.abstractions.Entity {
     private double consumoUrbanoGasolina;
     private double consumoRodoviarioAlcool;
     private double consumoRodoviarioGasolina;
+
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @OneToMany(mappedBy = "vehicle", fetch = FetchType.LAZY)
+    private Set<Revision> revisions = new HashSet<>();
 
 }
