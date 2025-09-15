@@ -32,4 +32,13 @@ public class Vehicle extends com.proautokimium.api.domain.abstractions.Entity im
     @OneToMany(mappedBy = "vehicle", fetch = FetchType.LAZY)
     private Set<Revision> revisions = new HashSet<>();
 
+    public Vehicle(String nome, String placa, String marca, double consumoUrbanoAlcool, double consumoUrbanoGasolina, double consumoRodoviarioAlcool, double consumoRodoviarioGasolina) {
+        this.nome = nome;
+        this.placa = placa;
+        this.marca = marca;
+        this.consumoUrbanoAlcool = consumoUrbanoAlcool;
+        this.consumoUrbanoGasolina = consumoUrbanoGasolina;
+        this.consumoRodoviarioAlcool = consumoRodoviarioAlcool;
+        this.consumoRodoviarioGasolina = consumoRodoviarioGasolina;
+    }
 }
