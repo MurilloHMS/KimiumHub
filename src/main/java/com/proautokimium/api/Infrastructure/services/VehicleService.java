@@ -7,9 +7,9 @@ import com.proautokimium.api.Infrastructure.repositories.VehicleRepository;
 import com.proautokimium.api.domain.entities.Revision;
 import com.proautokimium.api.domain.entities.Vehicle;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -25,7 +25,7 @@ public class VehicleService {
     }
 
     @Transactional
-    public Vehicle saveVehicle(VehicleRequestDTO dto){
+    public void saveVehicle(VehicleRequestDTO dto){
         Vehicle vehicle = new Vehicle();
 
         vehicle.setNome(dto.nome());
@@ -36,7 +36,7 @@ public class VehicleService {
         vehicle.setConsumoRodoviarioAlcool(dto.consumoRodoviarioAlcool());
         vehicle.setConsumoRodoviarioGasolina(dto.consumoRodoviarioGasolina());
 
-        return vehicleRepository.save(vehicle);
+        vehicleRepository.save(vehicle);
     }
 
     @Transactional
@@ -55,20 +55,19 @@ public class VehicleService {
 
     @Transactional
     public Vehicle getVehicleByPlate(String plate){
-        Vehicle vehicle = vehicleRepository.findVehicleByPlaca(plate);
-        return vehicle;
+        return vehicleRepository.findVehicleByPlaca(plate);
     }
 
     @Transactional
-    public Revision includeRevision(Vehicle vehicle, RevisionRequestDTO dto){
+    public void includeRevision(Vehicle vehicle, RevisionRequestDTO dto){
         Revision revision = new Revision();
         revision.setRevisionDate(dto.revisionDate());
         revision.setVehicle(vehicle);
 
-        return revisionRepository.save(revision);
+        revisionRepository.save(revision);
     }
 
     public Set<Revision> getRevisions(){
-        return revisionRepository.findAll().stream().collect(Collectors.toSet());
+        return new HashSet<>(revisionRepository.findAll());
     }
 }
