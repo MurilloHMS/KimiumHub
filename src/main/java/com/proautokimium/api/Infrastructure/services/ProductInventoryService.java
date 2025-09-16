@@ -9,6 +9,11 @@ import com.proautokimium.api.domain.entities.ProductInventory;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 @Service
 public class ProductInventoryService {
     private final ProductInventoryRepository productInventoryRepository;
@@ -41,5 +46,26 @@ public class ProductInventoryService {
         movement.setProduct(productInventory);
 
         productMovementRepository.save(movement);
+    }
+
+    public Set<ProductInventory> findAllProducts(){
+        var products = productInventoryRepository.findAll();
+        return new HashSet<>(products);
+    }
+
+    public Set<MovementInventory> findAllMovements(){
+        var movements = productMovementRepository.findAll();
+        return new HashSet<>(movements);
+    }
+
+    public Set<ProductMovementDTO> findAllMovementsByProduct(String systemCode){
+        UUID id = productInventoryRepository.findBySystemCode(systemCode).getId();
+        var movements = productMovementRepository.findMovementByProductId(id);
+        return movements.stream()
+                .map(m -> new ProductMovementDTO(
+                        m.getMovementDate(),
+                        m.getQuantity(),
+                        m.getProduct().getSystemCode()
+                )).collect(Collectors.toSet());
     }
 }
