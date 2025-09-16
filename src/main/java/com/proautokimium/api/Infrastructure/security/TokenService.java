@@ -22,7 +22,7 @@ public class TokenService {
             String token = JWT.create()
                     .withIssuer("auth-api")
                     .withSubject(user.getUsername())
-                    .withClaim("role", user.getRole().name())
+                    .withArrayClaim("roles", user.getRoles().stream().map(Enum::name).toArray(String[]::new))
                     .withExpiresAt(generateExpirationDate())
                     .sign(algorithm);
             return token;

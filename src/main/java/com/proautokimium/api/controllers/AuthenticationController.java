@@ -29,7 +29,7 @@ public class AuthenticationController {
     TokenService tokenService;
 
     @PostMapping("/login")
-    public ResponseEntity Login(@RequestBody @Valid AuthenticationDTO data){
+    public ResponseEntity<Object> Login(@RequestBody @Valid AuthenticationDTO data){
         var usernamepassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());
         var auth = this.authenticationManager.authenticate(usernamepassword);
 
@@ -38,11 +38,11 @@ public class AuthenticationController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity Register(@RequestBody @Valid RegisterDTO data){
+    public ResponseEntity<Object> Register(@RequestBody @Valid RegisterDTO data){
         if(this.repository.findByLogin(data.login()) != null) return ResponseEntity.badRequest().build();
 
         String encryptedPassword = new BCryptPasswordEncoder().encode(data.password());
-        User newUser = new User(data.login(), encryptedPassword, data.role());
+        User newUser = new User(data.login(), encryptedPassword, data.roles());
 
         this.repository.save(newUser);
         return ResponseEntity.ok().build();

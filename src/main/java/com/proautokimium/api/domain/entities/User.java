@@ -10,6 +10,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -25,17 +26,21 @@ public class User implements UserDetails {
     private String id;
     private String login;
     private String password;
-    private UserRole role;
 
-    public User(String login, String password, UserRole role){
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Enumerated(EnumType.ORDINAL)
+    @Column(name = "role")
+    private List<UserRole> roles = new ArrayList<>();
+
+    public User(String login, String password, List<UserRole> roles){
         this.login = login;
         this.password = password;
-        this.role = role;
+        this.roles = roles;
     }
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        if(this.role == UserRole.ADMIN) return List.of(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("ROLE_USER"));
-        else return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        return roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_"+ role.name())).toList();
     }
 
     @Override
