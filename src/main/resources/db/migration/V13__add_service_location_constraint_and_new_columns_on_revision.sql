@@ -7,4 +7,4 @@ ADD COLUMN driver_name VARCHAR(150),
 ADD COLUMN observation VARCHAR(200);
 
 ALTER TABLE revision
-ADD CONSTRAINT fk_revision_service_location FOREIGN KEY (service_location_id) REFERENCES partner(id);
+ADD CONSTRAINT fk_revision_service_location FOREIGN KEY (service_location_id) REFERENCES parceiros(id);
