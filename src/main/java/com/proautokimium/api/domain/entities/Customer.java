@@ -1,6 +1,6 @@
 package com.proautokimium.api.domain.entities;
 
-import com.proautokimium.api.Application.DTOs.cliente.CustomerRequestDTO;
+import com.proautokimium.api.Application.DTOs.partners.CustomerRequestDTO;
 import com.proautokimium.api.domain.valueObjects.Email;
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
