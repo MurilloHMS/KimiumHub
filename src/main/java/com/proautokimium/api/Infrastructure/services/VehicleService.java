@@ -3,8 +3,10 @@ package com.proautokimium.api.Infrastructure.services;
 import com.proautokimium.api.Application.DTOs.vehicle.RevisionRequestDTO;
 import com.proautokimium.api.Application.DTOs.vehicle.VehicleRequestDTO;
 import com.proautokimium.api.Infrastructure.repositories.RevisionRepository;
+import com.proautokimium.api.Infrastructure.repositories.ServiceLocationRepository;
 import com.proautokimium.api.Infrastructure.repositories.VehicleRepository;
 import com.proautokimium.api.domain.entities.Revision;
+import com.proautokimium.api.domain.entities.ServiceLocation;
 import com.proautokimium.api.domain.entities.Vehicle;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -18,8 +20,10 @@ import java.util.stream.Collectors;
 public class VehicleService {
     private final VehicleRepository vehicleRepository;
     private final RevisionRepository revisionRepository;
+    private final ServiceLocationRepository serviceLocationRepository;
 
-    public VehicleService(VehicleRepository vehicleRepository, RevisionRepository revisionRepository) {
+    public VehicleService(VehicleRepository vehicleRepository, RevisionRepository revisionRepository, ServiceLocationRepository serviceLocationRepository) {
+        this.serviceLocationRepository = serviceLocationRepository;
         this.vehicleRepository = vehicleRepository;
         this.revisionRepository = revisionRepository;
     }
@@ -63,6 +67,9 @@ public class VehicleService {
         Revision revision = new Revision();
         revision.setRevisionDate(dto.revisionDate());
         revision.setVehicle(vehicle);
+
+        ServiceLocation location = serviceLocationRepository.findServiceLocationByName(dto.local());
+        revision.setLocal(location);
 
         revisionRepository.save(revision);
     }
