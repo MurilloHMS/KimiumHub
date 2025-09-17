@@ -1,6 +1,6 @@
 package com.proautokimium.api.controllers;
 
-import com.proautokimium.api.Application.DTOs.cliente.CustomerRequestDTO;
+import com.proautokimium.api.Application.DTOs.partners.CustomerRequestDTO;
 import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
 import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.valueObjects.Email;
