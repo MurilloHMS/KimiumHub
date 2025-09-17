@@ -1,7 +1,9 @@
 package com.proautokimium.api.Infrastructure.services;
 
+import com.proautokimium.api.Application.DTOs.partners.ServiceLocationDTO;
 import com.proautokimium.api.Infrastructure.repositories.ServiceLocationRepository;
 import com.proautokimium.api.domain.entities.ServiceLocation;
+import com.proautokimium.api.domain.valueObjects.Email;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -15,16 +17,33 @@ public class ServiceLocationService {
     }
 
     @Transactional
-    public void saveServiceLocation(String name) {
-        var location = repository.findServiceLocationByName(name);
-        if (location == null) {
-            var newLocation = new ServiceLocation();
-            newLocation.setName(name);
-            repository.save(newLocation);
+    public void createServiceLocation(ServiceLocationDTO dto) {
+        ServiceLocation location = new ServiceLocation();
+
+        location.setName(dto.nome());
+        location.setAddress(dto.address());
+        location.setAtivo(dto.ativo());
+        location.setEmail(new Email(dto.email()));
+        location.setDocumento(dto.documento());
+        location.setCodParceiro(dto.codParceiro());
+
+        repository.save(location);
+    }
+
+    public ServiceLocation getServiceLocationBySystemCode(String systemCode) {
+        return repository.findServiceLocationBySystemCode(systemCode);
+    }
+
+    @Transactional
+    public void deleteServiceLocationBySystemCode(String systemCode) {
+        var location = repository.findServiceLocationBySystemCode(systemCode);
+        if (location != null) {
+            repository.delete(location);
         }
     }
 
-    public ServiceLocation getServiceLocationByName(String name) {
-        return repository.findServiceLocationByName(name);
+    public Iterable<ServiceLocation> getAllServiceLocations() {
+        return repository.findAll();
     }
+
 }

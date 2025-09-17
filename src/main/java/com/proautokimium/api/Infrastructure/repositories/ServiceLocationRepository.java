@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 public interface ServiceLocationRepository extends JpaRepository<ServiceLocation, UUID> {
-    ServiceLocation findServiceLocationByName(String name);
+    ServiceLocation findServiceLocationBySystemCode(String systemCode);
 }
