@@ -7,4 +7,5 @@ import java.util.UUID;
 
 public interface ServiceLocationRepository extends JpaRepository<ServiceLocation, UUID> {
     ServiceLocation findServiceLocationBySystemCode(String systemCode);
+    ServiceLocation findServiceLocationByName(String name);
 }
