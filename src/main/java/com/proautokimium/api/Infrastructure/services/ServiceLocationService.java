@@ -31,12 +31,12 @@ public class ServiceLocationService {
     }
 
     public ServiceLocation getServiceLocationBySystemCode(String systemCode) {
-        return repository.findServiceLocationBySystemCode(systemCode);
+        return repository.findServiceLocationByCodParceiro(systemCode);
     }
 
     @Transactional
     public void deleteServiceLocationBySystemCode(String systemCode) {
-        var location = repository.findServiceLocationBySystemCode(systemCode);
+        var location = repository.findServiceLocationByCodParceiro(systemCode);
         if (location != null) {
             repository.delete(location);
         }

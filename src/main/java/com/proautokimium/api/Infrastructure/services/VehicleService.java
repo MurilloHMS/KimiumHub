@@ -68,7 +68,7 @@ public class VehicleService {
         revision.setRevisionDate(dto.revisionDate());
         revision.setVehicle(vehicle);
 
-        ServiceLocation location = serviceLocationRepository.findServiceLocationBySystemCode(dto.localSystemCode());
+        ServiceLocation location = serviceLocationRepository.findServiceLocationByCodParceiro(dto.localSystemCode());
         revision.setLocal(location);
 
         revisionRepository.save(revision);
