@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Date;
 
 @Service
 public class TokenService {
@@ -24,6 +25,24 @@ public class TokenService {
                     .withSubject(user.getUsername())
                     .withArrayClaim("roles", user.getRoles().stream().map(Enum::name).toArray(String[]::new))
                     .withExpiresAt(generateExpirationDate())
+                    .sign(algorithm);
+            return token;
+        }catch (JWTCreationException exception){
+            throw new RuntimeException("Error while generating token", exception);
+        }
+    }
+
+    public String generateAppToken(){
+        try{
+
+            long thenYearsMillis = 10L * 365 * 24 * 60 * 60 * 1000; // 10 years in milliseconds
+            Date now = new Date();
+            Date expireAt = new Date(now.getTime() + thenYearsMillis);
+            Algorithm algorithm = Algorithm.HMAC256(secret);
+            String token = JWT.create()
+                    .withIssuer("auth-api")
+                    .withSubject("app-client")
+                    .withExpiresAt(expireAt)
                     .sign(algorithm);
             return token;
         }catch (JWTCreationException exception){

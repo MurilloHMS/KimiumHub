@@ -47,4 +47,10 @@ public class AuthenticationController {
         this.repository.save(newUser);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/app-token")
+    public ResponseEntity<Object> generateAppToken() {
+        String appToken = tokenService.generateAppToken();
+        return ResponseEntity.ok(new LoginResponseDTO(appToken));
+    }
 }
