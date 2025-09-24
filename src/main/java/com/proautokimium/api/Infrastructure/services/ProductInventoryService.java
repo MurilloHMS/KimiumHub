@@ -10,6 +10,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -58,7 +59,7 @@ public class ProductInventoryService {
         return new HashSet<>(movements);
     }
 
-    public Set<ProductMovementDTO> findAllMovementsByProduct(String systemCode){
+    public List<ProductMovementDTO> findAllMovementsByProduct(String systemCode){
         UUID id = productInventoryRepository.findBySystemCode(systemCode).getId();
         var movements = productMovementRepository.findMovementByProductId(id);
         return movements.stream()
@@ -66,6 +67,6 @@ public class ProductInventoryService {
                         m.getMovementDate(),
                         m.getQuantity(),
                         m.getProduct().getSystemCode()
-                )).collect(Collectors.toSet());
+                )).toList();
     }
 }

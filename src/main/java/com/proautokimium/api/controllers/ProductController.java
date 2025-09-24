@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Set;
+import java.util.*;
 
 @RestController
 @RequestMapping("api/product")
@@ -37,8 +37,8 @@ public class ProductController {
     }
 
     @GetMapping("/inventory/movements/{systemCode}")
-    public ResponseEntity<Set<ProductMovementDTO>> getAllMovementsBySystemCode(@PathVariable String systemCode){
-        var movements = inventoryService.findAllMovementsByProduct(systemCode);
+    public ResponseEntity<List<ProductMovementDTO>> getAllMovementsBySystemCode(@PathVariable String systemCode){
+        List<ProductMovementDTO> movements = inventoryService.findAllMovementsByProduct(systemCode);
         return ResponseEntity.ok(movements);
     }
 }
