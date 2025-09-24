@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Newsletter Proauto</title>
+</head>
+<body style="margin:0; padding:0; font-family: Arial, sans-serif; background-color:#f4f4f4;">
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+        <td align="center" style="padding:20px;">
+            <!-- Container principal -->
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600" 
+                   style="background-color:#ffffff; border-radius:45px; border:3px solid #252d61; box-shadow:0 4px 8px rgba(0,0,0,0.4); overflow:hidden;">
+                
+                <!-- Cabeçalho / Hero -->
+                <tr>
+                    <td align="center" style="padding:30px 20px 10px;">
+                        <img src="images/proauto.png" data-th-src="|cid:proautoLogo|" height="80" alt="Logo Proauto" style="display:block; max-width:90%; height:auto;"/>
+                        <div style="color:#252d61; font-size:28px; margin-top:40px; text-transform:uppercase;" th:text="${mes} + ' - 2025'">Agosto - 2025</div>
+                        <div style="color:#252d61; font-size:16px; margin-top:20px; line-height:1.5;">
+                            Olá, <strong th:text="${nomeDoCliente}">Cliente</strong><br/>
+                            Veja como foi seu desempenho neste mês com a <strong>Proauto Kimium</strong>
+                        </div>
+                        <a href="#" style="background-color:#252d61; color:#ffffff; font-weight:bold; text-decoration:none; padding:14px 24px; border-radius:18px; display:inline-block; margin-top:30px; margin-bottom:60px;" class="btn">VER MÉTRICAS COMPLETAS</a>
+                    </td>
+                </tr>
+
+                <!-- Produto destaque -->
+                <tr>
+                    <td align="center" style="background-color:#252d61; padding:20px; color:#ffffff;">
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                            <tr>
+                                <td align="center" style="padding-bottom:10px;">
+                                    <img src="https://www.proautokimium.com.br/assets/images/produtos-proauto.png" alt="Produto destaque" style="width:100%; max-width:300px; height:auto;"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="center" style="padding-top:10px;">
+                                    <h2 style="text-transform:uppercase; font-size:20px; margin:10px 0;" th:text="${produtoEmDestaque}">Produto em destaque</h2>
+                                    <h3 style="background-color:#41beb0; padding:10px; border-radius:8px; margin:10px 0; color:#252d61; font-size:16px;">PRODUTO MAIS COMPRADO</h3>
+                                    <p style="font-size:14px; color:#ffffff;">Este é o produto que conquistou sua preferência. Qualidade e eficiência fazem dele a sua escolha número um. Continue aproveitando tudo o que ele tem a oferecer!</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Métricas -->
+                <tr>
+                    <td style="background-color:#252d61; padding:25px; color:#ffffff;">
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                            <tr>
+                                <td width="50%" align="center" style="padding:10px;">
+                                    <h2 style="text-transform:uppercase; font-size:18px;">quantidade de <span style="background-color:#41beb0; padding:2px 6px; border-radius:6px; color:#252d61;">produtos</span> comprados</h2>
+                                    <p style="font-size:14px;">Você fez a escolha certa adquirindo nossos produtos! A quantidade adquirida demonstra a confiança na qualidade e eficiência que oferecemos.</p>
+                                </td>
+                                <td width="50%" align="center" style="padding:10px;">
+                                    <h1 style="font-size:36px; margin:0;" th:text="${quantidadeDeProdutos}">0</h1>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="background-color:#252d61; padding:25px; color:#ffffff;">
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                            <tr>
+                                <td width="50%" align="center" style="padding:10px;">
+                                    <h1 style="font-size:36px; margin:0;" th:text="${#numbers.formatInteger(quantidadeDeLitros, 0)}">0</h1>
+                                </td>
+                                <td width="50%" align="center" style="padding:10px;">
+                                    <h2 style="text-transform:uppercase; font-size:18px;">quantidade de litros / produtos comprados</h2>
+                                    <p style="font-size:14px;">Parabéns pela excelente escolha ao adquirir nossos produtos! A quantidade de litros/kg comprados reflete sua confiança em nossa qualidade e no compromisso com a eficiência.</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Manutenções -->
+                <tr th:if="${quantidadeDeVisitas > 0}">
+                    <td style="background-color:#252d61; padding:25px; color:#ffffff;">
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                            <tr>
+                                <td width="33%" align="center" style="padding:10px;">
+                                    <h3 style="color:#f1f2f4;">Manutenções realizadas</h3>
+                                    <h1 style="background-color:#f1f2f4; color:#252d61; font-size:32px; border-radius:12px; padding:40px 0;" th:text="${quantidadeDeVisitas}">0</h1>
+                                </td>
+                                <td width="33%" align="center" style="padding:10px;">
+                                    <h3 style="color:#f1f2f4;">valor das peças trocadas</h3>
+                                    <h1 style="background-color:#f1f2f4; color:#252d61; font-size:32px; border-radius:12px; padding:40px 0;" th:text="${valorDePecasTrocadas}">R$ 0,00</h1>
+                                </td>
+                                <td width="33%" align="center" style="padding:10px;">
+                                    <h3 style="color:#f1f2f4;">média de dias para atendimento</h3>
+                                    <h1 style="background-color:#f1f2f4; color:#252d61; font-size:32px; border-radius:12px; padding:40px 0;" th:text="${mediaDiasAtendimento}">0</h1>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Faturamento -->
+                <tr>
+                    <td style="background-color:#252d61; padding:25px; color:#ffffff;">
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                            <tr>
+                                <td width="50%" align="center" style="padding:10px;">
+                                    <h2 style="text-transform:uppercase; font-size:18px;">faturamento mensal</h2>
+                                    <p style="font-size:14px;">Este valor representa a sua confiança nos nossos produtos/serviços e reforça a parceria que estamos construindo. Agradecemos pela preferência e seguimos comprometidos em oferecer sempre a melhor experiência e resultados.</p>
+                                </td>
+                                <td width="50%" align="center" style="padding:10px;">
+                                    <h1 style="font-size:36px; margin:0;" th:text="${faturamentoTotal}">R$ 0,00</h1>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                    <td style="background-color:#252d61; padding:15px; text-align:center; color:white; border-radius:0 0 40px 40px; font-size:14px;">
+                        <p style="margin:0;">
+                            <img src="https://images.icon-icons.com/1294/PNG/512/2362137-chat-media-whatsapp_85529.png" alt="WhatsApp" style="width:15px; vertical-align:middle; margin-right:5px;">
+                            <a href="https://wa.me/5511957782766" target="_blank" style="color:#ccc; text-decoration:none;">(11) 9 5778-2766</a> |
+                            📧 <a href="mailto:sac@proautokimium.com.br" style="color:#ccc; text-decoration:none;">sac@proautokimium.com.br</a>
+                        </p>
+                        <p style="margin:5px 0 0;">
+                            <a href="https://maps.app.goo.gl/Ei4dycuvt6jpA8Af7" target="_blank" style="color:#ccc; text-decoration:none;">Av. João do Prado, 300 - Santo André, SP</a>
+                        </p>
+                    </td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

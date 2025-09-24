@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Feliz Aniversário!</title>
+</head>
+<body style="margin:0; padding:0; font-family: Arial, sans-serif; background-color:#f4f4f4;">
+
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td align="center" style="padding:30px 10px;">
+
+                <!-- Card principal -->
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600"
+                       style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 3px 8px rgba(0,0,0,.12);">
+
+                    <!-- Cabeçalho com degradê -->
+                    <tr>
+                        <td align="center" style="background:linear-gradient(90deg, #232e61, #57c1ab); padding:40px 20px; color:#ffffff;">
+                            <h1 style="margin:0; font-size:32px; font-weight:bold;">🎉 Feliz Aniversário 🎉</h1>
+                            <p style="margin:10px 0 0; font-size:18px;">Um dia especial para alguém especial!</p>
+                        </td>
+                    </tr>
+
+                    <!-- Mensagem principal -->
+                    <tr>
+                        <td style="padding:40px 30px; color:#444444; font-size:16px; line-height:26px;">
+                            <p th:text="'Olá, ' + ${nome} + '!'"
+                               style="font-size:20px; font-weight:bold; margin-bottom:20px; color:#333333;">
+                                Olá, Fulano!
+                            </p>
+                            <p>
+                                Hoje celebramos a sua vida, suas conquistas e todos os momentos felizes que ainda virão.
+                            </p>
+                            <p>
+                                Que este novo ciclo seja repleto de <strong>alegrias, saúde e sucesso</strong>. 
+                                Aproveite cada instante, você merece! 🥳
+                            </p>
+
+                            <!-- Mensagem personalizada -->
+                            <p th:if="${tipo == 'funcionario'}" style="margin-top:20px; color:#57c1ab; font-weight:bold;">
+                                Obrigado por fazer parte da nossa equipe! 🚀
+                            </p>
+                            <p th:if="${tipo == 'cliente'}" style="margin-top:20px; color:#57c1ab; font-weight:bold;">
+                                Obrigado por confiar em nossos serviços! 💙
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Botão CTA -->
+                    <tr>
+                        <td align="center" style="padding:20px 30px 40px;">
+                            <a th:href="@{https://suaempresa.com/promocao}" target="_blank"
+                               style="background:#232e61; color:#ffffff; text-decoration:none; padding:12px 30px; border-radius:6px; font-size:16px; font-weight:bold; display:inline-block;">
+                                🎁 Surpresa Especial
+                            </a>
+                        </td>
+                    </tr>
+
+                    <!-- Rodapé -->
+                    <tr>
+                        <td bgcolor="#f9f9f9" style="padding:20px; text-align:center; font-size:12px; color:#888888;">
+                            <p style="margin:0;">Com carinho, <strong>Proauto Kimium</strong></p>
+                            <p style="margin:5px 0 0;">Este é um e-mail automático, por favor não responda.</p>
+                        </td>
+                    </tr>
+
+                </table>
+                <!-- Fim do Card principal -->
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

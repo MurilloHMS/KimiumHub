@@ -1,0 +1,2 @@
+﻿ALTER TABLE parceiros
+ADD COLUMN nome VARCHAR(200);

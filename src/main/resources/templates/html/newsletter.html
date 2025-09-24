@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Newsletter</title>
+    <style>
+
+        body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          background: #f4f4f4 !important;
+        }
+
+        .container {
+          max-width: 800px;
+          width: 90%;
+          margin: 20px auto;
+          border-radius: 45px;
+          border: 3px solid #252d61 !important;
+          text-align: center;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+          overflow: hidden;
+          background-color: white;
+        }
+
+        .hero {
+          padding: 30px 20px 10px;
+        }
+
+        .hero img {
+          width: 90%;
+          height: auto;
+        }
+
+        .hero-data {
+          color: #252d61 !important;
+          font-size: 28px;
+          margin-top: 40px;
+          text-transform: uppercase;
+        }
+
+        .saudacao {
+          color: #252d61 !important;
+          font-size: 16px;
+          margin-top: 20px;
+          line-height: 1.5;
+        }
+
+        .btn {
+          background-color: #252d61 !important;
+          padding: 14px 24px;
+          color: #fff !important;
+          font-weight: bold;
+          text-decoration: none;
+          border-radius: 18px;
+          display: inline-block;
+          margin-top: 30px;
+          transition: background 0.3s, color 0.3s;
+          margin-bottom: 60px;
+        }
+
+        .btn:hover {
+          background-color: #41beb0 !important;
+          color: #252d61 !important;
+        }
+
+        .produto-destaque {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          background: #252d61 !important;
+          color: #fff !important;
+          padding: 20px;
+          gap: 20px;
+        }
+
+        .produto-destaque img {
+          width: 100%;
+          max-width: 300px;
+          flex: 1 1 300px;
+        }
+
+        .produto-destaque .content {
+          flex: 1 1 300px;
+          text-align: center;
+        }
+
+        .produto-destaque h2 {
+          text-transform: uppercase;
+          font-size: 20px;
+          margin: 10px 0;
+        }
+
+        .produto-destaque h3 {
+          background: #41beb0 !important;
+          padding: 10px;
+          border-radius: 8px;
+          margin: 10px 0;
+          color: #252d61 !important;
+          font-size: 16px;
+        }
+
+        .produto-destaque p {
+          font-size: 14px;
+        }
+
+        .metricas-container {
+          display: flex;
+          padding: 25px;
+          background-color: #252d61 !important;
+          color: #fff !important;
+          gap: 20px;
+          justify-content: space-between;
+        }
+
+        .content-value, .content-metricas {
+          flex: 1 1;
+        }
+
+        .content-value {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .content-value h1 {
+          font-size: 36px;
+          margin: 0;
+        }
+
+        .content-metricas h2 {
+          text-transform: uppercase;
+          font-size: 18px;
+          margin-bottom: 10px;
+        }
+
+        .content-metricas p {
+          font-size: 14px;
+          line-height: 1.5;
+        }
+
+        .green {
+          background-color: #41beb0 !important;
+          padding: 2px 6px;
+          border-radius: 6px;
+          color: #252d61 !important;
+        }
+
+        .manutencoes-container {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 20px;
+          padding: 25px;
+          text-transform: uppercase;
+          background-color: #252d61 !important;
+          justify-content: space-around;
+        }
+
+        .valor-container {
+          flex: 1 1 200px;
+          text-align: center;
+        }
+
+        .valor-container h3 {
+          color: #f1f2f4 !important;
+        }
+
+        .valor-container h1 {
+          background-color: #f1f2f4 !important;
+          padding: 40px 0;
+          color: #252d61 !important;
+          font-size: 32px;
+          border-radius: 12px;
+        }
+
+        .footer {
+          background: #252d61 !important;
+          color: white;
+          padding: 15px;
+          font-size: 14px;
+          border-radius: 0 0 40px 40px;
+        }
+
+        .footer a {
+          color: #ccc !important;
+          text-decoration: none;
+        }
+
+        .footer img {
+          width: 15px;
+          vertical-align: middle;
+          margin-right: 5px;
+        }
+
+        /* Responsivo */
+        @media (max-width: 600px) {
+          .hero-data {
+            font-size: 22px;
+          }
+
+          .btn {
+            width: 100%;
+            padding: 14px;
+          }
+
+          .produto-destaque, .metricas-container, .manutencoes-container {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .produto-destaque .content, .produto-destaque img {
+            text-align: center;
+          }
+
+          .content-value h1, .valor-container h1 {
+            font-size: 28px;
+            padding: 30px 0;
+          }
+
+          .footer {
+            font-size: 12px;
+          }
+
+          .valor-container {
+            flex: 1 1 100%;
+          }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="hero">
+        <img src="images/proauto.png" data-th-src="|cid:proautoLogo|" height="80" alt="Logo Proauto"/>
+        <div class="hero-data" th:text="${mes} + ' - 2025'"></div>
+        <div class="saudacao">
+            Olá, <strong th:text="${nomeDoCliente}">Cliente</strong><br/>
+            Veja como foi seu desempenho neste mês com a <strong>Proauto Kimium</strong>
+        </div>
+        <a href="#" class="btn">VER MÉTRICAS COMPLETAS</a>
+    </div>
+
+    <div class="produto-destaque">
+        <img src="https://www.proautokimium.com.br/assets/images/produtos-proauto.png" alt="Produto destaque"/>
+        <div class="content">
+            <h2 th:text="${produtoEmDestaque}">Produto em destaque</h2>
+            <h3>PRODUTO MAIS COMPRADO</h3>
+            <p>Este é o produto que conquistou sua preferência. Qualidade e eficiência fazem dele a sua escolha número um.
+                Continue aproveitando tudo o que ele tem a oferecer!</p>
+        </div>
+    </div>
+
+    <div class="metricas-container">
+        <div class="content-metricas">
+            <h2>quantidade de <span class="green">produtos</span> comprados</h2>
+            <p>Você fez a escolha certa adquirindo nossos produtos! A quantidade adquirida demonstra a confiança na qualidade
+                e eficiência que oferecemos.</p>
+        </div>
+        <div class="content-value">
+            <h1 th:text="${quantidadeDeProdutos}">0</h1>
+        </div>
+    </div>
+
+    <div class="metricas-container">
+        <div class="content-value">
+            <h1 th:text="${#numbers.formatInteger(quantidadeDeLitros, 0)}">0</h1>
+        </div>
+        <div class="content-metricas">
+            <h2>quantidade de litros / produtos comprados</h2>
+            <p>Parabéns pela excelente escolha ao adquirir nossos produtos! A quantidade de litros/kg comprados reflete sua
+                confiança em nossa qualidade e no compromisso com a eficiência.</p>
+        </div>
+    </div>
+
+    <div th:if="${quantidadeDeVisitas > 0}" class="manutencoes-container">
+        <div class="valor-container">
+            <h3>Manutenções realizadas</h3>
+            <h1 th:text="${quantidadeDeVisitas}">0</h1>
+        </div>
+        <div class="valor-container">
+            <h3>valor das peças trocadas</h3>
+            <h1 th:text="${valorDePecasTrocadas}">R$ 0,00</h1>
+        </div>
+        <div class="valor-container">
+            <h3>média de dias para atendimento</h3>
+            <h1 th:text="${mediaDiasAtendimento}">0</h1>
+        </div>
+    </div>
+
+    <div class="metricas-container">
+        <div class="content-metricas">
+            <h2>faturamento mensal</h2>
+            <p>Este valor representa a sua confiança nos nossos produtos/serviços e reforça a parceria que estamos
+                construindo. Agradecemos pela preferência e seguimos comprometidos em oferecer sempre a melhor experiência e
+                resultados.</p>
+        </div>
+        <div class="content-value">
+            <h1 th:text="${faturamentoTotal}">R$ 0,00</h1>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>
+            <img src="https://images.icon-icons.com/1294/PNG/512/2362137-chat-media-whatsapp_85529.png" alt="WhatsApp">
+            <a href="https://wa.me/5511957782766" target="_blank">(11) 9 5778-2766</a> |
+            📧 <a href="mailto:sac@proautokimium.com.br">sac@proautokimium.com.br</a>
+        </p>
+        <p>
+            <a href="https://maps.app.goo.gl/Ei4dycuvt6jpA8Af7" target="_blank">Av. João do Prado, 300 - Santo André, SP</a>
+        </p>
+    </div>
+</div>
+</body>
+</html>
