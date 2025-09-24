@@ -5,6 +5,7 @@ import com.proautokimium.api.Application.DTOs.product.ProductMovementDTO;
 import com.proautokimium.api.Infrastructure.services.ProductInventoryService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -40,5 +41,17 @@ public class ProductController {
     public ResponseEntity<List<ProductMovementDTO>> getAllMovementsBySystemCode(@PathVariable String systemCode){
         List<ProductMovementDTO> movements = inventoryService.findAllMovementsByProduct(systemCode);
         return ResponseEntity.ok(movements);
+    }
+
+    @DeleteMapping("inventory/product/{systemCode}")
+    public ResponseEntity<Object> deleteProductById(@PathVariable String systemCode){
+        inventoryService.deleteProductBySystemCode(systemCode);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("inventory/product")
+    public ResponseEntity<Object> updateProduct(@RequestBody @NotNull @Valid ProductInventoryDTO dto){
+        inventoryService.updateProduct(dto);
+        return ResponseEntity.ok().build();
     }
 }

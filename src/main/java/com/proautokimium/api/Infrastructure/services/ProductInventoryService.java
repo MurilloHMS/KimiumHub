@@ -39,7 +39,7 @@ public class ProductInventoryService {
 
     @Transactional
     public void includeMovement(ProductMovementDTO dto){
-        ProductInventory productInventory = productInventoryRepository.findBySystemCode(dto.system_code());
+        ProductInventory productInventory = productInventoryRepository.findBySystemCode(dto.systemCode());
 
         MovementInventory movement = new MovementInventory();
         movement.setMovementDate(dto.movementDate());
@@ -68,5 +68,22 @@ public class ProductInventoryService {
                         m.getQuantity(),
                         m.getProduct().getSystemCode()
                 )).toList();
+    }
+
+    public void deleteProductBySystemCode(String systemCode){
+        var product = productInventoryRepository.findBySystemCode(systemCode);
+        if(product != null){
+            productInventoryRepository.deleteById(product.id);
+        }
+    }
+
+    public void updateProduct(ProductInventoryDTO dto){
+        var product = productInventoryRepository.findBySystemCode(dto.systemCode());
+
+        product.setName(dto.name());
+        product.setMinimumStock(dto.minimumStock());
+        product.setActive(dto.active());
+
+        productInventoryRepository.save(product);
     }
 }
