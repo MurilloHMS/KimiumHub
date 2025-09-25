@@ -18,21 +18,23 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Contact extends com.proautokimium.api.domain.abstractions.Entity{
-    @Column(name = "name")
+    @Column(name = "name", length = 150)
     private String name;
     @Embedded
     @AttributeOverride(name = "address", column = @Column(name = "email", length = 200, nullable = false))
     private Email email;
-    @Column(name = "contactType")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "contact_type", length = 60)
     private ContactType contactType;
-    @Column(name = "otherContactType")
+    @Column(name = "other_contact_type", length = 100)
     private String other;
     @Column(name = "message")
     private String message;
-    @Column(name = "businessName")
+    @Column(name = "business_name", length = 200)
     private String businessName;
-    @Column(name = "contactStatus")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "contact_status", length = 100)
     private ContactStatus contactStatus;
-    @Column(name = "contactDate")
+    @Column(name = "contact_date")
     private LocalDateTime contactDate;
 }
