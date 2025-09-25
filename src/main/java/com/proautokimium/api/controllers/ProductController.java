@@ -49,7 +49,7 @@ public class ProductController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("inventory/product")
+    @PutMapping("inventory/product")
     public ResponseEntity<Object> updateProduct(@RequestBody @NotNull @Valid ProductInventoryDTO dto){
         inventoryService.updateProduct(dto);
         return ResponseEntity.ok().build();
