@@ -70,6 +70,7 @@ public class ProductInventoryService {
                 )).toList();
     }
 
+    @Transactional
     public void deleteProductBySystemCode(String systemCode){
         var product = productInventoryRepository.findBySystemCode(systemCode);
         if(product != null){
@@ -77,6 +78,7 @@ public class ProductInventoryService {
         }
     }
 
+    @Transactional
     public void updateProduct(ProductInventoryDTO dto){
         var product = productInventoryRepository.findBySystemCode(dto.systemCode());
 
