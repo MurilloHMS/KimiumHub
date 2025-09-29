@@ -8,8 +8,11 @@ import java.util.regex.Pattern;
 @Embeddable
 public final class Email {
 
-    private static final Pattern EMAIL_PATTERN =
-            Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+            "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*" +
+                    "@" +
+                    "(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$"
+    );
 
     private String address;
 
@@ -17,7 +20,7 @@ public final class Email {
 
     public Email(String value) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Email address cannot be null or empty");
+            throw new IllegalArgumentException("Email address cannot be null or empty : " + value);
         }
 
         if (!isValidEmail(value)) {
