@@ -4,5 +4,5 @@ import java.time.LocalDate;
 
 public record ProductMovementDTO(LocalDate movementDate,
                                  int quantity,
-                                 String system_code) {
+                                 String systemCode) {
 }

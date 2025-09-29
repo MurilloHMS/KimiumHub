@@ -46,4 +46,16 @@ public class ServiceLocationService {
         return repository.findAll();
     }
 
+    public void updateServiceLocation(ServiceLocationDTO dto){
+        var sl = repository.findServiceLocationByCodParceiro(dto.codParceiro());
+
+        sl.setAddress(dto.address());
+        sl.setAtivo(dto.ativo());
+        sl.setDocumento(dto.documento());
+        sl.setName(dto.nome());
+        sl.setEmail(new Email(dto.email()));
+
+        repository.save(sl);
+    }
+
 }
