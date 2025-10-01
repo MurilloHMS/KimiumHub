@@ -3,6 +3,7 @@ package com.proautokimium.api.Infrastructure.services.nfe;
 import com.proautokimium.api.Infrastructure.interfaces.nfe.INfeProcessing;
 import com.proautokimium.api.Infrastructure.interfaces.nfe.INfeReader;
 import com.proautokimium.api.Infrastructure.interfaces.nfe.INfeWriter;
+import com.proautokimium.api.domain.models.NfeDataInfo;
 import com.proautokimium.api.domain.models.NfeIcmsInfo;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +23,7 @@ public class NfeProcessingService implements INfeProcessing {
     }
 
     @Override
-    public byte[] getData(List<InputStream> xmlFiles) throws Exception {
+    public byte[] getIcmsData(List<InputStream> xmlFiles) throws Exception {
         List<NfeIcmsInfo> icmsData = new ArrayList<>();
 
         for(InputStream stream : xmlFiles){
@@ -30,5 +31,18 @@ public class NfeProcessingService implements INfeProcessing {
             icmsData.add(infos);
         }
         return writer.saveIcmsData(icmsData);
+    }
+
+    @Override
+    public byte[] getNfeData(List<InputStream> xmlFiles) throws Exception {
+        List<NfeDataInfo> allData = new ArrayList<>();
+
+        for(InputStream stream : xmlFiles){
+            List<NfeDataInfo> infos = reader.getNfeDataByXml(stream);
+            if(infos != null && !infos.isEmpty()){
+                allData.addAll(infos);
+            }
+        }
+        return writer.saveNfeData(allData);
     }
 }

@@ -4,5 +4,6 @@ import java.io.InputStream;
 import java.util.List;
 
 public interface INfeProcessing {
-    byte[] getData(List<InputStream> xmlFiles) throws Exception;
+    byte[] getIcmsData(List<InputStream> xmlFiles) throws Exception;
+    byte[] getNfeData(List<InputStream> xmlFiles) throws Exception;
 }

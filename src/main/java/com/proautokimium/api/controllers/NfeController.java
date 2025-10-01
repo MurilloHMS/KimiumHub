@@ -31,10 +31,27 @@ public class NfeController {
             xmlStreams.add(file.getInputStream());
         }
 
-        byte[] excelFile = nfeProcessing.getData(xmlStreams);
+        byte[] excelFile = nfeProcessing.getIcmsData(xmlStreams);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=icms.xlsx")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excelFile);
+    }
+
+    @PostMapping(value = "/process/upload", consumes = "multipart/form-data")
+    public ResponseEntity<byte[]> processNfeDataFiles(@RequestParam("files") List<MultipartFile> files) throws Exception{
+        List<InputStream> xmlStreams = new ArrayList<>();
+
+        for (MultipartFile file: files){
+            if(!file.getOriginalFilename().toLowerCase().endsWith(".xml")) continue;
+            xmlStreams.add(file.getInputStream());
+        }
+
+        byte[] excelFile = nfeProcessing.getNfeData(xmlStreams);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=nfe_data.xlsx")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(excelFile);
     }
