@@ -56,7 +56,7 @@ public class SecurityConfiguration {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("https://proautokimium.com.br", "https://proautokimium.com", "http://proautokimium.com", "http://proautokimium.com.br"));
+        configuration.setAllowedOrigins(List.of("https://proautokimium.com.br", "https://proautokimium.com", "http://proautokimium.com", "http://proautokimium.com.br", "http://localhost:4200"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
