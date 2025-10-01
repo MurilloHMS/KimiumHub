@@ -7,6 +7,8 @@ import com.proautokimium.api.domain.valueObjects.Email;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class ServiceLocationService {
 
@@ -42,7 +44,7 @@ public class ServiceLocationService {
         }
     }
 
-    public Iterable<ServiceLocation> getAllServiceLocations() {
+    public List<ServiceLocation> getAllServiceLocations() {
         return repository.findAll();
     }
 

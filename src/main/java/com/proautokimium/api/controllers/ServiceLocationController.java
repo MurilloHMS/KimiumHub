@@ -34,9 +34,17 @@ public class ServiceLocationController {
     @GetMapping
     public ResponseEntity<Object> getAllServiceLocations(){
         var serviceLocations = serviceLocationService.getAllServiceLocations();
-        return serviceLocations != null
-                ? ResponseEntity.ok(serviceLocations)
-                : ResponseEntity.notFound().build();
+
+        var sl = serviceLocations.stream().map(m -> new ServiceLocationDTO(
+           m.getCodParceiro(),
+           m.getDocumento(),
+           m.getName(),
+           m.getEmail().getAddress(),
+           m.isAtivo(),
+           m.getAddress()
+        )).toList();
+
+        return ResponseEntity.ok(sl);
     }
 
     @PutMapping
