@@ -4,6 +4,7 @@ import com.proautokimium.api.Infrastructure.security.TokenService;
 import com.proautokimium.api.Application.DTOs.user.AuthenticationDTO;
 import com.proautokimium.api.Application.DTOs.user.LoginResponseDTO;
 import com.proautokimium.api.Application.DTOs.user.RegisterDTO;
+import com.proautokimium.api.Application.DTOs.user.UserResponseDTO;
 import com.proautokimium.api.domain.entities.User;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import jakarta.validation.Valid;
@@ -55,6 +56,7 @@ public class AuthenticationController {
     public ResponseEntity<Object> getUsers(){
         var users = repository.findAll();
 
-        return ResponseEntity.ok().body(users);
+        return ResponseEntity.ok().body(users.stream().map(m -> new UserResponseDTO(
+        		m.getLogin(), m.getRoles())));
     }
 }
