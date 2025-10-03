@@ -46,6 +46,11 @@ public class NfeController {
 
     @PostMapping(value = "/process/upload", consumes = "multipart/form-data")
     public ResponseEntity<byte[]> processNfeDataFiles(@RequestParam("files") List<MultipartFile> files) throws Exception{
+    	
+    	if(files.size() > 500) {
+    		return ResponseEntity.badRequest().body(("Máximo permitido 500 arquivos. Você enviou " + files.size()).getBytes());
+    	}
+    	
         List<InputStream> xmlStreams = new ArrayList<>();
 
         for (MultipartFile file: files){
