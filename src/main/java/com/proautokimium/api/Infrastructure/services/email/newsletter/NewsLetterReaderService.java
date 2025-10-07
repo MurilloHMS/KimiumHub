@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
+import java.awt.Stroke;
 import java.io.InputStream;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -42,7 +43,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				Cell numNota = row.getCell(0);
 				if(numNota != null)
-					info.setNfeNumber(numNota.getStringCellValue());		
+					info.setNfeNumber(String.valueOf(numNota.getNumericCellValue()));		
 				
 				Cell dataCompleta = row.getCell(1);
 				if(dataCompleta != null &&
@@ -55,7 +56,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				Cell cod = row.getCell(2);
 				if(cod != null)
-					info.setPartnerCode(cod.getStringCellValue());
+					info.setPartnerCode(String.valueOf(cod.getNumericCellValue()));
 				
 				Cell nome = row.getCell(3);
 				if(nome != null)
@@ -67,7 +68,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				Cell codProd = row.getCell(5);
 				if(codProd != null)
-					info.setProductCode(codProd.getStringCellValue());
+					info.setProductCode(String.valueOf(codProd.getNumericCellValue()));
 				
 				Cell produto = row.getCell(7);
 				if(produto != null)
@@ -107,11 +108,11 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				Cell numOsCell = row.getCell(0);
 				if(numOsCell != null)
-					order.setServiceOrderNumber(numOsCell.getStringCellValue());
+					order.setServiceOrderNumber(String.valueOf(numOsCell.getNumericCellValue()));
 				
 				Cell codParCell = row.getCell(1);
 				if(codParCell != null)
-					order.setPartnerCode(codParCell.getStringCellValue());
+					order.setPartnerCode(String.valueOf(codParCell.getNumericCellValue()));
 				
 				Cell aberturaChamadoCell = row.getCell(3);
 				if(aberturaChamadoCell != null && 
@@ -158,7 +159,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				Cell codParCell = row.getCell(0);
 				if(codParCell != null)
-					parts.setPartnerCode(codParCell.getStringCellValue());
+					parts.setPartnerCode(String.valueOf(codParCell.getNumericCellValue()));
 				
 				Cell custoTotalCell = row.getCell(2);
 				if(custoTotalCell != null && 
@@ -191,7 +192,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				Cell codParCell = row.getCell(0);
 				if(codParCell != null)
-					hours.setPartnerCode(codParCell.getStringCellValue());
+					hours.setPartnerCode(String.valueOf(codParCell.getNumericCellValue()));
 				
 				Cell custoTotalCell = row.getCell(2);
 				if(codParCell != null && codParCell.getCellType() == CellType.NUMERIC)
