@@ -5,7 +5,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
-
+import org.apache.poi.hssf.record.chart.SheetPropertiesRecord;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
@@ -140,8 +140,35 @@ public class NewsLetterReaderService implements INewsletterReader{
 
 	@Override
 	public List<NewsletterExchangedParts> getExchangedPartsByExcel(InputStream stream) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		List<NewsletterExchangedParts> list = new ArrayList<>();
+		
+		try(XSSFWorkbook workbook = new XSSFWorkbook(stream)){
+			
+			XSSFSheet sheet = workbook.getSheetAt(0);
+			
+			int lastRow = sheet.getLastRowNum();
+			
+			for(int i = FIRST_DATA_ROW; i <= lastRow ; i++) {
+				
+				Row row = sheet.getRow(i);
+				if(row != null) continue;
+				
+				NewsletterExchangedParts parts = new NewsletterExchangedParts();
+				
+				Cell codParCell = row.getCell(0);
+				if(codParCell != null)
+					parts.setPartnerCode(codParCell.getStringCellValue());
+				
+				Cell custoTotalCell = row.getCell(2);
+				if(custoTotalCell != null && 
+						custoTotalCell.getCellType() == CellType.NUMERIC)
+					parts.setTotalCost(custoTotalCell.getNumericCellValue());
+					
+				list.add(parts);
+			}
+		}
+		
+		return list;
 	}
 
 	@Override
