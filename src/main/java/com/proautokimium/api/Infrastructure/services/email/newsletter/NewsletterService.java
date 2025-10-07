@@ -1,4 +1,4 @@
-package com.proautokimium.api.Infrastructure.services.email;
+package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
 import com.proautokimium.api.domain.models.Newsletter;
 import jakarta.mail.MessagingException;
