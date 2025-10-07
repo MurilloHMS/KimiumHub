@@ -1,62 +1,50 @@
 package com.proautokimium.api.controllers;
 
 import com.proautokimium.api.Application.DTOs.partners.CustomerRequestDTO;
-import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
-import com.proautokimium.api.domain.entities.Customer;
-import com.proautokimium.api.domain.valueObjects.Email;
+import com.proautokimium.api.Infrastructure.services.partner.CustomerService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("api/customer")
 public class CustomerController {
 
     @Autowired
-    CustomerRepository repository;
+    CustomerService service;
 
     @PostMapping
-    public ResponseEntity<Void> CreateCustomer(@RequestBody @NotNull @Valid CustomerRequestDTO customer){
-        if(this.repository.findByCodParceiro(customer.codParceiro()) != null) return ResponseEntity.badRequest().build();
-
-        Customer newCustomer = Customer.fromDTO(customer);
-
-        this.repository.save(newCustomer);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Object> CreateCustomer(@RequestBody @NotNull @Valid CustomerRequestDTO customer){
+        ResponseEntity<Object> responseEntity = service.createCustomer(customer);
+        return responseEntity;
+    }
+    
+    @PostMapping("upload")
+    public ResponseEntity<Object> createCustomersByExcel(@RequestParam MultipartFile file) throws Exception{
+    	ResponseEntity<Object> responseEntity = service.includeCustomersByExcel(file);
+    	return responseEntity;
     }
 
     @GetMapping
-    public ResponseEntity<List<Customer>> GetAllCustomer(){
-        var customerList = this.repository.findAll();
-        return ResponseEntity.ok(customerList);
+    public ResponseEntity<Object> GetAllCustomer(){
+    	 ResponseEntity<Object> responseEntity = service.getAllCustomers();
+    	 return responseEntity;
     }
 
     @PutMapping
     public ResponseEntity<Void> UpdateCustomer(@RequestBody @NotNull @Valid CustomerRequestDTO dto){
-        var customer = this.repository.findByCodParceiro(dto.codParceiro());
-        if(customer == null) return ResponseEntity.notFound().build();
-
-        customer.setCodigoMatriz(dto.codMatriz());
-        customer.setAtivo(dto.ativo());
-        customer.setEmail(new Email(dto.email()));
-        customer.setDocumento(dto.documento());
-        customer.setRecebeEmail(dto.recebeEmail());
-        customer.setName(dto.nome());
-
-        this.repository.save(customer);
-        return ResponseEntity.ok().build();
+    	 ResponseEntity<Void> responseEntity = service.UpdateCustomer(dto);
+    	 return responseEntity;
     }
 
     @DeleteMapping
     public ResponseEntity<Void> DeleteCustomer(@RequestBody @NotNull @Valid String codParceiro){
-        var customer = this.repository.findByCodParceiro(codParceiro);
-        if(customer == null) return ResponseEntity.notFound().build();
-
-        this.repository.delete(customer);
-        return ResponseEntity.ok().build();
+    	 ResponseEntity<Void> responseEntity = service.DeleteCustomer(codParceiro);
+    	 return responseEntity;
     }
+    
 }
