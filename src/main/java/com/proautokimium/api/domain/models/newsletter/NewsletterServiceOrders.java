@@ -1,6 +1,6 @@
 package com.proautokimium.api.domain.models.newsletter;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,7 +14,7 @@ import lombok.Setter;
 public class NewsletterServiceOrders {
 	private String serviceOrderNumber;
 	private String partnerCode;
-	private LocalDateTime openingDate;
-	private LocalDateTime closingDate;
+	private LocalDate openingDate;
+	private LocalDate closingDate;
 	private int daysOfWeek;
 }
