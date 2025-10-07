@@ -1,0 +1,84 @@
+package com.proautokimium.api.Infrastructure.services.email.newsletter;
+
+import java.awt.event.ItemEvent;
+import java.io.IOException;
+import java.time.format.TextStyle;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import com.proautokimium.api.Application.DTOs.email.NewsletterData;
+import com.proautokimium.api.Infrastructure.interfaces.email.newsletter.INewsletterBuilder;
+import com.proautokimium.api.domain.models.Newsletter;
+import com.proautokimium.api.domain.models.newsletter.NewsletterExchangedParts;
+import com.proautokimium.api.domain.models.newsletter.NewsletterNFeInfo;
+import com.proautokimium.api.domain.models.newsletter.NewsletterServiceOrders;
+import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
+
+public class NewsletterBuilderService implements INewsletterBuilder {
+
+	@Override
+	public List<Newsletter> buildNewsletters(NewsletterData data) {
+		
+		Map<String, List<NewsletterNFeInfo>> notesPerPartnersMap = 
+				data.nFeInfos().stream().collect(Collectors.groupingBy(NewsletterNFeInfo::getPartnerCode));
+		
+		Map<String, List<NewsletterServiceOrders>> ordersPerPartnersMap = 
+				data.orders().stream().collect(Collectors.groupingBy(NewsletterServiceOrders::getPartnerCode));
+		
+		Map<String, List<NewsletterTechnicalHours>> hoursPerPartnersMap = 
+				data.hours().stream().collect(Collectors.groupingBy(NewsletterTechnicalHours::getPartnerCode));
+		
+		Map<String, List<NewsletterExchangedParts>> partsPerPartnersMap = 
+				data.parts().stream().collect(Collectors.groupingBy(NewsletterExchangedParts::getPartnerCode));
+		
+		Set<String> allPartnerSet = new HashSet<>();
+		allPartnerSet.addAll(notesPerPartnersMap.keySet());
+		allPartnerSet.addAll(ordersPerPartnersMap.keySet());
+		allPartnerSet.addAll(hoursPerPartnersMap.keySet());
+		allPartnerSet.addAll(partsPerPartnersMap.keySet());
+		
+		List<Newsletter> newsletters = new ArrayList<>();
+		
+		for(String code : allPartnerSet) {
+			Newsletter newsletter = new Newsletter();
+			newsletter.setCodigoCliente(code);
+			
+			List<NewsletterNFeInfo> notes = notesPerPartnersMap.getOrDefault(code, Collections.emptyList());
+			if(!notes.isEmpty()) {
+				newsletter.setNomeDoCliente(notes.get(0).getPartnerName());
+				newsletter.setQuantidadeNotasEmitidas(notes.size());
+				newsletter.setFaturamentoTotal(notes.stream().mapToDouble(NewsletterNFeInfo::getValueWithTaxes).sum());
+				newsletter.setQuantidadeDeProdutos(notes.size());
+				newsletter.setQuantidadeDeLitros(notes.stream().mapToDouble(NewsletterNFeInfo::getQuantity).sum());
+				newsletter.setData(notes.get(0).getDate());
+				
+				String month = notes.get(0).getDate().getMonth().getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
+				newsletter.setMes(month);
+			}
+			
+			List<NewsletterServiceOrders> orders = ordersPerPartnersMap.getOrDefault(code, Collections.emptyList());
+			newsletter.setQuantidadeDeVisitas(orders.size());
+			
+			if(!orders.isEmpty()) {
+				int daysAverage = (int) orders.stream().mapToInt(NewsletterServiceOrders::getDaysOfWeek).average().orElse(0);
+				newsletter.setMediaDiasAtendimento(daysAverage);
+			}
+			
+			List<NewsletterExchangedParts> parts = partsPerPartnersMap.getOrDefault(code, Collections.emptyList());
+			double partsValue = parts.stream().mapToDouble(NewsletterExchangedParts::getTotalCost).sum();
+			newsletter.setValorDePecasTrocadas(partsValue);
+			
+			newsletters.add(newsletter);
+		}
+		
+		return newsletters;
+	}
+
+}
