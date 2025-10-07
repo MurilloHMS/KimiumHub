@@ -1,7 +1,5 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
-import java.awt.event.ItemEvent;
-import java.io.IOException;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,21 +8,28 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collector;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
 
 import com.proautokimium.api.Application.DTOs.email.NewsletterData;
 import com.proautokimium.api.Infrastructure.interfaces.email.newsletter.INewsletterBuilder;
+import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.models.Newsletter;
 import com.proautokimium.api.domain.models.newsletter.NewsletterExchangedParts;
 import com.proautokimium.api.domain.models.newsletter.NewsletterNFeInfo;
 import com.proautokimium.api.domain.models.newsletter.NewsletterServiceOrders;
 import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
 
+@Service
 public class NewsletterBuilderService implements INewsletterBuilder {
 
 	@Override
-	public List<Newsletter> buildNewsletters(NewsletterData data) {
+	public List<Newsletter> buildNewsletters(NewsletterData data, List<Customer> customers) {
+		
+		Map<String, Customer> customersMap = 
+				customers.stream().collect(Collectors.toMap(Customer::getCodParceiro, Function.identity()));
 		
 		Map<String, List<NewsletterNFeInfo>> notesPerPartnersMap = 
 				data.nFeInfos().stream().collect(Collectors.groupingBy(NewsletterNFeInfo::getPartnerCode));
@@ -74,6 +79,12 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 			List<NewsletterExchangedParts> parts = partsPerPartnersMap.getOrDefault(code, Collections.emptyList());
 			double partsValue = parts.stream().mapToDouble(NewsletterExchangedParts::getTotalCost).sum();
 			newsletter.setValorDePecasTrocadas(partsValue);
+			
+			Customer partner = customersMap.get(code);
+			
+			newsletter.setEmailCliente(partner.getEmail().getAddress());
+			
+			newsletter.setStatus("Pendente");
 			
 			newsletters.add(newsletter);
 		}
