@@ -89,8 +89,53 @@ public class NewsLetterReaderService implements INewsletterReader{
 
 	@Override
 	public List<NewsletterServiceOrders> getServiceOrdersByExcel(InputStream stream) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		List<NewsletterServiceOrders> list = new ArrayList<>();
+		
+		try(XSSFWorkbook workbook = new XSSFWorkbook(stream)){
+			
+			XSSFSheet sheet = workbook.getSheetAt(0);
+			
+			int lastRow = sheet.getLastRowNum();
+			
+			for(int i = FIRST_DATA_ROW; i <= lastRow; i++) {
+				
+				Row row = sheet.getRow(i);
+				if(row == null) continue;
+				
+				NewsletterServiceOrders order = new NewsletterServiceOrders();
+				
+				Cell numOsCell = row.getCell(0);
+				if(numOsCell != null)
+					order.setServiceOrderNumber(numOsCell.getStringCellValue());
+				
+				Cell codParCell = row.getCell(1);
+				if(codParCell != null)
+					order.setPartnerCode(codParCell.getStringCellValue());
+				
+				Cell aberturaChamadoCell = row.getCell(3);
+				if(aberturaChamadoCell != null && 
+						aberturaChamadoCell.getCellType() == CellType.NUMERIC &&
+						DateUtil.isCellDateFormatted(aberturaChamadoCell))
+					order.setOpeningDate(aberturaChamadoCell.getDateCellValue()
+							.toInstant()
+							.atZone(ZoneId.systemDefault()).toLocalDate());
+				
+				Cell fechamentoChamadoCell = row.getCell(4);
+				if(fechamentoChamadoCell != null &&
+						fechamentoChamadoCell.getCellType() == CellType.NUMERIC &&
+						DateUtil.isCellDateFormatted(fechamentoChamadoCell))
+					order.setClosingDate(fechamentoChamadoCell.getDateCellValue()
+							.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+				
+				Cell diasDeSemanaCell = row.getCell(5);
+				if(diasDeSemanaCell != null && diasDeSemanaCell.getCellType() == CellType.NUMERIC)
+					order.setDaysOfWeek((int) diasDeSemanaCell.getNumericCellValue());
+				
+				list.add(order);
+			}
+		}
+		
+		return list;
 	}
 
 	@Override
