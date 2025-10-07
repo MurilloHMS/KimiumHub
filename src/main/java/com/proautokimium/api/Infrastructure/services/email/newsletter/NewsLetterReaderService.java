@@ -1,6 +1,5 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
-import java.awt.Stroke;
 import java.io.InputStream;
 import java.time.ZoneId;
 import java.util.ArrayList;
