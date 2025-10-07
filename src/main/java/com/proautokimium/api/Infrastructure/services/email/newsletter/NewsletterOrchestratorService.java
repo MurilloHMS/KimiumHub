@@ -1,24 +1,14 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.List;
-import java.util.Map;
 
-import javax.imageio.stream.FileImageInputStream;
-
-import com.proautokimium.api.Infrastructure.services.pdf.FileNameSanitizerService;
 import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.models.Newsletter;
 import com.proautokimium.api.domain.models.newsletter.NewsletterExchangedParts;
 import com.proautokimium.api.domain.models.newsletter.NewsletterNFeInfo;
 import com.proautokimium.api.domain.models.newsletter.NewsletterServiceOrders;
 import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
-
-import jakarta.mail.MessagingException;
-import lombok.experimental.var;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
