@@ -5,7 +5,6 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.poi.hssf.record.chart.SheetPropertiesRecord;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
@@ -173,8 +172,35 @@ public class NewsLetterReaderService implements INewsletterReader{
 
 	@Override
 	public List<NewsletterTechnicalHours> getTechnicalHoursByExcel(InputStream stream) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		List<NewsletterTechnicalHours> list = new ArrayList<>();
+		
+		try(XSSFWorkbook workbook = new XSSFWorkbook(stream)){
+			
+			XSSFSheet sheet = workbook.getSheetAt(0);
+			
+			int lastRow = sheet.getLastRowNum();
+			
+			for(int i = FIRST_DATA_ROW; i <= lastRow; i++) {
+				
+				Row row = sheet.getRow(i);
+				if(row != null) continue;
+				
+				NewsletterTechnicalHours hours = new NewsletterTechnicalHours();
+				
+				Cell codParCell = row.getCell(0);
+				if(codParCell != null)
+					hours.setPartnerCode(codParCell.getStringCellValue());
+				
+				Cell custoTotalCell = row.getCell(2);
+				if(codParCell != null && codParCell.getCellType() == CellType.NUMERIC)
+					hours.setTotalValuePerPartner(custoTotalCell.getNumericCellValue());
+				
+				list.add(hours);
+					
+			}
+		}
+		
+		return list;
 	}
 	
 }
