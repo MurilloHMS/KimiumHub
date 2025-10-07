@@ -11,6 +11,7 @@ import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.stereotype.Service;
 
 import com.proautokimium.api.Infrastructure.interfaces.email.newsletter.INewsletterReader;
 import com.proautokimium.api.domain.models.newsletter.NewsletterExchangedParts;
@@ -18,6 +19,7 @@ import com.proautokimium.api.domain.models.newsletter.NewsletterNFeInfo;
 import com.proautokimium.api.domain.models.newsletter.NewsletterServiceOrders;
 import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
 
+@Service
 public class NewsLetterReaderService implements INewsletterReader{
 	
 	private final int FIRST_DATA_ROW = 3;
