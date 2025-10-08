@@ -31,10 +31,10 @@ public class PartnerReaderService implements IPartnerReader{
 			
 			int lastRow = sheet.getLastRowNum();
 			
-			for(int i = FIRST_DATA_ROW; i <= lastRow; i++) {
+			for(int i = FIRST_DATA_ROW; i < lastRow; i++) {
 				
 				Row row = sheet.getRow(i);
-				if(row != null) continue;
+				if(row == null) continue;
 				
 				Customer customer = new Customer();
 				
@@ -46,11 +46,11 @@ public class PartnerReaderService implements IPartnerReader{
 				if(codMatrizCell != null && codMatrizCell.getCellType() == CellType.NUMERIC)
 					customer.setCodigoMatriz(String.valueOf(codMatrizCell.getNumericCellValue()));
 				
-				Cell razaoSocialCell = row.getCell(2);
+				Cell razaoSocialCell = row.getCell(3);
 				if(razaoSocialCell != null)
 					customer.setName(razaoSocialCell.getStringCellValue());
 				
-				Cell emailCell = row.getCell(3);
+				Cell emailCell = row.getCell(4);
 				if(emailCell != null)
 					customer.setEmail(new Email(emailCell.getStringCellValue()));
 				
