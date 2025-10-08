@@ -1,6 +1,5 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
-import com.proautokimium.api.domain.models.Newsletter;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -12,6 +11,8 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+
+import com.proautokimium.api.domain.entities.Newsletter;
 
 import java.io.UnsupportedEncodingException;
 

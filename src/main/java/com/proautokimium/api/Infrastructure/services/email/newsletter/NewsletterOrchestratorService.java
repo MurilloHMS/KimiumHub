@@ -4,7 +4,7 @@ import java.io.FileInputStream;
 import java.util.List;
 
 import com.proautokimium.api.domain.entities.Customer;
-import com.proautokimium.api.domain.models.Newsletter;
+import com.proautokimium.api.domain.entities.Newsletter;
 import com.proautokimium.api.domain.models.newsletter.NewsletterExchangedParts;
 import com.proautokimium.api.domain.models.newsletter.NewsletterNFeInfo;
 import com.proautokimium.api.domain.models.newsletter.NewsletterServiceOrders;
