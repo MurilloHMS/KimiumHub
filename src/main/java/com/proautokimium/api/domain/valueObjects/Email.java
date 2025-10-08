@@ -11,7 +11,7 @@ public final class Email {
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*" +
                     "@" +
-                    "(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$"
+                    "(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{1,7}$"
     );
 
     private String address;
