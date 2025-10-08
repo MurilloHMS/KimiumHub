@@ -12,9 +12,13 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import com.proautokimium.api.Application.DTOs.email.NewsletterResponseDTO;
+import com.proautokimium.api.Infrastructure.repositories.NewsletterRepository;
 import com.proautokimium.api.domain.entities.Newsletter;
+import com.proautokimium.api.domain.enums.EmailStatus;
 
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 
 @Service
 public class NewsletterService {
@@ -26,11 +30,34 @@ public class NewsletterService {
     private final Environment environment;
     private final JavaMailSender mailSender;
     private final TemplateEngine htmlTemplateEngine;
+    
+    private final NewsletterRepository repository;
 
-    public NewsletterService(Environment environment, JavaMailSender mailSender, TemplateEngine htmlTemplateEngine) {
+    public NewsletterService(Environment environment, JavaMailSender mailSender, TemplateEngine htmlTemplateEngine, NewsletterRepository repository) {
         this.environment = environment;
         this.mailSender = mailSender;
         this.htmlTemplateEngine = htmlTemplateEngine;
+        this.repository = repository;
+    }
+    
+    public List<NewsletterResponseDTO> getAllPendingEmails(){
+    	return repository.findAllByStatus(EmailStatus.PENDING)
+    			.stream()
+    			.map(m -> new NewsletterResponseDTO(
+    					m.getCodigoCliente(),
+    					m.getNomeDoCliente(),
+    					m.getData(),
+    					m.getMes(),
+    					m.getQuantidadeDeProdutos(),
+    					m.getQuantidadeDeLitros(),
+    					m.getQuantidadeNotasEmitidas(),
+    					m.getMediaDiasAtendimento(),
+    					m.getProdutoEmDestaque(),
+    					m.getFaturamentoTotal(),
+    					m.getValorDePecasTrocadas(),
+    					m.getStatus(),
+    					m.getEmailCliente()
+    					)).toList();
     }
 
     public void sendMailWithInline(Newsletter newsletter) throws MessagingException, UnsupportedEncodingException{
