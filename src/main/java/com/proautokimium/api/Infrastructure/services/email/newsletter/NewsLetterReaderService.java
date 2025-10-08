@@ -42,7 +42,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				Cell numNota = row.getCell(0);
 				if(numNota != null)
-					info.setNfeNumber(String.valueOf(numNota.getNumericCellValue()));		
+					info.setNfeNumber(String.valueOf((int) numNota.getNumericCellValue()));		
 				
 				Cell dataCompleta = row.getCell(1);
 				if(dataCompleta != null &&
@@ -55,7 +55,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				Cell cod = row.getCell(2);
 				if(cod != null)
-					info.setPartnerCode(String.valueOf(cod.getNumericCellValue()));
+					info.setPartnerCode(String.valueOf((int) cod.getNumericCellValue()));
 				
 				Cell nome = row.getCell(3);
 				if(nome != null)
@@ -67,7 +67,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				Cell codProd = row.getCell(5);
 				if(codProd != null)
-					info.setProductCode(String.valueOf(codProd.getNumericCellValue()));
+					info.setProductCode(String.valueOf((int) codProd.getNumericCellValue()));
 				
 				Cell produto = row.getCell(7);
 				if(produto != null)
@@ -107,11 +107,11 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				Cell numOsCell = row.getCell(0);
 				if(numOsCell != null)
-					order.setServiceOrderNumber(String.valueOf(numOsCell.getNumericCellValue()));
+					order.setServiceOrderNumber(String.valueOf((int) numOsCell.getNumericCellValue()));
 				
 				Cell codParCell = row.getCell(1);
 				if(codParCell != null)
-					order.setPartnerCode(String.valueOf(codParCell.getNumericCellValue()));
+					order.setPartnerCode(String.valueOf((int) codParCell.getNumericCellValue()));
 				
 				Cell aberturaChamadoCell = row.getCell(3);
 				if(aberturaChamadoCell != null && 
@@ -158,7 +158,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				Cell codParCell = row.getCell(0);
 				if(codParCell != null)
-					parts.setPartnerCode(String.valueOf(codParCell.getNumericCellValue()));
+					parts.setPartnerCode(String.valueOf((int) codParCell.getNumericCellValue()));
 				
 				Cell custoTotalCell = row.getCell(2);
 				if(custoTotalCell != null && 
@@ -191,7 +191,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				Cell codParCell = row.getCell(0);
 				if(codParCell != null)
-					hours.setPartnerCode(String.valueOf(codParCell.getNumericCellValue()));
+					hours.setPartnerCode(String.valueOf((int) codParCell.getNumericCellValue()));
 				
 				Cell custoTotalCell = row.getCell(2);
 				if(codParCell != null && codParCell.getCellType() == CellType.NUMERIC)
