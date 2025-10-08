@@ -82,7 +82,7 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 			
 			Customer partner = customersMap.get(code);
 			
-			newsletter.setEmailCliente(partner.getEmail().getAddress());
+			newsletter.setEmailCliente(partner != null ? partner.getEmail().getAddress() : "");
 			
 			newsletter.setStatus("Pendente");
 			
