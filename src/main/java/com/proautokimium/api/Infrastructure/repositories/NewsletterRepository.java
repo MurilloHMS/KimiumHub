@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.proautokimium.api.domain.models.Newsletter;
+import com.proautokimium.api.domain.entities.Newsletter;
 
 public interface NewsletterRepository extends JpaRepository<Newsletter, UUID>{
 

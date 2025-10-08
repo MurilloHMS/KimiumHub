@@ -16,7 +16,8 @@ import org.springframework.stereotype.Service;
 import com.proautokimium.api.Application.DTOs.email.NewsletterData;
 import com.proautokimium.api.Infrastructure.interfaces.email.newsletter.INewsletterBuilder;
 import com.proautokimium.api.domain.entities.Customer;
-import com.proautokimium.api.domain.models.Newsletter;
+import com.proautokimium.api.domain.entities.Newsletter;
+import com.proautokimium.api.domain.enums.EmailStatus;
 import com.proautokimium.api.domain.models.newsletter.NewsletterExchangedParts;
 import com.proautokimium.api.domain.models.newsletter.NewsletterNFeInfo;
 import com.proautokimium.api.domain.models.newsletter.NewsletterServiceOrders;
@@ -45,9 +46,9 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 		
 		Set<String> allPartnerSet = new HashSet<>();
 		allPartnerSet.addAll(notesPerPartnersMap.keySet());
-		allPartnerSet.addAll(ordersPerPartnersMap.keySet());
-		allPartnerSet.addAll(hoursPerPartnersMap.keySet());
-		allPartnerSet.addAll(partsPerPartnersMap.keySet());
+//		allPartnerSet.addAll(ordersPerPartnersMap.keySet());
+//		allPartnerSet.addAll(hoursPerPartnersMap.keySet());
+//		allPartnerSet.addAll(partsPerPartnersMap.keySet());
 		
 		List<Newsletter> newsletters = new ArrayList<>();
 		
@@ -82,9 +83,9 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 			
 			Customer partner = customersMap.get(code);
 			
-			newsletter.setEmailCliente(partner.getEmail().getAddress());
+			newsletter.setEmailCliente(partner != null ? partner.getEmail().getAddress() : "");
 			
-			newsletter.setStatus("Pendente");
+			newsletter.setStatus(EmailStatus.PENDING);
 			
 			newsletters.add(newsletter);
 		}

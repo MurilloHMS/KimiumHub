@@ -34,7 +34,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 			
 			int lastRow = sheet.getLastRowNum();
 			
-			for(int i = FIRST_DATA_ROW; i <= lastRow; i++) {
+			for(int i = FIRST_DATA_ROW; i < lastRow; i++) {
 				Row row = sheet.getRow(i);
 				if(row == null) continue;
 				
@@ -98,7 +98,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 			
 			int lastRow = sheet.getLastRowNum();
 			
-			for(int i = FIRST_DATA_ROW; i <= lastRow; i++) {
+			for(int i = FIRST_DATA_ROW; i < lastRow; i++) {
 				
 				Row row = sheet.getRow(i);
 				if(row == null) continue;
@@ -149,7 +149,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 			
 			int lastRow = sheet.getLastRowNum();
 			
-			for(int i = FIRST_DATA_ROW; i <= lastRow ; i++) {
+			for(int i = FIRST_DATA_ROW; i < lastRow ; i++) {
 				
 				Row row = sheet.getRow(i);
 				if(row != null) continue;
@@ -182,7 +182,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 			
 			int lastRow = sheet.getLastRowNum();
 			
-			for(int i = FIRST_DATA_ROW; i <= lastRow; i++) {
+			for(int i = FIRST_DATA_ROW; i < lastRow; i++) {
 				
 				Row row = sheet.getRow(i);
 				if(row != null) continue;
