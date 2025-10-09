@@ -25,7 +25,7 @@ import java.util.List;
 @Service
 public class NewsletterService {
 
-    private static final String TEMPLATE_NAME= "html/newsletter";
+    private static final String TEMPLATE_NAME= "html/newsletter-model";
     private static final String PROAUTO_LOGO_IMAGE= "templates/images/logo.png";
     private static final String PNG_MIME= "image/png";
 
