@@ -76,6 +76,7 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
             List<Newsletter> newsletters = builder.buildNewsletters(data, customers);
 
             if (!newsletters.isEmpty()) {
+            	newsletters.removeIf(n -> n.getFaturamentoTotal() <= 0);
                 repository.saveAll(newsletters);
             }
 

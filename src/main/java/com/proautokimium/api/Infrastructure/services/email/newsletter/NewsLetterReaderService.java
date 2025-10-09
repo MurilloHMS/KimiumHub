@@ -97,11 +97,11 @@ public class NewsLetterReaderService implements INewsletterReader{
 				if(produto != null)
 					info.setProductName(produto.getStringCellValue());
 				
-				Cell qtd = row.getCell(9);
+				Cell qtd = row.getCell(8);
 				if(qtd != null && qtd.getCellType() == CellType.NUMERIC)
 					info.setQuantity(qtd.getNumericCellValue());
 				
-				Cell totalComImposto = row.getCell(10);
+				Cell totalComImposto = row.getCell(9);
 				if(totalComImposto != null && totalComImposto.getCellType() == CellType.NUMERIC)
 					info.setValueWithTaxes(totalComImposto.getNumericCellValue());
 					
