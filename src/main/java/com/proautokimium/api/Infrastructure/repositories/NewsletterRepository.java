@@ -10,4 +10,6 @@ import com.proautokimium.api.domain.enums.EmailStatus;
 
 public interface NewsletterRepository extends JpaRepository<Newsletter, UUID>{
 	List<Newsletter> findAllByStatus(EmailStatus status);
+
+	List<Newsletter> findAllByStatusIn(EmailStatus pending, EmailStatus pending2);
 }

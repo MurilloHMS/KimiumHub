@@ -1,10 +1,11 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
-import java.io.FileInputStream;
 import java.util.List;
-
+import com.proautokimium.api.Infrastructure.repositories.SmtpEmailRepository;
+import com.proautokimium.api.controllers.NewsletterController;
 import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.entities.Newsletter;
+import com.proautokimium.api.domain.enums.EmailStatus;
 import com.proautokimium.api.domain.models.newsletter.NewsletterExchangedParts;
 import com.proautokimium.api.domain.models.newsletter.NewsletterNFeInfo;
 import com.proautokimium.api.domain.models.newsletter.NewsletterServiceOrders;
@@ -22,20 +23,23 @@ import com.proautokimium.api.Infrastructure.repositories.NewsletterRepository;
 @Service
 public class NewsletterOrchestratorService implements INewsletterOrchestrator {
 
+
 	private final NewsletterRepository repository;
     private final NewsletterBuilderService builder;
     private final NewsLetterReaderService reader;
     private final CustomerRepository customerRepository;
+    private final NewsletterService service;
 
-    @Autowired
     public NewsletterOrchestratorService(NewsletterBuilderService builder,
                                         NewsLetterReaderService reader,
                                         CustomerRepository customerRepository,
-                                        NewsletterRepository repository) {
+                                        NewsletterRepository repository,
+                                        NewsletterService service) {
         this.builder = builder;
         this.reader = reader;
         this.customerRepository = customerRepository;
         this.repository = repository;
+        this.service = service;
     }
 	
 	@Override
@@ -79,20 +83,18 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
 	
 	@Override 
 	public void executeMonthlyNewsletter() {
+		List<Newsletter> newslettersToSend = repository.findAllByStatusIn(EmailStatus.PENDING, EmailStatus.PENDING);
 		
-	}
-	
-	private FileInputStream findFile(List<FileInputStream> streams, String keyword) {
-		return streams.stream()
-				.filter(fis -> {
-					try {
-						String name = fis.getFD().toString();
-						return name.contains(keyword);
-					}catch (Exception e) {
-						return false;
-					}
-				})
-				.findFirst()
-				.orElseThrow(() -> new RuntimeException("Arquivo " + keyword + "não encontrado"));
+		for(Newsletter newsletter: newslettersToSend) {
+			try {
+				service.sendMailWithInline(newsletter);
+				newsletter.setStatus(EmailStatus.SENT);
+			}catch (Exception e) {
+				newsletter.setStatus(EmailStatus.ERROR);
+				 System.err.println("Erro ao enviar newsletter para " + newsletter.getCodigoCliente() + ": " + e.getMessage());
+			}finally {
+				repository.save(newsletter);
+			}
+		}
 	}
 }
