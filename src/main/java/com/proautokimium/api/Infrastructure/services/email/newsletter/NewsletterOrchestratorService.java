@@ -30,6 +30,7 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
     private final CustomerRepository customerRepository;
     private final NewsletterService service;
 
+    @Autowired
     public NewsletterOrchestratorService(NewsletterBuilderService builder,
                                         NewsLetterReaderService reader,
                                         CustomerRepository customerRepository,
