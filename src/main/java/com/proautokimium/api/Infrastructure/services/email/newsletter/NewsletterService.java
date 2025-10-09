@@ -14,6 +14,8 @@ import org.thymeleaf.context.Context;
 
 import com.proautokimium.api.Application.DTOs.email.NewsletterResponseDTO;
 import com.proautokimium.api.Infrastructure.repositories.NewsletterRepository;
+import com.proautokimium.api.Infrastructure.repositories.SmtpEmailRepository;
+import com.proautokimium.api.domain.entities.EmailEntity;
 import com.proautokimium.api.domain.entities.Newsletter;
 import com.proautokimium.api.domain.enums.EmailStatus;
 
@@ -32,12 +34,14 @@ public class NewsletterService {
     private final TemplateEngine htmlTemplateEngine;
     
     private final NewsletterRepository repository;
+    private final SmtpEmailRepository emailRepository;
 
-    public NewsletterService(Environment environment, JavaMailSender mailSender, TemplateEngine htmlTemplateEngine, NewsletterRepository repository) {
+    public NewsletterService(Environment environment, JavaMailSender mailSender, TemplateEngine htmlTemplateEngine, NewsletterRepository repository, SmtpEmailRepository emailRepository) {
         this.environment = environment;
         this.mailSender = mailSender;
         this.htmlTemplateEngine = htmlTemplateEngine;
         this.repository = repository;
+        this.emailRepository = emailRepository;
     }
     
     public List<NewsletterResponseDTO> getAllPendingEmails(){
@@ -61,9 +65,10 @@ public class NewsletterService {
     }
 
     public void sendMailWithInline(Newsletter newsletter) throws MessagingException, UnsupportedEncodingException{
-        String confirmationUrl = "generated_confirmation_url";
-        String mailFrom = environment.getProperty("spring.mail.properties.mail.smtp.from");
-        String mailFromName = environment.getProperty("mail.from.name", "Proauto Kimium");
+    	EmailEntity newsletterEmail = emailRepository.findByName("newsletter");
+    	
+        String mailFrom = environment.getProperty(newsletterEmail.getEmail().getAddress());
+        String mailFromName = environment.getProperty(newsletterEmail.getName(), "Proauto Kimium");
 
         final MimeMessage mimeMessage = this.mailSender.createMimeMessage();
         final MimeMessageHelper email;

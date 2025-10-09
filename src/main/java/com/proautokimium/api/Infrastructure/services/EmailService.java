@@ -22,7 +22,7 @@ public class EmailService {
     public void saveEmail(SmtpEmailRequestDTO dto){
         EmailEntity email = new EmailEntity();
         email.setName(dto.nome());
-        String completeEmail = dto.nome() + "@proautokimium.com.br";
+        String completeEmail = dto.nome() + "@envios.proautokimium.com.br";
         email.setEmail(new Email(completeEmail));
 
         repository.save(email);
@@ -39,7 +39,7 @@ public class EmailService {
     @Transactional
     public void updateEmail(SmtpEmailRequestDTO dto){
         EmailEntity email = repository.findByName(dto.nome());
-        String completeEmail = dto.nome() + "@proautokimium.com.br";
+        String completeEmail = dto.nome() + "@envios.proautokimium.com.br";
         email.setEmail(new Email(completeEmail));
         repository.save(email);
     }

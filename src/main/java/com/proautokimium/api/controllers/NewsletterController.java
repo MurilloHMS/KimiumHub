@@ -47,4 +47,10 @@ public class NewsletterController {
     public ResponseEntity<Object> getPendingEmails(){
     	return ResponseEntity.ok(newsletterService.getAllPendingEmails());
     }
+    
+    @PostMapping("pending/send")
+    public ResponseEntity<Object> sentPendingNewsletter(){
+    	newsletterOrchestratorService.executeMonthlyNewsletter();
+    	return ResponseEntity.ok("Envio de newsletters iniciado.");
+    }
 }
