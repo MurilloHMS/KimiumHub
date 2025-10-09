@@ -87,16 +87,18 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
 	@Override 
 	public void executeMonthlyNewsletter() {
 		List<Newsletter> newslettersToSend = repository.findAllByStatusIn(List.of(EmailStatus.PENDING, EmailStatus.RETRYING));
-		
+		System.out.println("[INFO] : Iniciando envios de emails");
 		for(Newsletter newsletter: newslettersToSend) {
 			try {
 				service.sendMailWithInline(newsletter);
 				newsletter.setStatus(EmailStatus.SENT);
+				System.out.println("[SUCCESS] : Email enviado com sucesso!");
 			}catch (Exception e) {
 				newsletter.setStatus(EmailStatus.ERROR);
-				 System.err.println("Erro ao enviar newsletter para " + newsletter.getCodigoCliente() + ": " + e.getMessage());
+				 System.err.println("[ERROR] : Erro ao enviar newsletter para " + newsletter.getCodigoCliente() + ": " + e.getMessage());
 			}finally {
 				repository.save(newsletter);
+				System.out.println("[INFO] : Email Atualizado no banco de dados");
 			}
 		}
 	}
