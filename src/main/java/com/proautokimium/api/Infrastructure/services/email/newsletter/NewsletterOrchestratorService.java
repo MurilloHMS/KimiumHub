@@ -1,5 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import com.proautokimium.api.Infrastructure.repositories.SmtpEmailRepository;
 import com.proautokimium.api.controllers.NewsletterController;
@@ -84,7 +86,7 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
 	
 	@Override 
 	public void executeMonthlyNewsletter() {
-		List<Newsletter> newslettersToSend = repository.findAllByStatusIn(EmailStatus.PENDING, EmailStatus.PENDING);
+		List<Newsletter> newslettersToSend = repository.findAllByStatusIn(List.of(EmailStatus.PENDING, EmailStatus.RETRYING));
 		
 		for(Newsletter newsletter: newslettersToSend) {
 			try {
