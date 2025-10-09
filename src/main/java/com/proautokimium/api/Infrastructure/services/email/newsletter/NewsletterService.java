@@ -35,6 +35,7 @@ public class NewsletterService {
     
     private final NewsletterRepository repository;
     private final SmtpEmailRepository emailRepository;
+    
 
     public NewsletterService(Environment environment, JavaMailSender mailSender, TemplateEngine htmlTemplateEngine, NewsletterRepository repository, SmtpEmailRepository emailRepository) {
         this.environment = environment;
@@ -67,8 +68,8 @@ public class NewsletterService {
     public void sendMailWithInline(Newsletter newsletter) throws MessagingException, UnsupportedEncodingException{
     	EmailEntity newsletterEmail = emailRepository.findByName("newsletter");
     	
-        String mailFrom = environment.getProperty(newsletterEmail.getEmail().getAddress());
-        String mailFromName = environment.getProperty(newsletterEmail.getName(), "Proauto Kimium");
+        String mailFrom = newsletterEmail.getEmail().getAddress();
+        String mailFromName = newsletterEmail.getName();
 
         final MimeMessage mimeMessage = this.mailSender.createMimeMessage();
         final MimeMessageHelper email;
