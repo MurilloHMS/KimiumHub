@@ -1,7 +1,9 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,11 +49,33 @@ public class NewsLetterReaderService implements INewsletterReader{
 				Cell dataCompleta = row.getCell(1);
 				if(dataCompleta != null &&
 						dataCompleta.getCellType() == CellType.NUMERIC &&
-						DateUtil.isCellDateFormatted(dataCompleta))
+						DateUtil.isCellDateFormatted(dataCompleta)) {
 					info.setDate(dataCompleta.getDateCellValue()
 							.toInstant()
 							.atZone(ZoneId.systemDefault())
 							.toLocalDate());
+					
+				}else if (dataCompleta.getCellType() == CellType.STRING) {
+					String value = dataCompleta.getStringCellValue().trim()
+							.replace("\u00A0", "")
+							.replace("\u202F", "")
+							.replace(".", "/")
+							.replace("-", "/");
+					
+					try {
+						DateTimeFormatter formatter;
+						if(value.matches("\\d{4}-\\d{2}-\\d{2}")) {
+							formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+						}else if (value.matches("\\d{2}-\\d{2}-\\d{4}")) {
+							formatter = DateTimeFormatter.ofPattern("dd/mm/yyyy");
+						}else {
+							formatter = DateTimeFormatter.ofPattern("d/M/yyyy");
+						}
+						info.setDate(LocalDate.parse(value, formatter));
+					 } catch (Exception e) {
+					        System.err.println("⚠️ Erro ao converter data da célula: [" + value + "] " + e.getMessage());
+					    }
+				}
 				
 				Cell cod = row.getCell(2);
 				if(cod != null)
@@ -61,9 +85,9 @@ public class NewsLetterReaderService implements INewsletterReader{
 				if(nome != null)
 					info.setPartnerName(nome.getStringCellValue());
 				
-				Cell apelido = row.getCell(4);
-				if(apelido != null)
-					info.setPartnerName(apelido.getStringCellValue());
+//				Cell apelido = row.getCell(4);
+//				if(apelido != null)
+//					info.setPartnerName(apelido.getStringCellValue());
 				
 				Cell codProd = row.getCell(5);
 				if(codProd != null)
