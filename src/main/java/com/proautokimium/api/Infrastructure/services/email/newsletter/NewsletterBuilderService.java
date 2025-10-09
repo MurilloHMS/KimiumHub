@@ -7,10 +7,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections4.map.EntrySetToMapIteratorAdapter;
 import org.springframework.stereotype.Service;
 
 import com.proautokimium.api.Application.DTOs.email.NewsletterData;
@@ -53,21 +55,29 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 		List<Newsletter> newsletters = new ArrayList<>();
 		
 		for(String code : allPartnerSet) {
+			List<NewsletterNFeInfo> notes = notesPerPartnersMap.getOrDefault(code, Collections.emptyList());
+			if(notes.isEmpty())
+				continue;
+			
+			NewsletterNFeInfo firstWithDate = notes.stream().filter(x -> x.getDate() != null).findFirst().orElse(null);
+			
 			Newsletter newsletter = new Newsletter();
 			newsletter.setCodigoCliente(code);
+			newsletter.setNomeDoCliente(notes.get(0).getPartnerName());
+			newsletter.setQuantidadeNotasEmitidas(notes.size());
+			newsletter.setFaturamentoTotal(notes.stream().mapToDouble(NewsletterNFeInfo::getValueWithTaxes).sum());
+			newsletter.setQuantidadeDeProdutos(notes.size());
+			newsletter.setQuantidadeDeLitros(notes.stream().mapToDouble(NewsletterNFeInfo::getQuantity).sum());
+			newsletter.setData(firstWithDate.getDate());
 			
-			List<NewsletterNFeInfo> notes = notesPerPartnersMap.getOrDefault(code, Collections.emptyList());
-			if(!notes.isEmpty()) {
-				newsletter.setNomeDoCliente(notes.get(0).getPartnerName());
-				newsletter.setQuantidadeNotasEmitidas(notes.size());
-				newsletter.setFaturamentoTotal(notes.stream().mapToDouble(NewsletterNFeInfo::getValueWithTaxes).sum());
-				newsletter.setQuantidadeDeProdutos(notes.size());
-				newsletter.setQuantidadeDeLitros(notes.stream().mapToDouble(NewsletterNFeInfo::getQuantity).sum());
-				newsletter.setData(notes.get(0).getDate());
-				
-				String month = notes.get(0).getDate().getMonth().getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
-				newsletter.setMes(month);
-			}
+			String month = firstWithDate.getDate().getMonth().getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
+			newsletter.setMes(month);
+			
+			Map<String, Double> produtosVendidos = notes.stream().collect(Collectors.groupingBy(NewsletterNFeInfo::getProductName, Collectors.summingDouble(NewsletterNFeInfo::getQuantity)));
+			Optional<Map.Entry<String, Double>> produtoMaisVendido = produtosVendidos.entrySet().stream().max(Map.Entry.comparingByValue());
+			
+			produtoMaisVendido.ifPresent(entry -> newsletter.setProdutoEmDestaque(entry.getKey()));
+			
 			
 			List<NewsletterServiceOrders> orders = ordersPerPartnersMap.getOrDefault(code, Collections.emptyList());
 			newsletter.setQuantidadeDeVisitas(orders.size());

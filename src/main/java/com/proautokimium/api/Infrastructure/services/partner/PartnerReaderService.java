@@ -40,7 +40,7 @@ public class PartnerReaderService implements IPartnerReader{
 				
 				Cell codParCell = row.getCell(0);
 				if(codParCell != null && codParCell.getCellType() == CellType.NUMERIC)
-					customer.setCodParceiro(String.valueOf(codParCell.getNumericCellValue()));
+					customer.setCodParceiro(String.valueOf((int) codParCell.getNumericCellValue()));
 				
 				Cell codMatrizCell = row.getCell(1);
 				if(codMatrizCell != null && codMatrizCell.getCellType() == CellType.NUMERIC)
