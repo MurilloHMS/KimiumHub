@@ -17,7 +17,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public abstract class Employee extends Partner {
+public class Employee extends Partner {
     @Column(name = "codigo_gerente", length = 9)
     private String codigoGerente;
     @Column(name = "hierarquia", length = 15)

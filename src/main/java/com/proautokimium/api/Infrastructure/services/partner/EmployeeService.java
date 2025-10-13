@@ -2,27 +2,26 @@ package com.proautokimium.api.Infrastructure.services.partner;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.proautokimium.api.Application.DTOs.partners.EmployeeDTO;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.domain.entities.Employee;
+import com.proautokimium.api.domain.entities.Newsletter;
 import com.proautokimium.api.domain.valueObjects.Email;
 
 @Service
 public class EmployeeService {
 
-	private final EmployeeRepository repository;
-	
-	public EmployeeService(EmployeeRepository repository) {
-		this.repository = repository;
-	}
+	@Autowired
+	EmployeeRepository repository;
 	
 	public ResponseEntity<?> createEmployee(EmployeeDTO dto) {
 		
 		try {
-			Employee employee = new Employee() {};
+			Employee employee = new Employee();
 		
 			employee.setCodParceiro(dto.partnerCode());
 			employee.setCodigoGerente(dto.managerCode());
@@ -63,7 +62,17 @@ public class EmployeeService {
 	public ResponseEntity<?> getAllEmployes(){
 		
 		try {
-			List<Employee> employesList = repository.findAll();
+			List<EmployeeDTO> employesList = repository.findAll()
+					.stream().map(m -> new EmployeeDTO(
+							m.getCodParceiro(),
+							m.getDocumento(),
+							m.getName(),
+							m.getEmail().getAddress(),
+							m.isAtivo(),
+							m.getCodigoGerente(),
+							m.getHierarquia(),
+							m.getBirthday()
+							)).toList();
 			return ResponseEntity.ok(employesList);
 		}catch (Exception e) {
 			return ResponseEntity.badRequest().body("Ocorreu um erro ao obter a lista de funcionários. Error Message: " + e.getMessage());
