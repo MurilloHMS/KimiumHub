@@ -9,6 +9,8 @@ import com.proautokimium.api.domain.models.newsletter.NewsletterNFeInfo;
 import com.proautokimium.api.domain.models.newsletter.NewsletterServiceOrders;
 import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
 
+import jakarta.transaction.Transactional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -39,6 +41,7 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
         this.service = service;
     }
 	
+    @Transactional
 	@Override
     public void includeMonthlyNewsletter(List<MultipartFile> files) {
 

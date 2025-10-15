@@ -47,7 +47,8 @@ public class ServiceLocationService {
     public List<ServiceLocation> getAllServiceLocations() {
         return repository.findAll();
     }
-
+    
+    @Transactional
     public void updateServiceLocation(ServiceLocationDTO dto){
         var sl = repository.findServiceLocationByCodParceiro(dto.codParceiro());
 
