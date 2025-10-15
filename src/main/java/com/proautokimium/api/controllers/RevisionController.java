@@ -3,7 +3,6 @@ package com.proautokimium.api.controllers;
 import com.proautokimium.api.Application.DTOs.vehicle.RevisionRequestDTO;
 import com.proautokimium.api.Infrastructure.services.ServiceLocationService;
 import com.proautokimium.api.Infrastructure.services.VehicleService;
-import com.proautokimium.api.domain.entities.ServiceLocation;
 import com.proautokimium.api.domain.entities.Vehicle;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

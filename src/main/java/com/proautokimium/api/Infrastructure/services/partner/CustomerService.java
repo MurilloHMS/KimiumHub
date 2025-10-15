@@ -16,6 +16,8 @@ import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
 import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.valueObjects.Email;
 
+import jakarta.transaction.Transactional;
+
 @Service
 public class CustomerService {
 	
@@ -25,6 +27,7 @@ public class CustomerService {
 	@Autowired
 	PartnerReaderService reader;
 	
+	@Transactional
 	public ResponseEntity<Object> createCustomer(CustomerRequestDTO dto){
 		if(this.repository.findByCodParceiro(dto.codParceiro()) != null) return ResponseEntity.unprocessableEntity().body("Parceiro já existe no banco");
 		
@@ -33,6 +36,7 @@ public class CustomerService {
 		return ResponseEntity.status(203).body("Parceiro criado com sucesso!");
 	}
 	
+	@Transactional
 	public ResponseEntity<Object> includeCustomersByExcel(MultipartFile file){
 		try {
 			List<Customer> customers = reader.getCustomersByExcel(file.getInputStream());
@@ -89,6 +93,7 @@ public class CustomerService {
 				: ResponseEntity.ok(customerList);
 	}
 	
+	@Transactional
 	public ResponseEntity<Void> UpdateCustomer(CustomerRequestDTO dto){
         var customer = this.repository.findByCodParceiro(dto.codParceiro());
         if(customer == null) return ResponseEntity.notFound().build();
@@ -104,6 +109,7 @@ public class CustomerService {
         return ResponseEntity.ok().build();
     }
 	
+	@Transactional
 	public ResponseEntity<Void> DeleteCustomer(String codParceiro){
         var customer = this.repository.findByCodParceiro(codParceiro);
         if(customer == null) return ResponseEntity.notFound().build();

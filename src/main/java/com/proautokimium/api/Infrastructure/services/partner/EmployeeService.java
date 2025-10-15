@@ -9,8 +9,9 @@ import org.springframework.stereotype.Service;
 import com.proautokimium.api.Application.DTOs.partners.EmployeeDTO;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.domain.entities.Employee;
-import com.proautokimium.api.domain.entities.Newsletter;
 import com.proautokimium.api.domain.valueObjects.Email;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class EmployeeService {
@@ -18,6 +19,7 @@ public class EmployeeService {
 	@Autowired
 	EmployeeRepository repository;
 	
+	@Transactional
 	public ResponseEntity<?> createEmployee(EmployeeDTO dto) {
 		
 		try {
@@ -39,6 +41,7 @@ public class EmployeeService {
 		}
 	}
 	
+	@Transactional
 	public ResponseEntity<?> updateEmployee(EmployeeDTO dto){
 		try {
 			Employee employee = repository.findByCodParceiro(dto.partnerCode());

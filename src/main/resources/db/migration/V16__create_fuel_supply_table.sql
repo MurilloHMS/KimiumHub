@@ -1,0 +1,16 @@
+CREATE TABLE fuelsupply (
+	id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+	fuelSupplyDate DATE NOT NULL,
+	uf VARCHAR(2) NOT NULL,
+	plate VARCHAR(10) NOT NULL,
+	driverName VARCHAR(150) NOT NULL,
+	department VARCHAR(50) NOT NULL,
+	actualHodometer DOUBLE PRECISION NOT NULL,
+	lastHodometer DOUBLE PRECISION NOT NULL,
+	diferenceHodometer DOUBLE PRECISION NOT NULL,
+	averageKm DOUBLE PRECISION NOT NULL,
+	fuelType VARCHAR(20) NOT NULL,
+	prive DOUBLE PRECISION NOT NULL,
+	totalValue DOUBLE PRECISION NOT NULL
+	
+)
