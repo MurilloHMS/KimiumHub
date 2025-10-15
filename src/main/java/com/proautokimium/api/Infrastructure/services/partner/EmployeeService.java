@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import com.proautokimium.api.Application.DTOs.partners.EmployeeDTO;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.domain.entities.Employee;
-import com.proautokimium.api.domain.entities.Newsletter;
 import com.proautokimium.api.domain.valueObjects.Email;
 
 @Service

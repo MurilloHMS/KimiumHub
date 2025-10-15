@@ -12,7 +12,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections4.map.EntrySetToMapIteratorAdapter;
 import org.springframework.stereotype.Service;
 
 import com.proautokimium.api.Application.DTOs.email.NewsletterData;
@@ -28,6 +27,7 @@ import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
 @Service
 public class NewsletterBuilderService implements INewsletterBuilder {
 
+	@SuppressWarnings("unused")
 	@Override
 	public List<Newsletter> buildNewsletters(NewsletterData data, List<Customer> customers) {
 		
@@ -70,7 +70,7 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 			newsletter.setQuantidadeDeLitros(notes.stream().mapToDouble(NewsletterNFeInfo::getQuantity).sum());
 			newsletter.setData(firstWithDate.getDate());
 			
-			String month = firstWithDate.getDate().getMonth().getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
+			String month = firstWithDate.getDate().getMonth().getDisplayName(TextStyle.FULL, Locale.of("pt", "BR"));
 			newsletter.setMes(month);
 			
 			Map<String, Double> produtosVendidos = notes.stream().collect(Collectors.groupingBy(NewsletterNFeInfo::getProductName, Collectors.summingDouble(NewsletterNFeInfo::getQuantity)));

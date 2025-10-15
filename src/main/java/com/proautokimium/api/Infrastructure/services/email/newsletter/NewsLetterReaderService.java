@@ -180,6 +180,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				NewsletterExchangedParts parts = new NewsletterExchangedParts();
 				
+				@SuppressWarnings("null")
 				Cell codParCell = row.getCell(0);
 				if(codParCell != null)
 					parts.setPartnerCode(String.valueOf((int) codParCell.getNumericCellValue()));
@@ -213,6 +214,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 				
 				NewsletterTechnicalHours hours = new NewsletterTechnicalHours();
 				
+				@SuppressWarnings("null")
 				Cell codParCell = row.getCell(0);
 				if(codParCell != null)
 					hours.setPartnerCode(String.valueOf((int) codParCell.getNumericCellValue()));

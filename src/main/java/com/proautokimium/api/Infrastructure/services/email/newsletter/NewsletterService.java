@@ -4,7 +4,6 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -28,8 +27,6 @@ public class NewsletterService {
     private static final String TEMPLATE_NAME= "html/newsletter-model";
     private static final String PROAUTO_LOGO_IMAGE= "templates/images/logo.png";
     private static final String PNG_MIME= "image/png";
-
-    private final Environment environment;
     private final JavaMailSender mailSender;
     private final TemplateEngine htmlTemplateEngine;
     
@@ -37,8 +34,7 @@ public class NewsletterService {
     private final SmtpEmailRepository emailRepository;
     
 
-    public NewsletterService(Environment environment, JavaMailSender mailSender, TemplateEngine htmlTemplateEngine, NewsletterRepository repository, SmtpEmailRepository emailRepository) {
-        this.environment = environment;
+    public NewsletterService(JavaMailSender mailSender, TemplateEngine htmlTemplateEngine, NewsletterRepository repository, SmtpEmailRepository emailRepository) {
         this.mailSender = mailSender;
         this.htmlTemplateEngine = htmlTemplateEngine;
         this.repository = repository;

@@ -1,10 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import com.proautokimium.api.Infrastructure.repositories.SmtpEmailRepository;
-import com.proautokimium.api.controllers.NewsletterController;
 import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.entities.Newsletter;
 import com.proautokimium.api.domain.enums.EmailStatus;
@@ -13,7 +9,6 @@ import com.proautokimium.api.domain.models.newsletter.NewsletterNFeInfo;
 import com.proautokimium.api.domain.models.newsletter.NewsletterServiceOrders;
 import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,7 +27,6 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
     private final CustomerRepository customerRepository;
     private final NewsletterService service;
 
-    @Autowired
     public NewsletterOrchestratorService(NewsletterBuilderService builder,
                                         NewsLetterReaderService reader,
                                         CustomerRepository customerRepository,
