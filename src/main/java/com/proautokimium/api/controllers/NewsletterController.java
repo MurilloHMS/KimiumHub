@@ -35,7 +35,7 @@ public class NewsletterController {
     }
     
     @PostMapping("upload")
-    public ResponseEntity<Object> includeNewsletters(@RequestParam("files") List<MultipartFile> files) throws Exception{
+    public ResponseEntity<Object> includeNewsletters(@RequestParam List<MultipartFile> files) throws Exception{
     	if(files.size() > 4) {
     		return ResponseEntity.badRequest().body("Máximo permitido 4 arquivos. Você enviou " + files.size());
     	}

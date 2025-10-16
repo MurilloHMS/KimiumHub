@@ -1,6 +1,5 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
-import java.time.LocalTime;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,7 +12,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.fontbox.ttf.table.common.CoverageTableFormat1;
 import org.springframework.stereotype.Service;
 
 import com.proautokimium.api.Application.DTOs.email.NewsletterData;
@@ -29,7 +27,6 @@ import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
 @Service
 public class NewsletterBuilderService implements INewsletterBuilder {
 
-	@SuppressWarnings("unused")
 	@Override
 	public List<Newsletter> buildNewsletters(NewsletterData data, List<Customer> customers) {
 		
