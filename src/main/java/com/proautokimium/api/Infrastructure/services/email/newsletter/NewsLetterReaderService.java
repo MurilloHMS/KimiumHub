@@ -219,6 +219,10 @@ public class NewsLetterReaderService implements INewsletterReader{
 				if(codParCell != null)
 					hours.setPartnerCode(String.valueOf((int) codParCell.getNumericCellValue()));
 				
+				Cell horasTotais = row.getCell(1);
+				if(horasTotais != null && horasTotais.getCellType() == CellType.NUMERIC)
+					hours.setTimePerPartner(horasTotais.getNumericCellValue());
+				
 				Cell custoTotalCell = row.getCell(2);
 				if(codParCell != null && codParCell.getCellType() == CellType.NUMERIC)
 					hours.setTotalValuePerPartner(custoTotalCell.getNumericCellValue());

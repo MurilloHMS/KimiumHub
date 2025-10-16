@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
+import java.time.LocalTime;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,6 +13,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.fontbox.ttf.table.common.CoverageTableFormat1;
 import org.springframework.stereotype.Service;
 
 import com.proautokimium.api.Application.DTOs.email.NewsletterData;
@@ -90,6 +92,13 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 			List<NewsletterExchangedParts> parts = partsPerPartnersMap.getOrDefault(code, Collections.emptyList());
 			double partsValue = parts.stream().mapToDouble(NewsletterExchangedParts::getTotalCost).sum();
 			newsletter.setValorDePecasTrocadas(partsValue);
+			
+			List<NewsletterTechnicalHours> hours = hoursPerPartnersMap.getOrDefault(code, Collections.emptyList());
+			double totalHours = hours.isEmpty() ? 0 : hours.get(0).getTimePerPartner();
+			newsletter.setValorTotalDeHoras(totalHours);
+			
+			double totalHoursValue = hours.isEmpty() ? 0 : hours.get(0).getTotalValuePerPartner();
+			newsletter.setValorTotalCobradoHoras(totalHoursValue);
 			
 			Customer partner = customersMap.get(code);
 			
