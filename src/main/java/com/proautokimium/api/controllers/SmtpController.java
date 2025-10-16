@@ -3,7 +3,9 @@ package com.proautokimium.api.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,23 +20,24 @@ public class SmtpController {
 	@Autowired
 	SmtpService service;
 	
-	 public ResponseEntity<?> sendEmail(
-	            @RequestPart("data") SmtpMail request,
-	            @RequestPart(value = "attachments", required = false) MultipartFile[] attachments,
-	            Authentication authentication) {
-
-	        String senderEmail = authentication.getName(); 
-	        SmtpMail emailData = new SmtpMail(
-	                request.recipients(),
-	                request.subject(),
-	                request.body(),
-	                request.cc(),
-	                request.bcc(),
-	                attachments,
-	                request.imageBase64()
-	        );
-
-	        service.sendEmail(emailData, senderEmail);
-	        return ResponseEntity.ok("E-mail enviado com sucesso!");
-	    }
+	@PostMapping( value = "send", consumes = "multipart/form-data")
+	public ResponseEntity<?> sendEmail(
+            @RequestPart("data") SmtpMail request,
+	        @RequestPart(value = "attachments", required = false) MultipartFile[] attachments) {
+	
+	    
+	    SmtpMail emailData = new SmtpMail(
+	            request.recipients(),
+	            request.sender(),
+	            request.subject(),
+	            request.body(),
+	            request.cc(),
+	            request.bcc(),
+	            attachments,
+	            request.imageBase64()
+	    );
+	
+	    service.sendEmail(emailData);
+	    return ResponseEntity.ok("E-mail enviado com sucesso!");
+	}
 }
