@@ -56,6 +56,8 @@ public class NewsletterService {
     					m.getProdutoEmDestaque(),
     					m.getFaturamentoTotal(),
     					m.getValorDePecasTrocadas(),
+    					m.getValorTotalDeHoras(),
+    					m.getValorTotalCobradoHoras(),
     					m.getStatus(),
     					m.getEmailCliente()
     					)).toList();
@@ -84,6 +86,8 @@ public class NewsletterService {
         ctx.setVariable("quantidadeDeLitros", newsletter.getQuantidadeDeLitros());
         ctx.setVariable("quantidadeDeVisitas", newsletter.getQuantidadeDeVisitas());
         ctx.setVariable("valorDePecasTrocadas", newsletter.getValorDePecasTrocadas());
+        ctx.setVariable("valorTotalDeHoras", newsletter.getValorTotalDeHoras());
+        ctx.setVariable("valorTotalCobradoHoras", newsletter.getValorTotalCobradoHoras());
         ctx.setVariable("mediaDiasAtendimento", newsletter.getMediaDiasAtendimento());
         ctx.setVariable("faturamentoTotal", newsletter.getFaturamentoTotal());
 
