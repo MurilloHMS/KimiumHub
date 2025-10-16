@@ -27,7 +27,6 @@ import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
 @Service
 public class NewsletterBuilderService implements INewsletterBuilder {
 
-	@SuppressWarnings("unused")
 	@Override
 	public List<Newsletter> buildNewsletters(NewsletterData data, List<Customer> customers) {
 		
@@ -90,6 +89,13 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 			List<NewsletterExchangedParts> parts = partsPerPartnersMap.getOrDefault(code, Collections.emptyList());
 			double partsValue = parts.stream().mapToDouble(NewsletterExchangedParts::getTotalCost).sum();
 			newsletter.setValorDePecasTrocadas(partsValue);
+			
+			List<NewsletterTechnicalHours> hours = hoursPerPartnersMap.getOrDefault(code, Collections.emptyList());
+			double totalHours = hours.isEmpty() ? 0 : hours.get(0).getTimePerPartner();
+			newsletter.setValorTotalDeHoras(totalHours);
+			
+			double totalHoursValue = hours.isEmpty() ? 0 : hours.get(0).getTotalValuePerPartner();
+			newsletter.setValorTotalCobradoHoras(totalHoursValue);
 			
 			Customer partner = customersMap.get(code);
 			

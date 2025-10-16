@@ -15,6 +15,8 @@ public record NewsletterResponseDTO(String codigoCliente,
 		String produtoDestaque,
 		double faturamentoTotal,
 		double valorPecasTrocadas,
+		double valorTotalDeHoras,
+		Double valorTotalCobradoHoras,
 		EmailStatus status,
 		String email) {
 

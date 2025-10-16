@@ -35,7 +35,7 @@ public class PdfController {
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> upload(@RequestParam("file") MultipartFile file){
+    public ResponseEntity<?> upload(@RequestParam MultipartFile file){
         if(file == null || file.isEmpty()){
             return ResponseEntity.badRequest().body("Nenhum arquivo ou arquivo inválido enviado");
         }
