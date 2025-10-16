@@ -15,13 +15,13 @@ public class SmtpService {
 	@Autowired
 	JavaMailSender mailSender;
 	
-	public void sendEmail(SmtpMail request, String senderEmail) {
+	public void sendEmail(SmtpMail request) {
 		
 		try {
 			MimeMessage message = mailSender.createMimeMessage();
 			MimeMessageHelper helper = new MimeMessageHelper(message, true);
 			
-			helper.setFrom(senderEmail);
+			helper.setFrom(request.sender());
 			helper.setTo(request.recipients().toArray(new String[0]));
 			if(request.cc() != null) helper.setCc(request.cc().toArray(new String[0]));
 			if(request.bcc() != null) helper.setBcc(request.bcc().toArray(new String[0]));
