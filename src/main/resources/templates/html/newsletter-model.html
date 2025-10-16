@@ -89,7 +89,7 @@
                                 </td>
                                 <td width="33%" align="center" style="padding:10px;">
                                     <h3 style="color:#f1f2f4;">valor das peças trocadas</h3>
-                                    <h1 style="background-color:#f1f2f4; color:#252d61; font-size:32px; border-radius:12px; padding:40px 0;" th:text="${valorDePecasTrocadas}">R$ 0,00</h1>
+                                    <h1 style="background-color:#f1f2f4; color:#252d61; font-size:32px; border-radius:12px; padding:40px 0;" th:text="|R$ ${valorDePecasTrocadas}|">R$ 0,00</h1>
                                 </td>
                                 <td width="33%" align="center" style="padding:10px;">
                                     <h3 style="color:#f1f2f4;">média de dias para atendimento</h3>
@@ -101,7 +101,7 @@
                 </tr>
                 
                 <!-- Horas gastas -->
-                <tr th:if="${valorTotalDeHoras} > 0}">
+                <tr th:if="${valorTotalDeHoras > 0}">
                     <td style="background-color:#252d61; padding:25px; color:#ffffff;">
                         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
                             <tr>
@@ -111,7 +111,7 @@
                                 </td>
                                 <td width="50%" align="center" style="padding:10px;">
                                     <h3 style="color:#f1f2f4;">Valor total das horas cobrado </h3>
-                                    <h1 style="background-color:#f1f2f4; color:#252d61; font-size:32px; border-radius:12px; padding:40px 0;" th:text="${valorTotalCobradoHoras}">R$ 0,00</h1>
+                                    <h1 style="background-color:#f1f2f4; color:#252d61; font-size:32px; border-radius:12px; padding:40px 0;" th:text="|R$ ${valorTotalCobradoHoras}|">R$ 0,00</h1>
                                 </td>
                             </tr>
                         </table>
@@ -128,7 +128,7 @@
                                     <p style="font-size:14px;">Este valor representa a sua confiança nos nossos produtos/serviços e reforça a parceria que estamos construindo. Agradecemos pela preferência e seguimos comprometidos em oferecer sempre a melhor experiência e resultados.</p>
                                 </td>
                                 <td width="50%" align="center" style="padding:10px;">
-                                    <h1 style="font-size:36px; margin:0;" th:text="${faturamentoTotal}">R$ 0,00</h1>
+                                    <h1 style="font-size:36px; margin:0;" th:text="|R$ ${faturamentoTotal}|">R$ 0,00</h1>
                                 </td>
                             </tr>
                         </table>

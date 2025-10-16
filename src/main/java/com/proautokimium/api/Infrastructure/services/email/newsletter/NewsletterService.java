@@ -67,14 +67,16 @@ public class NewsletterService {
     	EmailEntity newsletterEmail = emailRepository.findByName("newsletter");
     	
         String mailFrom = newsletterEmail.getEmail().getAddress();
-        String mailFromName = newsletterEmail.getName();
+        String mailFromName = "Proauto Kimium";
 
         final MimeMessage mimeMessage = this.mailSender.createMimeMessage();
         final MimeMessageHelper email;
         email = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+        
+        String capMonth = capitalizeMonth(newsletter.getMes());
 
         email.setTo(newsletter.getEmailCliente());
-        email.setSubject("Resumo Proauto Kimium - " + newsletter.getMes());
+        email.setSubject(capMonth + " trouxe surpresas - Veja seus resultados!");
         email.setFrom(new InternetAddress(mailFrom,mailFromName));
 
         final Context ctx = new Context(LocaleContextHolder.getLocale());
@@ -100,5 +102,12 @@ public class NewsletterService {
         email.addInline("proautoLogo", clr, PNG_MIME);
 
         mailSender.send(mimeMessage);
+    }
+    
+    private String capitalizeMonth(String str) {
+    	if(str == null || str.isEmpty())
+    		return str;
+    	
+    	return str.substring(0,1).toUpperCase() + str.substring(1);
     }
 }
