@@ -11,6 +11,8 @@ import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
 
 import jakarta.transaction.Transactional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,6 +30,7 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
     private final NewsLetterReaderService reader;
     private final CustomerRepository customerRepository;
     private final NewsletterService service;
+    private static final Logger LOGGER = LoggerFactory.getLogger(NewsletterOrchestratorService.class);
 
     public NewsletterOrchestratorService(NewsletterBuilderService builder,
                                         NewsLetterReaderService reader,
@@ -78,25 +81,25 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("Ocorreu um erro ao criar as newsletters. Error: " + e.getMessage());
         }
     }
 	
 	@Override 
 	public void executeMonthlyNewsletter() {
 		List<Newsletter> newslettersToSend = repository.findAllByStatusIn(List.of(EmailStatus.PENDING, EmailStatus.RETRYING));
-		System.out.println("[INFO] : Iniciando envios de emails");
+		LOGGER.info("Iniciando envios de emails");
 		for(Newsletter newsletter: newslettersToSend) {
 			try {
 				service.sendMailWithInline(newsletter);
 				newsletter.setStatus(EmailStatus.SENT);
-				System.out.println("[SUCCESS] : Email enviado com sucesso!");
+				LOGGER.info("Email enviado com sucesso!");
 			}catch (Exception e) {
 				newsletter.setStatus(EmailStatus.ERROR);
-				 System.err.println("[ERROR] : Erro ao enviar newsletter para " + newsletter.getCodigoCliente() + ": " + e.getMessage());
+				 LOGGER.error("Erro ao enviar newsletter para " + newsletter.getCodigoCliente() + ": " + e.getMessage());
 			}finally {
 				repository.save(newsletter);
-				System.out.println("[INFO] : Email Atualizado no banco de dados");
+				LOGGER.info("Email Atualizado no banco de dados");
 			}
 		}
 	}

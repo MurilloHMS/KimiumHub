@@ -13,6 +13,8 @@ import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.proautokimium.api.Infrastructure.interfaces.email.newsletter.INewsletterReader;
@@ -24,6 +26,7 @@ import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
 @Service
 public class NewsLetterReaderService implements INewsletterReader{
 	
+	private static final Logger LOGGER = LoggerFactory.getLogger(NewsletterService.class);
 	private final int FIRST_DATA_ROW = 3;
 
 	@Override
@@ -73,7 +76,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 						}
 						info.setDate(LocalDate.parse(value, formatter));
 					 } catch (Exception e) {
-					        System.err.println("⚠️ Erro ao converter data da célula: [" + value + "] " + e.getMessage());
+					        LOGGER.info("⚠️ Erro ao converter data da célula: [" + value + "] " + e.getMessage());
 					    }
 				}
 				
