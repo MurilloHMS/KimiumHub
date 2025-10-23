@@ -1,6 +1,8 @@
 package com.proautokimium.api.controllers;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.proautokimium.api.Infrastructure.interfaces.fuelsupply.IFuelSupplyReader;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyService;
+import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.FuelSupply;
 
 
@@ -34,21 +37,21 @@ public class FuelSupplyController {
 		
 		try {
 			List<FuelSupply> fuelSupplies = reader.getFuelSuppliesByExcel(file.getInputStream());
-//			List<Employee> employees = employeeRepository.findAll();
+			List<Employee> employees = employeeRepository.findAll();
 			
-//			Map<String,	Employee> employeeMap = employees.stream().collect(Collectors.toMap(e -> e.getName().toLowerCase(), e -> e));
-//			
-//			
-//			fuelSupplies.forEach(fs -> {
-//				String driverName = fs.getDriverName();
-//				
-//				if(driverName != null) {
-//					Employee emp = employeeMap.get(driverName.toLowerCase());
-//					if(emp != null) {
-//						fs.setDepartment(emp.getDepartamento());
-//					}
-//				}
-//			});
+			Map<String,	Employee> employeeMap = employees.stream().collect(Collectors.toMap(e -> e.getName().toLowerCase(), e -> e));
+			
+			
+			fuelSupplies.forEach(fs -> {
+				String driverName = fs.getDriverName();
+				
+				if(driverName != null) {
+					Employee emp = employeeMap.get(driverName.toLowerCase());
+					if(emp != null) {
+						fs.setDepartment(emp.getDepartment());
+					}
+				}
+			});
 			
 			service.insertByRange(fuelSupplies);
 			 return ResponseEntity.ok("Importação concluída com sucesso!");

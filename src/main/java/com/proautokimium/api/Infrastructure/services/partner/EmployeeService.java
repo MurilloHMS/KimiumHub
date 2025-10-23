@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.proautokimium.api.Application.DTOs.partners.EmployeeDTO;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.domain.entities.Employee;
+import com.proautokimium.api.domain.enums.Department;
 import com.proautokimium.api.domain.valueObjects.Email;
 
 import jakarta.transaction.Transactional;
@@ -74,7 +75,8 @@ public class EmployeeService {
 							m.isAtivo(),
 							m.getCodigoGerente(),
 							m.getHierarquia(),
-							m.getBirthday()
+							m.getBirthday(),
+							m.getDepartment()
 							)).toList();
 			return ResponseEntity.ok(employesList);
 		}catch (Exception e) {

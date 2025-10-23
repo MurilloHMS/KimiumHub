@@ -3,7 +3,10 @@ package com.proautokimium.api.domain.entities;
 import java.time.LocalDate;
 
 import com.proautokimium.api.domain.abstractions.Entity;
+import com.proautokimium.api.domain.enums.Department;
 
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,7 +25,9 @@ public class FuelSupply extends Entity{
 	private String uf;
 	private String plate;
 	private String driverName;
-	private String department;
+	
+	@Enumerated(EnumType.STRING)
+	private Department department;
 	private double actualHodometer;
 	private double lastHodometer;
 	private double diferenceHodometer;
