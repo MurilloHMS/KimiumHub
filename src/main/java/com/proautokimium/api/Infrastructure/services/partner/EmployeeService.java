@@ -74,7 +74,8 @@ public class EmployeeService {
 							m.isAtivo(),
 							m.getCodigoGerente(),
 							m.getHierarquia(),
-							m.getBirthday()
+							m.getBirthday(),
+							m.getDepartment()
 							)).toList();
 			return ResponseEntity.ok(employesList);
 		}catch (Exception e) {

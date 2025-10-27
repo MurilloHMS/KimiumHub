@@ -1,5 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.email.smtp;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -14,6 +16,8 @@ public class SmtpService {
 
 	@Autowired
 	JavaMailSender mailSender;
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(SmtpService.class);
 	
 	public void sendEmail(SmtpMail request) {
 		
@@ -36,7 +40,7 @@ public class SmtpService {
 			
 			mailSender.send(message);
 		}catch (Exception e) {
-			throw new RuntimeException("Erro ao enviar e-mail: " + e.getMessage());
+			LOGGER.error("Erro ao enviar e-mail: " + e.getMessage());
 		}
 	}
 }

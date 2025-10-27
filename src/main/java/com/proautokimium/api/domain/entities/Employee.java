@@ -1,9 +1,12 @@
 package com.proautokimium.api.domain.entities;
 
+import com.proautokimium.api.domain.enums.Department;
 import com.proautokimium.api.domain.enums.Hierarchy;
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,8 +23,14 @@ import java.time.LocalDate;
 public class Employee extends Partner {
     @Column(name = "codigo_gerente", length = 9)
     private String codigoGerente;
+    
     @Column(name = "hierarquia", length = 15)
     private Hierarchy hierarquia;
+    
     @Column(name = "data_aniversario")
     private LocalDate birthday;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "departamento")
+    private Department department;
 }

@@ -2,6 +2,7 @@ package com.proautokimium.api.Application.DTOs.partners;
 
 import java.time.LocalDate;
 
+import com.proautokimium.api.domain.enums.Department;
 import com.proautokimium.api.domain.enums.Hierarchy;
 
 public record EmployeeDTO(
@@ -12,5 +13,6 @@ public record EmployeeDTO(
 		boolean ativo,
 		String managerCode,
 		Hierarchy hierarchy,
-		LocalDate birthday
+		LocalDate birthday,
+		Department department
 		) {}

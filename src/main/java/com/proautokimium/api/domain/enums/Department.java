@@ -1,0 +1,13 @@
+package com.proautokimium.api.domain.enums;
+
+public enum Department {
+	RESTAURANTES,
+	AUTOMOTIVO,
+	ALIMENTOS,
+	SUL,
+	EQUIPAMENTOS,
+	LAVANDERIA,
+	MOTORISTA,
+	MANUTENCAO,
+	DISTRIBUIDORES
+}
