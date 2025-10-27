@@ -2,12 +2,14 @@ package com.proautokimium.api.controllers;
 
 import com.proautokimium.api.Application.DTOs.product.ProductInventoryDTO;
 import com.proautokimium.api.Application.DTOs.product.ProductMovementDTO;
-import com.proautokimium.api.Infrastructure.services.ProductInventoryService;
+import com.proautokimium.api.Infrastructure.services.inventoryProducts.ProductInventoryService;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
@@ -52,5 +54,11 @@ public class ProductController {
     public ResponseEntity<Object> updateProduct(@RequestBody @NotNull @Valid ProductInventoryDTO dto){
         inventoryService.updateProduct(dto);
         return ResponseEntity.ok().build();
+    }
+    
+    @PostMapping("inventory/product/upload")
+    public ResponseEntity<Object> createProductsBySheet(@RequestParam MultipartFile file) throws Exception{
+    	ResponseEntity<Object> response = inventoryService.includeProductBySheet(file);
+    	return response;
     }
 }
