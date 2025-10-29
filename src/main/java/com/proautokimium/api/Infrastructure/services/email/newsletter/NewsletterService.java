@@ -24,7 +24,7 @@ import java.util.List;
 @Service
 public class NewsletterService {
 
-    private static final String TEMPLATE_NAME= "html/newsletter-model";
+    private static final String TEMPLATE_NAME= "html/newsletter_v2";
     private static final String PROAUTO_LOGO_IMAGE= "templates/images/logo.png";
     private static final String PNG_MIME= "image/png";
     private final JavaMailSender mailSender;
@@ -58,6 +58,9 @@ public class NewsletterService {
     					m.getValorDePecasTrocadas(),
     					m.getValorTotalDeHoras(),
     					m.getValorTotalCobradoHoras(),
+    					m.isMauUso(),
+    					m.getValorTotalDeHorasMauUso(),
+    					m.getValorTotalCobradoHorasMauUso(),
     					m.getStatus(),
     					m.getEmailCliente()
     					)).toList();
@@ -88,8 +91,21 @@ public class NewsletterService {
         ctx.setVariable("quantidadeDeLitros", newsletter.getQuantidadeDeLitros());
         ctx.setVariable("quantidadeDeVisitas", newsletter.getQuantidadeDeVisitas());
         ctx.setVariable("valorDePecasTrocadas", newsletter.getValorDePecasTrocadas());
-        ctx.setVariable("valorTotalDeHoras", newsletter.getValorTotalDeHoras());
-        ctx.setVariable("valorTotalCobradoHoras", newsletter.getValorTotalCobradoHoras());
+        
+        // Total Horas
+        double totalHoras = newsletter.getValorTotalDeHoras() + newsletter.getValorTotalDeHorasMauUso();
+        ctx.setVariable("valorTotalDeHoras", totalHoras);
+        double totalCobrado = newsletter.getValorTotalCobradoHoras() + newsletter.getValorTotalCobradoHorasMauUso();
+        ctx.setVariable("valorTotalCobradoHoras", totalCobrado);
+        
+        // Total Horas Normais
+        ctx.setVariable("horasNormais", newsletter.getValorTotalDeHoras());
+        ctx.setVariable("valorHorasNormais", newsletter.getValorTotalCobradoHoras());
+        
+        // Total Horas Mau Uso
+        ctx.setVariable("horasMauUso", newsletter.getValorTotalDeHorasMauUso());
+        ctx.setVariable("valorHorasMauUso", newsletter.getValorTotalCobradoHorasMauUso());
+        
         ctx.setVariable("mediaDiasAtendimento", newsletter.getMediaDiasAtendimento());
         ctx.setVariable("faturamentoTotal", newsletter.getFaturamentoTotal());
 

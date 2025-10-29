@@ -13,4 +13,7 @@ public class NewsletterTechnicalHours {
 	private String partnerCode;
 	private double timePerPartner;
 	private double totalValuePerPartner;
+	private boolean minuse;
+	private double minuseHour;
+	private double minuseValue;
 }
