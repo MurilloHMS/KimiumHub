@@ -63,7 +63,16 @@ public class Newsletter extends Entity{
 	    
 	    @Column(name = "valor_total_cobrado_hora")
 	    private double valorTotalCobradoHoras;
+	    
+	    @Column(name = "mau_uso")
+	    private boolean mauUso;
 
+	    @Column(name = "valor_total_cobrado_hora_mau_uso")
+	    private double valorTotalCobradoHorasMauUso;
+	    
+	    @Column(name = "valor_total_horas_por_parceiro_mau_uso")
+	    private double valorTotalDeHorasMauUso;
+	    
 	    @Enumerated(EnumType.STRING)
 	    @Column(name = "status", length = 50)
 	    private EmailStatus status;
