@@ -8,7 +8,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,14 +24,14 @@ public class ProductController {
     @PostMapping("/inventory/product")
     public ResponseEntity<Object> createInventoryProduct(@RequestBody @NotNull @Valid ProductInventoryDTO dto){
         inventoryService.saveProduct(dto);
-        return ResponseEntity.status(201).build();
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PostMapping("/inventory/movement")
     public ResponseEntity<Object> createInventoryMovement(@RequestBody @NotNull @Valid ProductMovementDTO dto){
     	if(dto.systemCode() != null) {
     		inventoryService.includeMovement(dto);
-            return ResponseEntity.status(201).build();
+            return ResponseEntity.status(HttpStatus.CREATED).build();
     	}else {
     		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Movimentação não incluida, código do sistema está nulo ou vazio");
     	}
