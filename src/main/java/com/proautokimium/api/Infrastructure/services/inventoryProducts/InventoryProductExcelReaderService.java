@@ -38,7 +38,7 @@ public class InventoryProductExcelReaderService extends ExcelReader<ProductInven
 				
 				Cell codProduct = row.getCell(0);
 				if(codProduct != null && codProduct.getCellType() == CellType.NUMERIC)
-					product.setSystemCode(String.valueOf(codProduct.getNumericCellValue()));
+					product.setSystemCode(String.valueOf((int) codProduct.getNumericCellValue()));
 				
 				Cell description = row.getCell(1);
 				if(description != null)
