@@ -230,6 +230,10 @@ public class NewsLetterReaderService implements INewsletterReader{
 				if(codParCell != null && codParCell.getCellType() == CellType.NUMERIC)
 					hours.setTotalValuePerPartner(custoTotalCell.getNumericCellValue());
 				
+				Cell mauUso  = row.getCell(3);
+				if(mauUso != null)
+					hours.setMinuse(mauUso.getStringCellValue() == "Não" ? false : true);
+				
 				list.add(hours);
 					
 			}

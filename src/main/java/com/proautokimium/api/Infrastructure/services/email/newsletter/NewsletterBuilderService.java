@@ -39,6 +39,13 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 		Map<String, List<NewsletterServiceOrders>> ordersPerPartnersMap = 
 				data.orders().stream().collect(Collectors.groupingBy(NewsletterServiceOrders::getPartnerCode));
 		
+		Map<String, List<NewsletterTechnicalHours>> hoursPerPartnersWithoutMinuse = 
+				data.hours().stream().filter(n -> !n.isMinuse()).collect(Collectors.groupingBy(NewsletterTechnicalHours::getPartnerCode));
+		
+		Map<String, List<NewsletterTechnicalHours>> hoursPerPartnersWithMinuse = 
+				data.hours().stream().filter(NewsletterTechnicalHours::isMinuse).collect(Collectors.groupingBy(NewsletterTechnicalHours::getPartnerCode));
+		
+		//TODO: remove unused list before tests
 		Map<String, List<NewsletterTechnicalHours>> hoursPerPartnersMap = 
 				data.hours().stream().collect(Collectors.groupingBy(NewsletterTechnicalHours::getPartnerCode));
 		
@@ -90,16 +97,27 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 			double partsValue = parts.stream().mapToDouble(NewsletterExchangedParts::getTotalCost).sum();
 			newsletter.setValorDePecasTrocadas(partsValue);
 			
-			List<NewsletterTechnicalHours> hours = hoursPerPartnersMap.getOrDefault(code, Collections.emptyList());
+			// horas totais sem mau uso
+			List<NewsletterTechnicalHours> hours = hoursPerPartnersWithoutMinuse.getOrDefault(code, Collections.emptyList());
 			double totalHours = hours.isEmpty() ? 0 : hours.get(0).getTimePerPartner();
 			newsletter.setValorTotalDeHoras(totalHours);
 			
 			double totalHoursValue = hours.isEmpty() ? 0 : hours.get(0).getTotalValuePerPartner();
 			newsletter.setValorTotalCobradoHoras(totalHoursValue);
 			
+			// horas totais com mau uso
+			List<NewsletterTechnicalHours> hoursWithMinuse = hoursPerPartnersWithMinuse.getOrDefault(code, Collections.emptyList());
+			double totalHoursWithMinuse = hoursWithMinuse.isEmpty() ? 0 : hoursWithMinuse.get(0).getMinuseHour();
+			newsletter.setValorTotalDeHorasMauUso(totalHoursWithMinuse);
+			
+			double totalHoursWithMinuseValue = hoursWithMinuse.isEmpty() ? 0 : hoursWithMinuse.get(0).getMinuseValue();
+			newsletter.setValorTotalCobradoHorasMauUso(totalHoursWithMinuseValue);
+			
+			newsletter.setMauUso(hoursWithMinuse.isEmpty() ? false : true);
+			
 			Customer partner = customersMap.get(code);
 			
-			newsletter.setEmailCliente(partner != null ? partner.getEmail().getAddress() : "");
+			newsletter.setEmailCliente(partner != null ? partner.getEmail().getAddress() : null);
 			
 			newsletter.setStatus(EmailStatus.PENDING);
 			
