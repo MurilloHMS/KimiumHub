@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @RestController
@@ -64,6 +65,15 @@ public class ProductController {
     @PostMapping("inventory/product/upload")
     public ResponseEntity<Object> createProductsBySheet(@RequestParam MultipartFile file) throws Exception{
     	ResponseEntity<Object> response = inventoryService.includeProductBySheet(file);
+    	return response;
+    }
+    
+    @GetMapping("inventory/movements/{date}")
+    public ResponseEntity<Object> getMovementsByDate(@PathVariable LocalDate date){
+    	if(date == null)
+    		ResponseEntity.status(HttpStatus.NO_CONTENT).body("Data inválida ou nula");
+    	
+    	var response = inventoryService.getMovementsByDate(date);
     	return response;
     }
 }
