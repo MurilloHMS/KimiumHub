@@ -8,29 +8,41 @@ import com.proautokimium.api.domain.entities.MovementInventory;
 import com.proautokimium.api.domain.entities.ProductInventory;
 import jakarta.transaction.Transactional;
 
+
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpHeaders;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class ProductInventoryService {
     private final ProductInventoryRepository productInventoryRepository;
     private final ProductMovementRepository productMovementRepository;
     private final InventoryProductExcelReaderService reader;
-
-    public ProductInventoryService(ProductInventoryRepository productInventoryRepository, ProductMovementRepository productMovementRepository, InventoryProductExcelReaderService reader) {
+    private final InventoryProductsExcelWriterService writer;
+    
+    public ProductInventoryService(ProductInventoryRepository productInventoryRepository,
+    		ProductMovementRepository productMovementRepository,
+    		InventoryProductExcelReaderService reader,
+    		InventoryProductsExcelWriterService writer) {
         this.productInventoryRepository = productInventoryRepository;
         this.productMovementRepository = productMovementRepository;
 		this.reader = reader;
+		this.writer = writer;
     }
 
     @Transactional
@@ -140,5 +152,43 @@ public class ProductInventoryService {
     		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 	                .body("Erro ao processar arquivo: " + e.getMessage());
 		}
+    }
+    
+    public ResponseEntity<Object> getMovementsByDate(LocalDate date){
+    	try {
+    		List<MovementInventory> movements = productMovementRepository.findAll();
+        	
+        	List<MovementInventory> dayStock = Stream.concat(
+        			
+        			movements.stream().filter(m -> m.getMovementDate().isEqual(date)),
+        			
+        			movements.stream().filter(m -> m.getMovementDate().isBefore(date))
+        			.collect(Collectors.groupingBy(m -> m.getProduct().getSystemCode()))
+        			.values()
+        			.stream()
+        			.map(list -> list.stream()
+        					.max(Comparator.comparing(MovementInventory::getMovementDate))
+        					.orElse(null))
+        			.filter(Objects::nonNull)
+        			
+        			)
+        			.collect(Collectors.groupingBy(m -> m.getProduct().getSystemCode()))
+        			.values()
+        			.stream()
+        			.map(l -> l.stream()
+        					.max(Comparator.comparing(MovementInventory::getMovementDate))
+        					.orElse(null))
+        			.filter(Objects::nonNull)
+        			.collect(Collectors.toList());
+        	
+        	byte[] writerResponse = writer.save(dayStock);
+        	
+        	return ResponseEntity.status(HttpStatus.OK)
+        			.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=movements.xlsx")
+        			.contentType(MediaType.APPLICATION_OCTET_STREAM)
+        			.body(writerResponse);
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ocorreu um erro ao coletar os dados");
+		}   	
     }
 }
