@@ -11,6 +11,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.proautokimium.api.Application.DTOs.partners.EmployeeDTO;
 import com.proautokimium.api.Infrastructure.services.partner.EmployeeService;
 
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import jakarta.annotation.Nonnull;
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("api/employee")
 public class EmployeeController {
@@ -24,12 +28,12 @@ public class EmployeeController {
 	}
 	
 	@PostMapping
-	public ResponseEntity<?> createEmploye(EmployeeDTO dto){
+	public ResponseEntity<?> createEmploye(@RequestBody @Valid @Nonnull EmployeeDTO dto){
 		return service.createEmployee(dto);
 	}
 	
 	@PutMapping
-	public ResponseEntity<?> updateEmploye(EmployeeDTO dto){
+	public ResponseEntity<?> updateEmploye(@RequestBody @Valid @Nonnull EmployeeDTO dto){
 		return service.updateEmployee(dto);
 	}
 }
