@@ -1,9 +1,11 @@
 package com.proautokimium.api.Infrastructure.services.inventoryProducts;
 
 import java.io.ByteArrayOutputStream;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -23,6 +25,11 @@ public class InventoryProductsExcelWriterService extends ExcelWriter<MovementInv
 		Workbook workbook = new XSSFWorkbook();
 		Sheet sheet = workbook.createSheet("Movements");
 		
+		CreationHelper ch = workbook.getCreationHelper();
+		CellStyle cs = workbook.createCellStyle();
+		short dateFormat = ch.createDataFormat().getFormat("dd/MM/yyyy");
+		cs.setDataFormat(dateFormat);
+		
 		Row header = sheet.createRow(0);
 		header.createCell(0).setCellValue("Código Sistema");
 		header.createCell(1).setCellValue("Produto");
@@ -37,7 +44,16 @@ public class InventoryProductsExcelWriterService extends ExcelWriter<MovementInv
 			row.createCell(0).setCellValue(i.getProduct().getSystemCode());
 			row.createCell(1).setCellValue(i.getProduct().getName());
 			row.createCell(2).setCellValue(i.getQuantity());
-			row.createCell(3).setCellValue(i.getMovementDate());
+			Cell dc = row.createCell(3);
+			if(i.getMovementDate() != null) {
+				dc.setCellValue(i.getMovementDate());
+				dc.setCellStyle(cs);
+			}
+			
+		}
+		
+		for(int i = 0 ; i < 4; i++) {
+			sheet.autoSizeColumn(i);
 		}
 		
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();

@@ -12,6 +12,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.HttpHeaders;
@@ -158,6 +159,9 @@ public class ProductInventoryService {
     	try {
     		List<MovementInventory> movements = productMovementRepository.findAll();
         	
+    		if(movements.isEmpty())
+    			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Não foram encontrados movimentos na base solicitada, registre um movimento ou contate o administrador.");
+    		
         	List<MovementInventory> dayStock = Stream.concat(
         			
         			movements.stream().filter(m -> m.getMovementDate().isEqual(date)),
@@ -181,14 +185,20 @@ public class ProductInventoryService {
         			.filter(Objects::nonNull)
         			.collect(Collectors.toList());
         	
+        	if(dayStock.isEmpty())
+        		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Não foram encontrados movimentos na data solicitada.");
+        	
         	byte[] writerResponse = writer.save(dayStock);
         	
         	return ResponseEntity.status(HttpStatus.OK)
         			.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=movements.xlsx")
         			.contentType(MediaType.APPLICATION_OCTET_STREAM)
         			.body(writerResponse);
-		} catch (Exception e) {
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ocorreu um erro ao coletar os dados");
+        	
+		}catch (JpaSystemException ex) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro interno no JPA: " + ex.getMostSpecificCause().getMessage());
+		}catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ocorreu um erro ao coletar os dados: " + e.getMessage());
 		}   	
     }
 }
