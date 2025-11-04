@@ -45,18 +45,11 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 		Map<String, List<NewsletterTechnicalHours>> hoursPerPartnersWithMinuse = 
 				data.hours().stream().filter(NewsletterTechnicalHours::isMinuse).collect(Collectors.groupingBy(NewsletterTechnicalHours::getPartnerCode));
 		
-		//TODO: remove unused list before tests
-		Map<String, List<NewsletterTechnicalHours>> hoursPerPartnersMap = 
-				data.hours().stream().collect(Collectors.groupingBy(NewsletterTechnicalHours::getPartnerCode));
-		
 		Map<String, List<NewsletterExchangedParts>> partsPerPartnersMap = 
 				data.parts().stream().collect(Collectors.groupingBy(NewsletterExchangedParts::getPartnerCode));
 		
 		Set<String> allPartnerSet = new HashSet<>();
 		allPartnerSet.addAll(notesPerPartnersMap.keySet());
-//		allPartnerSet.addAll(ordersPerPartnersMap.keySet());
-//		allPartnerSet.addAll(hoursPerPartnersMap.keySet());
-//		allPartnerSet.addAll(partsPerPartnersMap.keySet());
 		
 		List<Newsletter> newsletters = new ArrayList<>();
 		

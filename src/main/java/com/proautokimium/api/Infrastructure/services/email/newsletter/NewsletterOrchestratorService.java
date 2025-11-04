@@ -102,5 +102,6 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
 				LOGGER.info("Email Atualizado no banco de dados");
 			}
 		}
+		LOGGER.info("Newsletters enviadas com sucesso!");
 	}
 }

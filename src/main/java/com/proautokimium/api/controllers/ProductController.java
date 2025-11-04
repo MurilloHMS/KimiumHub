@@ -12,22 +12,23 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @RestController
-@RequestMapping("api/product")
+@RequestMapping("api/inventory")
 public class ProductController {
 
     @Autowired
     private ProductInventoryService inventoryService;
 
-    @PostMapping("/inventory/product")
+    @PostMapping("product")
     public ResponseEntity<Object> createInventoryProduct(@RequestBody @NotNull @Valid ProductInventoryDTO dto){
         inventoryService.saveProduct(dto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @PostMapping("/inventory/movement")
+    @PostMapping("movement")
     public ResponseEntity<Object> createInventoryMovement(@RequestBody @NotNull @Valid ProductMovementDTO dto){
     	if(dto.systemCode() != null) {
     		inventoryService.includeMovement(dto);
@@ -37,33 +38,42 @@ public class ProductController {
     	}
     }
 
-    @GetMapping("/inventory/product")
+    @GetMapping("product")
     public ResponseEntity<Object> getAllProducts(){
         var products = inventoryService.findAllProducts();
         return ResponseEntity.ok().body(products);
     }
 
-    @GetMapping("/inventory/movements/{systemCode}")
+    @GetMapping("movements/{systemCode}")
     public ResponseEntity<List<ProductMovementDTO>> getAllMovementsBySystemCode(@PathVariable String systemCode){
         List<ProductMovementDTO> movements = inventoryService.findAllMovementsByProduct(systemCode);
         return ResponseEntity.ok(movements);
     }
 
-    @DeleteMapping("inventory/product/{systemCode}")
+    @DeleteMapping("product/{systemCode}")
     public ResponseEntity<Object> deleteProductById(@PathVariable String systemCode){
         inventoryService.deleteProductBySystemCode(systemCode);
         return ResponseEntity.ok().build();
     }
 
-    @PutMapping("inventory/product")
+    @PutMapping("product")
     public ResponseEntity<Object> updateProduct(@RequestBody @NotNull @Valid ProductInventoryDTO dto){
         inventoryService.updateProduct(dto);
         return ResponseEntity.ok().build();
     }
     
-    @PostMapping("inventory/product/upload")
+    @PostMapping("product/upload")
     public ResponseEntity<Object> createProductsBySheet(@RequestParam MultipartFile file) throws Exception{
     	ResponseEntity<Object> response = inventoryService.includeProductBySheet(file);
+    	return response;
+    }
+    
+    @GetMapping("movements/reports/{date}")
+    public ResponseEntity<Object> getMovementsByDate(@PathVariable LocalDate date){
+    	if(date == null)
+    		ResponseEntity.status(HttpStatus.NO_CONTENT).body("Data inválida ou nula");
+    	
+    	var response = inventoryService.getMovementsByDate(date);
     	return response;
     }
 }
