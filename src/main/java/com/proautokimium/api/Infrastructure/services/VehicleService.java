@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class VehicleService {
+
     private final VehicleRepository vehicleRepository;
     private final RevisionRepository revisionRepository;
     private final ServiceLocationRepository serviceLocationRepository;
@@ -67,6 +68,12 @@ public class VehicleService {
         Revision revision = new Revision();
         revision.setRevisionDate(dto.revisionDate());
         revision.setVehicle(vehicle);
+        revision.setDriver(dto.driver());
+        revision.setFiscalNote(dto.nfe());
+        revision.setKilometer(dto.kilometer());
+        revision.setType(dto.type());
+        revision.setObservation(dto.observation());
+        
 
         ServiceLocation location = serviceLocationRepository.findServiceLocationByCodParceiro(dto.localSystemCode());
         revision.setLocal(location);

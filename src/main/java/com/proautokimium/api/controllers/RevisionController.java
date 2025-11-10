@@ -29,7 +29,16 @@ public class RevisionController {
 
     @GetMapping
     public ResponseEntity<Object> GetRevisions(){
-        var revisions = service.getRevisions();
+        var revisions = service.getRevisions().stream().map(r -> new RevisionRequestDTO(
+        		r.getRevisionDate(),
+        		r.getVehicle().getPlaca(),
+        		r.getKilometer(),
+        		r.getFiscalNote(),
+        		r.getType(),
+        		r.getDriver(),
+        		r.getObservation(),
+        		r.getLocal().getCodParceiro().toString())).toList();
+        
         return revisions.isEmpty()
                 ? ResponseEntity.notFound().build()
                 : ResponseEntity.ok(revisions);
