@@ -9,6 +9,7 @@ import com.proautokimium.api.domain.entities.User;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -37,13 +38,13 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     public ResponseEntity<Object> Register(@RequestBody @Valid RegisterDTO data){
-        if(this.repository.findByLogin(data.login()) != null) return ResponseEntity.badRequest().build();
+        if(this.repository.findByLogin(data.login()) != null) return ResponseEntity.status(HttpStatus.CONFLICT).body("O Usuário informado, já existe!");
 
         String encryptedPassword = new BCryptPasswordEncoder().encode(data.password());
         User newUser = new User(data.login(), encryptedPassword, data.roles());
 
         this.repository.save(newUser);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.status(HttpStatus.OK).body("Usuário criado com sucesso!");
     }
 
     @PostMapping("/app-token")
@@ -55,6 +56,9 @@ public class AuthenticationController {
     @GetMapping("/users")
     public ResponseEntity<Object> getUsers(){
         var users = repository.findAll();
+        
+        if(users == null || users.isEmpty())
+        	return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Não foi encontrado Usuários válidos");
 
         return ResponseEntity.ok().body(users.stream().map(m -> new UserResponseDTO(
         		m.getLogin(), m.getRoles())));
