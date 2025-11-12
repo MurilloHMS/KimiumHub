@@ -29,7 +29,7 @@ public class CustomerService {
 	
 	@Transactional
 	public ResponseEntity<Object> createCustomer(CustomerRequestDTO dto){
-		if(this.repository.findByCodParceiro(dto.codParceiro()) != null) return ResponseEntity.unprocessableEntity().body("Parceiro já existe no banco");
+		if(this.repository.findByCodParceiro(dto.codParceiro()) != null) return ResponseEntity.status(HttpStatus.CONFLICT).body("Parceiro já existe no banco");
 		
 		Customer newCustomer = Customer.fromDTO(dto);
 		this.repository.save(newCustomer);
