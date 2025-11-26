@@ -6,6 +6,7 @@ import com.proautokimium.api.domain.entities.Newsletter;
 
 import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -45,7 +46,10 @@ public class NewsletterController {
     }
     @GetMapping("pending")
     public ResponseEntity<Object> getPendingEmails(){
-    	return ResponseEntity.ok(newsletterService.getAllPendingEmails());
+    	var pendingEmails = newsletterService.getAllPendingEmails();
+    	return pendingEmails != null ?
+    			ResponseEntity.status(HttpStatus.OK).body(pendingEmails)
+    			: ResponseEntity.status(HttpStatus.NO_CONTENT).body("Não há emails pendentes");
     }
     
     @PostMapping("pending/send")
