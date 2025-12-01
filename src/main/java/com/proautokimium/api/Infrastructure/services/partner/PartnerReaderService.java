@@ -19,7 +19,7 @@ import org.apache.poi.ss.usermodel.Row;
 @Service
 public class PartnerReaderService implements IPartnerReader{
 	
-	private final int FIRST_DATA_ROW = 3;
+	private final int FIRST_DATA_ROW = 2;
 
 	@Override
 	public List<Customer> getCustomersByExcel(InputStream stream) throws Exception {
@@ -44,7 +44,7 @@ public class PartnerReaderService implements IPartnerReader{
 				
 				Cell codMatrizCell = row.getCell(1);
 				if(codMatrizCell != null && codMatrizCell.getCellType() == CellType.NUMERIC)
-					customer.setCodigoMatriz(String.valueOf(codMatrizCell.getNumericCellValue()));
+					customer.setCodigoMatriz(String.valueOf((int)codMatrizCell.getNumericCellValue()));
 				
 				Cell razaoSocialCell = row.getCell(3);
 				if(razaoSocialCell != null)
