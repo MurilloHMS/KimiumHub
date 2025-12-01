@@ -13,7 +13,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
-
 import com.proautokimium.api.Application.DTOs.email.NewsletterData;
 import com.proautokimium.api.Infrastructure.interfaces.email.newsletter.INewsletterBuilder;
 import com.proautokimium.api.domain.entities.Customer;
@@ -28,25 +27,89 @@ import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
 public class NewsletterBuilderService implements INewsletterBuilder {
 
 	@Override
-	public List<Newsletter> buildNewsletters(NewsletterData data, List<Customer> customers) {
+	public List<Newsletter> buildNewsletters(NewsletterData data, List<Customer> customers, boolean isMatriz) {
 		
-		Map<String, Customer> customersMap = 
-				customers.stream().collect(Collectors.toMap(Customer::getCodParceiro, Function.identity()));
+		// create mappings
+		Map<String, Customer> customersMap;
+		Map<String, List<NewsletterNFeInfo>> notesPerPartnersMap;
+		Map<String, List<NewsletterServiceOrders>> ordersPerPartnersMap;
+		Map<String, List<NewsletterTechnicalHours>> hoursPerPartnersWithoutMinuse;
+		Map<String, List<NewsletterTechnicalHours>> hoursPerPartnersWithMinuse;
+		Map<String, List<NewsletterExchangedParts>> partsPerPartnersMap;
+
+
+		// customer map
+		customersMap = customers.stream()
+			    .collect(Collectors.toMap(Customer::getCodParceiro, Function.identity()));
+
+
+		// ALWAYS group data by partner code
+		notesPerPartnersMap = data.nFeInfos().stream()
+		.collect(Collectors.groupingBy(NewsletterNFeInfo::getPartnerCode));
+
+
+		ordersPerPartnersMap = data.orders().stream()
+		.collect(Collectors.groupingBy(NewsletterServiceOrders::getPartnerCode));
+
+
+		hoursPerPartnersWithoutMinuse = data.hours().stream()
+		.filter(n -> !n.isMinuse())
+		.collect(Collectors.groupingBy(NewsletterTechnicalHours::getPartnerCode));
+
+
+		hoursPerPartnersWithMinuse = data.hours().stream()
+		.filter(NewsletterTechnicalHours::isMinuse)
+		.collect(Collectors.groupingBy(NewsletterTechnicalHours::getPartnerCode));
+
+
+		partsPerPartnersMap = data.parts().stream()
+		.collect(Collectors.groupingBy(NewsletterExchangedParts::getPartnerCode));
 		
-		Map<String, List<NewsletterNFeInfo>> notesPerPartnersMap = 
-				data.nFeInfos().stream().collect(Collectors.groupingBy(NewsletterNFeInfo::getPartnerCode));
 		
-		Map<String, List<NewsletterServiceOrders>> ordersPerPartnersMap = 
-				data.orders().stream().collect(Collectors.groupingBy(NewsletterServiceOrders::getPartnerCode));
 		
-		Map<String, List<NewsletterTechnicalHours>> hoursPerPartnersWithoutMinuse = 
-				data.hours().stream().filter(n -> !n.isMinuse()).collect(Collectors.groupingBy(NewsletterTechnicalHours::getPartnerCode));
-		
-		Map<String, List<NewsletterTechnicalHours>> hoursPerPartnersWithMinuse = 
-				data.hours().stream().filter(NewsletterTechnicalHours::isMinuse).collect(Collectors.groupingBy(NewsletterTechnicalHours::getPartnerCode));
-		
-		Map<String, List<NewsletterExchangedParts>> partsPerPartnersMap = 
-				data.parts().stream().collect(Collectors.groupingBy(NewsletterExchangedParts::getPartnerCode));
+		if(isMatriz) {
+			Map<String, String> partnerToMatriz = customers.stream()
+				    .collect(Collectors.toMap(
+				        Customer::getCodParceiro,
+				        c -> {
+				            String matriz = c.getCodigoMatriz();
+				            return (matriz == null || matriz.isBlank()) ? c.getCodParceiro() : matriz;
+				        }
+				    ));
+
+
+			// regroup to matriz
+			notesPerPartnersMap = notesPerPartnersMap.entrySet().stream()
+			    .collect(Collectors.groupingBy(
+			        e -> partnerToMatriz.getOrDefault(e.getKey(), e.getKey()),
+			        Collectors.flatMapping(e -> e.getValue().stream(), Collectors.toList())
+			    ));
+
+			ordersPerPartnersMap = ordersPerPartnersMap.entrySet().stream()
+			    .collect(Collectors.groupingBy(
+			        e -> partnerToMatriz.getOrDefault(e.getKey(), e.getKey()),
+			        Collectors.flatMapping(e -> e.getValue().stream(), Collectors.toList())
+			    ));
+
+			hoursPerPartnersWithoutMinuse = hoursPerPartnersWithoutMinuse.entrySet().stream()
+			    .collect(Collectors.groupingBy(
+			        e -> partnerToMatriz.getOrDefault(e.getKey(), e.getKey()),
+			        Collectors.flatMapping(e -> e.getValue().stream(), Collectors.toList())
+			    ));
+
+			hoursPerPartnersWithMinuse = hoursPerPartnersWithMinuse.entrySet().stream()
+			    .collect(Collectors.groupingBy(
+			        e -> partnerToMatriz.getOrDefault(e.getKey(), e.getKey()),
+			        Collectors.flatMapping(e -> e.getValue().stream(), Collectors.toList())
+			    ));
+
+			partsPerPartnersMap = partsPerPartnersMap.entrySet().stream()
+			    .collect(Collectors.groupingBy(
+			        e -> partnerToMatriz.getOrDefault(e.getKey(), e.getKey()),
+			        Collectors.flatMapping(e -> e.getValue().stream(), Collectors.toList())
+			    ));
+
+		}
 		
 		Set<String> allPartnerSet = new HashSet<>();
 		allPartnerSet.addAll(notesPerPartnersMap.keySet());
@@ -59,10 +122,11 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 				continue;
 			
 			NewsletterNFeInfo firstWithDate = notes.stream().filter(x -> x.getDate() != null).findFirst().orElse(null);
+			Customer partner = customersMap.get(code);
 			
 			Newsletter newsletter = new Newsletter();
 			newsletter.setCodigoCliente(code);
-			newsletter.setNomeDoCliente(notes.get(0).getPartnerName());
+			newsletter.setNomeDoCliente(partner != null ? partner.getName() : notes.get(0).getPartnerName());
 			newsletter.setQuantidadeNotasEmitidas(notes.size());
 			newsletter.setFaturamentoTotal(notes.stream().mapToDouble(NewsletterNFeInfo::getValueWithTaxes).sum());
 			newsletter.setQuantidadeDeProdutos(notes.size());
@@ -90,7 +154,7 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 			double partsValue = parts.stream().mapToDouble(NewsletterExchangedParts::getTotalCost).sum();
 			newsletter.setValorDePecasTrocadas(partsValue);
 			
-			// horas totais sem mau uso
+			// total hours without misuse
 			List<NewsletterTechnicalHours> hours = hoursPerPartnersWithoutMinuse.getOrDefault(code, Collections.emptyList());
 			double totalHours = hours.isEmpty() ? 0 : hours.get(0).getTimePerPartner();
 			newsletter.setValorTotalDeHoras(totalHours);
@@ -98,7 +162,7 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 			double totalHoursValue = hours.isEmpty() ? 0 : hours.get(0).getTotalValuePerPartner();
 			newsletter.setValorTotalCobradoHoras(totalHoursValue);
 			
-			// horas totais com mau uso
+			// total hours with misuse
 			List<NewsletterTechnicalHours> hoursWithMinuse = hoursPerPartnersWithMinuse.getOrDefault(code, Collections.emptyList());
 			double totalHoursWithMinuse = hoursWithMinuse.isEmpty() ? 0 : hoursWithMinuse.get(0).getMinuseHour();
 			newsletter.setValorTotalDeHorasMauUso(totalHoursWithMinuse);
@@ -107,8 +171,6 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 			newsletter.setValorTotalCobradoHorasMauUso(totalHoursWithMinuseValue);
 			
 			newsletter.setMauUso(hoursWithMinuse.isEmpty() ? false : true);
-			
-			Customer partner = customersMap.get(code);
 			
 			newsletter.setEmailCliente(partner != null ? partner.getEmail().getAddress() : null);
 			

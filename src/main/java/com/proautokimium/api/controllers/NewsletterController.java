@@ -36,14 +36,15 @@ public class NewsletterController {
     }
     
     @PostMapping("upload")
-    public ResponseEntity<Object> includeNewsletters(@RequestParam List<MultipartFile> files) throws Exception{
+    public ResponseEntity<Object> includeNewsletters(@RequestParam List<MultipartFile> files, @RequestParam(required = false) boolean isMatriz) throws Exception{
     	if(files.size() > 4) {
     		return ResponseEntity.badRequest().body("Máximo permitido 4 arquivos. Você enviou " + files.size());
     	}
     	
-    	newsletterOrchestratorService.includeMonthlyNewsletter(files);
+    	newsletterOrchestratorService.includeMonthlyNewsletter(files, isMatriz);
     	return ResponseEntity.ok().build();
     }
+    
     @GetMapping("pending")
     public ResponseEntity<Object> getPendingEmails(){
     	var pendingEmails = newsletterService.getAllPendingEmails();

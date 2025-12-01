@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
+import java.io.FileNotFoundException;
 import java.util.List;
 import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.entities.Newsletter;
@@ -46,24 +47,24 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
 	
     @Transactional
 	@Override
-    public void includeMonthlyNewsletter(List<MultipartFile> files) {
+    public void includeMonthlyNewsletter(List<MultipartFile> files, boolean isMatriz) {
 
         try {
             MultipartFile nfeFile = files.stream()
                     .filter(f -> f.getOriginalFilename().contains("NFe"))
-                    .findFirst().orElseThrow(() -> new RuntimeException("Arquivo NFe não encontrado"));
+                    .findFirst().orElseThrow(() -> new FileNotFoundException("Arquivo NFe não encontrado"));
 
             MultipartFile osFile = files.stream()
                     .filter(f -> f.getOriginalFilename().contains("OS"))
-                    .findFirst().orElseThrow(() -> new RuntimeException("Arquivo OS não encontrado"));
+                    .findFirst().orElseThrow(() -> new FileNotFoundException("Arquivo OS não encontrado"));
 
             MultipartFile horasFile = files.stream()
                     .filter(f -> f.getOriginalFilename().contains("Horas"))
-                    .findFirst().orElseThrow(() -> new RuntimeException("Arquivo Horas não encontrado"));
+                    .findFirst().orElseThrow(() -> new FileNotFoundException("Arquivo Horas não encontrado"));
 
             MultipartFile pecasFile = files.stream()
                     .filter(f -> f.getOriginalFilename().contains("Pecas"))
-                    .findFirst().orElseThrow(() -> new RuntimeException("Arquivo Pecas não encontrado"));
+                    .findFirst().orElseThrow(() -> new FileNotFoundException("Arquivo Pecas não encontrado"));
 
             List<NewsletterNFeInfo> nfeInfos = reader.getNfeInfoByExcel(nfeFile.getInputStream());
             List<NewsletterServiceOrders> ordersInfos = reader.getServiceOrdersByExcel(osFile.getInputStream());
@@ -73,14 +74,17 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
             NewsletterData data = new NewsletterData(nfeInfos, ordersInfos, hoursInfos, parts);
 
             List<Customer> customers = customerRepository.findAll();
-            List<Newsletter> newsletters = builder.buildNewsletters(data, customers);
+            List<Newsletter> newsletters = builder.buildNewsletters(data, customers, isMatriz);
 
             if (!newsletters.isEmpty()) {
             	newsletters.removeIf(n -> n.getFaturamentoTotal() <= 0);
                 repository.saveAll(newsletters);
             }
 
-        } catch (Exception e) {
+        }catch (FileNotFoundException e) {
+			LOGGER.error(e.getMessage());
+		}
+        catch (Exception e) {
             LOGGER.error("Ocorreu um erro ao criar as newsletters. Error: " + e.getMessage());
         }
     }
