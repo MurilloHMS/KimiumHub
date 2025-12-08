@@ -52,7 +52,7 @@ public class PartnerReaderService implements IPartnerReader{
 				
 				Cell emailCell = row.getCell(4);
 				if(emailCell != null)
-					customer.setEmail(new Email(emailCell.getStringCellValue()));
+					customer.setEmail(new Email(emailCell.getStringCellValue().trim()));
 				
 				list.add(customer);
 			}
