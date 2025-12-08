@@ -127,9 +127,9 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 			Newsletter newsletter = new Newsletter();
 			newsletter.setCodigoCliente(code);
 			newsletter.setNomeDoCliente(partner != null ? partner.getName() : notes.get(0).getPartnerName());
-			newsletter.setQuantidadeNotasEmitidas(notes.size());
+			newsletter.setQuantidadeNotasEmitidas((int) notes.stream().map(n -> Integer.parseInt(n.getNfeNumber())).distinct().count());
 			newsletter.setFaturamentoTotal(notes.stream().mapToDouble(NewsletterNFeInfo::getValueWithTaxes).sum());
-			newsletter.setQuantidadeDeProdutos(notes.size());
+			newsletter.setQuantidadeDeProdutos((int) notes.stream().map(n -> Integer.parseInt(n.getProductCode())).distinct().count());
 			newsletter.setQuantidadeDeLitros(notes.stream().mapToDouble(NewsletterNFeInfo::getQuantity).sum());
 			newsletter.setData(firstWithDate.getDate());
 			
