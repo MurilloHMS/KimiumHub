@@ -29,7 +29,7 @@ public class NewsletterBuilderService implements INewsletterBuilder {
 	@Override
 	public List<Newsletter> buildNewsletters(NewsletterData data, List<Customer> customers, boolean isMatriz) {
 		
-		// create mappings
+		// mappings
 		Map<String, Customer> customersMap;
 		Map<String, List<NewsletterNFeInfo>> notesPerPartnersMap;
 		Map<String, List<NewsletterServiceOrders>> ordersPerPartnersMap;
