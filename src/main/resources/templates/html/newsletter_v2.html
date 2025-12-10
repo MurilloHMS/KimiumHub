@@ -248,7 +248,7 @@
                                             </tr>
                                             <tr>
                                                 <td align="center">
-                                                    <p style="margin:0; font-family:'Arial', sans-serif; font-size:48px; font-weight:bold; color:#ffffff; text-shadow:0 2px 10px rgba(0,0,0,0.1);" th:text="|R$ ${faturamentoTotal}|">R$ 0,00</p>
+                                                    <p style="margin:0; font-family:'Arial', sans-serif; font-size:48px; font-weight:bold; color:#ffffff; text-shadow:0 2px 10px rgba(0,0,0,0.1);" th:text="|R$ ${#numbers.formatDecimal(faturamentoTotal, 1, 'COMMA', 2, 'POINT')}|">R$ 0,00</p>
                                                 </td>
                                             </tr>
                                             <tr>

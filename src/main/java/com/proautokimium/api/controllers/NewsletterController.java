@@ -6,6 +6,7 @@ import com.proautokimium.api.domain.entities.Newsletter;
 
 import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,17 +36,21 @@ public class NewsletterController {
     }
     
     @PostMapping("upload")
-    public ResponseEntity<Object> includeNewsletters(@RequestParam List<MultipartFile> files) throws Exception{
+    public ResponseEntity<Object> includeNewsletters(@RequestParam List<MultipartFile> files, @RequestParam(required = false) boolean isMatriz) throws Exception{
     	if(files.size() > 4) {
     		return ResponseEntity.badRequest().body("Máximo permitido 4 arquivos. Você enviou " + files.size());
     	}
     	
-    	newsletterOrchestratorService.includeMonthlyNewsletter(files);
+    	newsletterOrchestratorService.includeMonthlyNewsletter(files, isMatriz);
     	return ResponseEntity.ok().build();
     }
+    
     @GetMapping("pending")
     public ResponseEntity<Object> getPendingEmails(){
-    	return ResponseEntity.ok(newsletterService.getAllPendingEmails());
+    	var pendingEmails = newsletterService.getAllPendingEmails();
+    	return pendingEmails != null ?
+    			ResponseEntity.status(HttpStatus.OK).body(pendingEmails)
+    			: ResponseEntity.status(HttpStatus.NO_CONTENT).body("Não há emails pendentes");
     }
     
     @PostMapping("pending/send")

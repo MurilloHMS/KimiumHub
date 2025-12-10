@@ -7,5 +7,5 @@ import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.entities.Newsletter;
 
 public interface INewsletterBuilder {
-	List<Newsletter> buildNewsletters(NewsletterData data, List<Customer> customers);
+	List<Newsletter> buildNewsletters(NewsletterData data, List<Customer> customers, boolean isMatriz);
 }

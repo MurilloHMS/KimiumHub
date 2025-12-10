@@ -87,7 +87,14 @@ public class CustomerService {
 	}
 	
 	public ResponseEntity<Object> getAllCustomers(){
-		var customerList = this.repository.findAll();
+		var customerList = this.repository.findAll().stream().map(c -> new CustomerRequestDTO(
+				c.getCodParceiro(),
+				c.getDocumento(),
+				c.getName(),
+				c.getEmail().getAddress(),
+				c.isAtivo(),
+				c.isRecebeEmail(),
+				c.getCodigoMatriz())).toList();
 		return customerList.isEmpty() 
 				? ResponseEntity.noContent().build() 
 				: ResponseEntity.ok(customerList);

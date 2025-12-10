@@ -1,3 +1,9 @@
 package com.proautokimium.api.Application.DTOs.partners;
 
-public record CustomerRequestDTO(String codParceiro, String documento, String nome, String email, boolean ativo, boolean recebeEmail, String codMatriz){}
+public record CustomerRequestDTO(String codParceiro,
+		String documento,
+		String nome,
+		String email,
+		boolean ativo,
+		boolean recebeEmail,
+		String codMatriz){}

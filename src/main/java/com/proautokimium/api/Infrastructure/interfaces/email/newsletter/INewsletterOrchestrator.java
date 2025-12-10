@@ -6,5 +6,5 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface INewsletterOrchestrator {
 	void executeMonthlyNewsletter();
-	void includeMonthlyNewsletter(List<MultipartFile> files);
+	void includeMonthlyNewsletter(List<MultipartFile> files, boolean isMatriz);
 }
