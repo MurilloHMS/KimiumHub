@@ -1,5 +1,6 @@
 package com.proautokimium.api.domain.entities;
 
+import com.proautokimium.api.Application.DTOs.contact.ContactDTO;
 import com.proautokimium.api.domain.enums.ContactStatus;
 import com.proautokimium.api.domain.enums.ContactType;
 import com.proautokimium.api.domain.valueObjects.Email;
@@ -37,4 +38,15 @@ public class Contact extends com.proautokimium.api.domain.abstractions.Entity{
     private ContactStatus contactStatus;
     @Column(name = "contact_date")
     private LocalDateTime contactDate;
+
+    public Contact(ContactDTO dto){
+        this.name = dto.name();
+        this.email = new Email(dto.email());
+        this.contactType = dto.contactType();
+        this.other = dto.other();
+        this.message = dto.message();
+        this.businessName = dto.businessName();
+        this.contactStatus = dto.contactStatus();
+        this.contactDate = dto.contactDate();
+    }
 }
