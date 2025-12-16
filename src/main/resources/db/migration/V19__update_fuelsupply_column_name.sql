@@ -1,0 +1,1 @@
+alter table fuelsupply rename column prive to price;

@@ -2,6 +2,7 @@ package com.proautokimium.api.domain.entities;
 
 import java.time.LocalDate;
 
+import com.proautokimium.api.Application.DTOs.fuelsupply.FuelSupplyDTO;
 import com.proautokimium.api.domain.abstractions.Entity;
 import com.proautokimium.api.domain.enums.Department;
 
@@ -35,4 +36,19 @@ public class FuelSupply extends Entity{
 	private String fuelType;
 	private double price;
 	private double totalValue;
+
+    public FuelSupply(FuelSupplyDTO dto){
+        this.fuelSupplyDate = dto.fuelSupplyDate();
+        this.uf = dto.uf();
+        this.plate = dto.plate();
+        this.driverName = dto.driverName();
+        this.department = dto.department();
+        this.actualHodometer = dto.actualHodometer();
+        this.lastHodometer = dto.lastHodometer();
+        this.diferenceHodometer = dto.diferenceHodometer();
+        this.averageKm = dto.averageKm();
+        this.fuelType = dto.fuelType();
+        this.price = dto.price();
+        this.totalValue = dto.totalValue();
+    }
 }

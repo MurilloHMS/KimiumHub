@@ -7,4 +7,7 @@ import com.proautokimium.api.domain.models.newsletter.NewsletterNFeInfo;
 import com.proautokimium.api.domain.models.newsletter.NewsletterServiceOrders;
 import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
 
-public record NewsletterData(List<NewsletterNFeInfo> nFeInfos, List<NewsletterServiceOrders> orders, List<NewsletterTechnicalHours> hours, List<NewsletterExchangedParts> parts) {}
+public record NewsletterData(List<NewsletterNFeInfo> nFeInfos,
+		List<NewsletterServiceOrders> orders,
+		List<NewsletterTechnicalHours> hours,
+		List<NewsletterExchangedParts> parts) {}

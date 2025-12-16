@@ -34,17 +34,7 @@ public class ContactService {
 
     @Transactional
     public void createContact(ContactDTO dto){
-        Contact contact = new Contact();
-
-        contact.setBusinessName(dto.businessName());
-        contact.setContactDate(dto.contactDate());
-        contact.setContactStatus(dto.contactStatus());
-        contact.setContactType(dto.contactType());
-        contact.setEmail(new Email(dto.email()));
-        contact.setMessage(dto.message());
-        contact.setName(dto.name());
-        contact.setOther(dto.other());
-
+        Contact contact = new Contact(dto);
         repository.save(contact);
     }
 }

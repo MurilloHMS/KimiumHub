@@ -44,6 +44,11 @@ public class ProductController {
         return ResponseEntity.ok().body(products);
     }
 
+    @GetMapping("product/lowstock")
+    public ResponseEntity<?> getAllProductsWithLowStock(){
+        return inventoryService.getProductWithLowStock();
+    }
+
     @GetMapping("movements/{systemCode}")
     public ResponseEntity<List<ProductMovementDTO>> getAllMovementsBySystemCode(@PathVariable String systemCode){
         List<ProductMovementDTO> movements = inventoryService.findAllMovementsByProduct(systemCode);

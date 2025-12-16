@@ -22,19 +22,7 @@ public class FuelSupplyService {
 	public ResponseEntity<?> createFuelSupply(FuelSupplyDTO dto) {
 		
 		try {
-			FuelSupply fs = new FuelSupply();
-			fs.setActualHodometer(dto.actualHodometer());
-			fs.setAverageKm(dto.averageKm());
-			fs.setDepartment(dto.department());
-			fs.setDiferenceHodometer(dto.diferenceHodometer());
-			fs.setDriverName(dto.driverName());
-			fs.setFuelSupplyDate(dto.fuelSupplyDate());
-			fs.setFuelType(dto.fuelType());
-			fs.setLastHodometer(dto.lastHodometer());
-			fs.setPlate(dto.plate());
-			fs.setPrice(dto.price());
-			fs.setTotalValue(dto.totalValue());
-			
+			FuelSupply fs = new FuelSupply(dto);
 			repository.save(fs);
 			return ResponseEntity.ok().body("Abastecimento Criado com sucesso!");
 		} catch (Exception e) {
