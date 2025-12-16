@@ -9,6 +9,7 @@ import lombok.Setter;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "products_movements")
@@ -21,7 +22,7 @@ public class MovementInventory extends com.proautokimium.api.domain.abstractions
     private static final long serialVersionUID = 1L;
 
     @Column(name = "movement_date", nullable = false)
-    private LocalDate movementDate;
+    private LocalDateTime movementDate;
 
     @Column(name = "quantity", nullable = false)
     private int quantity;
