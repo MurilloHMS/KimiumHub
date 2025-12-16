@@ -164,9 +164,9 @@ public class ProductInventoryService {
     		
         	List<MovementInventory> dayStock = Stream.concat(
         			
-        			movements.stream().filter(m -> m.getMovementDate().isEqual(date)),
+        			movements.stream().filter(m -> m.getMovementDate().isEqual(date.atStartOfDay())),
         			
-        			movements.stream().filter(m -> m.getMovementDate().isBefore(date))
+        			movements.stream().filter(m -> m.getMovementDate().isBefore(date.atStartOfDay()))
         			.collect(Collectors.groupingBy(m -> m.getProduct().getSystemCode()))
         			.values()
         			.stream()
