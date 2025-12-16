@@ -1,0 +1,2 @@
+ALTER TABLE products_movements
+ALTER COLUMN movement_date SET DEFAULT CURRENT_TIMESTAMP;
