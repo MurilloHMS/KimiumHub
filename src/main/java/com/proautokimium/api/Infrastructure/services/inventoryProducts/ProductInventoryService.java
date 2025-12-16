@@ -84,6 +84,7 @@ public class ProductInventoryService {
         UUID id = productInventoryRepository.findBySystemCode(systemCode).getId();
         var movements = productMovementRepository.findMovementByProductId(id);
         return movements.stream()
+                .sorted(Comparator.comparing(MovementInventory::getMovementDate))
                 .map(m -> new ProductMovementDTO(
                         m.getMovementDate(),
                         m.getQuantity(),
