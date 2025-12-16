@@ -201,4 +201,11 @@ public class ProductInventoryService {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ocorreu um erro ao coletar os dados: " + e.getMessage());
 		}   	
     }
+
+    public ResponseEntity<?> getProductWithLowStock(){
+        var productsWithLowStock = productInventoryRepository.findProductByMovementBelowMinimum();
+        return productsWithLowStock.isEmpty() ?
+                ResponseEntity.notFound().build()
+                : ResponseEntity.ok().body(productsWithLowStock);
+    }
 }
