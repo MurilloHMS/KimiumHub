@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -179,7 +180,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 			for(int i = FIRST_DATA_ROW; i < lastRow ; i++) {
 				
 				Row row = sheet.getRow(i);
-				if(row != null) continue;
+				if(row == null) continue;
 				
 				NewsletterExchangedParts parts = new NewsletterExchangedParts();
 				
@@ -213,7 +214,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 			for(int i = FIRST_DATA_ROW; i < lastRow; i++) {
 				
 				Row row = sheet.getRow(i);
-				if(row != null) continue;
+				if(row == null) continue;
 				
 				NewsletterTechnicalHours hours = new NewsletterTechnicalHours();
 				
@@ -227,12 +228,12 @@ public class NewsLetterReaderService implements INewsletterReader{
 					hours.setTimePerPartner(horasTotais.getNumericCellValue());
 				
 				Cell custoTotalCell = row.getCell(2);
-				if(codParCell != null && codParCell.getCellType() == CellType.NUMERIC)
+				if(custoTotalCell != null && custoTotalCell.getCellType() == CellType.NUMERIC)
 					hours.setTotalValuePerPartner(custoTotalCell.getNumericCellValue());
 				
 				Cell mauUso  = row.getCell(3);
 				if(mauUso != null)
-					hours.setMinuse(mauUso.getStringCellValue() == "Não" ? false : true);
+					hours.setMinuse(!Objects.equals(mauUso.getStringCellValue(), "Não"));
 				
 				list.add(hours);
 					
