@@ -230,13 +230,32 @@ public class NewsLetterReaderService implements INewsletterReader{
 				Cell custoTotalCell = row.getCell(2);
 				if(custoTotalCell != null && custoTotalCell.getCellType() == CellType.NUMERIC)
 					hours.setTotalValuePerPartner(custoTotalCell.getNumericCellValue());
-				
-				Cell mauUso  = row.getCell(3);
-				if(mauUso != null)
-					hours.setMinuse(!Objects.equals(mauUso.getStringCellValue(), "Não"));
-				
-				list.add(hours);
-					
+
+                Cell mauUsoCell = row.getCell(3);
+                boolean isMinuse = false;
+
+                if (mauUsoCell != null && mauUsoCell.getCellType() == CellType.STRING) {
+                    isMinuse = mauUsoCell
+                            .getStringCellValue()
+                            .trim()
+                            .equalsIgnoreCase("Sim");
+                }
+
+                hours.setMinuse(isMinuse);
+                if (horasTotais != null && horasTotais.getCellType() == CellType.NUMERIC &&
+                        custoTotalCell != null && custoTotalCell.getCellType() == CellType.NUMERIC) {
+
+                    if (isMinuse) {
+                        hours.setMinuseHour(horasTotais.getNumericCellValue());
+                        hours.setMinuseValue(custoTotalCell.getNumericCellValue());
+                    } else {
+                        hours.setTimePerPartner(horasTotais.getNumericCellValue());
+                        hours.setTotalValuePerPartner(custoTotalCell.getNumericCellValue());
+                    }
+                }
+
+                list.add(hours);
+
 			}
 		}
 		
