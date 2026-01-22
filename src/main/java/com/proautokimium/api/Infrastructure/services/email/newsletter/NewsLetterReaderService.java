@@ -255,7 +255,7 @@ public class NewsLetterReaderService implements INewsletterReader{
                 }
 
                 list.add(hours);
-					
+
 			}
 		}
 		
