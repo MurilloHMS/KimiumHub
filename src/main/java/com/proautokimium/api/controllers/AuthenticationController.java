@@ -1,10 +1,10 @@
 package com.proautokimium.api.controllers;
 
+import com.proautokimium.api.Application.DTOs.partners.EmployeeDTO;
+import com.proautokimium.api.Application.DTOs.user.*;
+import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.security.TokenService;
-import com.proautokimium.api.Application.DTOs.user.AuthenticationDTO;
-import com.proautokimium.api.Application.DTOs.user.LoginResponseDTO;
-import com.proautokimium.api.Application.DTOs.user.RegisterDTO;
-import com.proautokimium.api.Application.DTOs.user.UserResponseDTO;
+import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.User;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import jakarta.validation.Valid;
@@ -25,6 +25,9 @@ public class AuthenticationController {
     UserRepository repository;
 
     @Autowired
+    EmployeeRepository employeeRepository;
+
+    @Autowired
     TokenService tokenService;
 
     @PostMapping("/login")
@@ -34,6 +37,40 @@ public class AuthenticationController {
 
         var token = tokenService.generateToken((User) auth.getPrincipal());
         return ResponseEntity.ok(new LoginResponseDTO(token));
+    }
+
+    @PostMapping("/login/android")
+    public ResponseEntity<Object> LoginAndoid(@RequestBody @Valid AuthenticationDTO data){
+        try {
+            var usernamepassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());
+            var auth = this.authenticationManager.authenticate(usernamepassword);
+
+            var token = tokenService.generateToken((User) auth.getPrincipal());
+
+            Employee employee = employeeRepository.findByEmail_Address(data.login()).orElse(null);
+
+            if (employee == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("Funcionário não encontrado para este usuário");
+            }
+
+            EmployeeDTO employeeDTO = new EmployeeDTO(
+                    employee.getCodParceiro(),
+                    employee.getDocumento(),
+                    employee.getName(),
+                    employee.getEmail().getAddress(),
+                    employee.isAtivo(),
+                    employee.getCodigoGerente(),
+                    employee.getHierarquia(),
+                    employee.getBirthday(),
+                    employee.getDepartment()
+            );
+
+            return ResponseEntity.ok(new LoginAndroidResponseDTO(token, employeeDTO));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Credenciais inválidas");
+        }
     }
 
     @PostMapping("/register")
