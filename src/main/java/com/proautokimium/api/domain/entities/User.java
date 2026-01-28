@@ -24,14 +24,17 @@ public class User implements UserDetails {
 	private static final long serialVersionUID = 1L;
 	@Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id")
     private String id;
+    @Column(name = "login", unique = true, nullable = false)
     private String login;
+    @Column(name = "password", nullable = false)
     private String password;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.ORDINAL)
-    @Column(name = "role")
+    @Column(name = "role", nullable = false)
     private List<UserRole> roles = new ArrayList<>();
 
     public User(String login, String password, List<UserRole> roles){

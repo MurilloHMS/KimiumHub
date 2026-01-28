@@ -21,9 +21,11 @@ import java.util.Set;
 public class Vehicle extends com.proautokimium.api.domain.abstractions.Entity implements Serializable {
     @Serial
     private static final long serialVersionUID= 1L;
-
+    @Column(name = "nome", length = 255, nullable = false)
     private String nome;
+    @Column(name = "placa", length = 8, nullable = false)
     private String placa;
+    @Column(name = "marca", length = 100, nullable = false)
     private String marca;
     private double consumoUrbanoAlcool;
     private double consumoUrbanoGasolina;
