@@ -32,7 +32,7 @@ public class RegistroPontoController {
             @AuthenticationPrincipal User user,
             @RequestParam(required = false) String mesAno) {
 
-        Employee employee = employeeRepository.findByEmail_Address(user.getLogin()).orElse(null);
+        Employee employee = employeeRepository.findByUsername(user.getLogin()).orElse(null);
 
         if (employee == null){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Funcionário não encontrado");
@@ -46,7 +46,7 @@ public class RegistroPontoController {
             @AuthenticationPrincipal User user,
             @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate data) {
 
-        Employee employee = employeeRepository.findByEmail_Address(user.getLogin()).orElse(null);
+        Employee employee = employeeRepository.findByUsername(user.getLogin()).orElse(null);
 
         if (employee == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -61,7 +61,7 @@ public class RegistroPontoController {
             @AuthenticationPrincipal User user,
             @RequestBody @Valid RegistroPontoRequestDTO dto) {
 
-        Employee employee = employeeRepository.findByEmail_Address(user.getLogin()).orElse(null);
+        Employee employee = employeeRepository.findByUsername(user.getLogin()).orElse(null);
 
         if (employee == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -77,7 +77,7 @@ public class RegistroPontoController {
             @PathVariable UUID id,
             @RequestBody @Valid RegistroPontoUpdateDTO dto) {
 
-        Employee employee = employeeRepository.findByEmail_Address(user.getLogin()).orElse(null);
+        Employee employee = employeeRepository.findByUsername(user.getLogin()).orElse(null);
 
         if (employee == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -92,7 +92,7 @@ public class RegistroPontoController {
             @AuthenticationPrincipal User user,
             @PathVariable UUID id) {
 
-        Employee employee = employeeRepository.findByEmail_Address(user.getLogin()).orElse(null);
+        Employee employee = employeeRepository.findByUsername(user.getLogin()).orElse(null);
 
         if (employee == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
