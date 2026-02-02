@@ -1,7 +1,6 @@
 package com.proautokimium.api.Infrastructure.repositories;
 
 import com.proautokimium.api.domain.entities.RegistroPonto;
-import org.springframework.cglib.core.Local;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,9 +12,9 @@ import java.util.UUID;
 
 public interface RegistroPontoRepository extends JpaRepository<RegistroPonto, UUID> {
 
-    List<RegistroPonto> findByIdOrderByDataDesc(UUID id);
-    List<RegistroPonto> findByIdAndMesAnoOrderByDataDesc(UUID id, String mesAno);
-    Optional<RegistroPonto> findByIdAndData(UUID id, LocalDate data);
+    List<RegistroPonto> findByEmployee_IdOrderByDataDesc(UUID employeeId);
+    List<RegistroPonto> findByEmployee_IdAndMesAnoOrderByDataDesc(UUID employeeId, String mesAno);
+    Optional<RegistroPonto> findByEmployee_IdAndData(UUID employeeId, LocalDate data);
 
     @Query("SELECT r FROM RegistroPonto r WHERE r.employee.id = :employeeId AND r.data BETWEEN :startDate AND :endDate ORDER BY r.data DESC")
     List<RegistroPonto> findByIdAndPeriod(

@@ -9,7 +9,6 @@ import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.RegistroPonto;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -28,8 +27,8 @@ public class RegistroPontoService {
     @Autowired
     private EmployeeRepository employeeRepository;
 
-    public ResponseEntity<?> getRegistrosByEmployee(UUID id, String mesAno){
-        Employee employee = employeeRepository.findById(id).orElse(null);
+    public ResponseEntity<?> getRegistrosByEmployee(UUID employeeId, String mesAno){
+        Employee employee = employeeRepository.findById(employeeId).orElse(null);
 
         if(employee == null){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Funcionário não encontrado");
@@ -38,9 +37,9 @@ public class RegistroPontoService {
         List<RegistroPonto> registros;
 
         if(mesAno != null && !mesAno.isEmpty()){
-            registros = registroPontoRepository.findByIdAndMesAnoOrderByDataDesc(id, mesAno);
+            registros = registroPontoRepository.findByEmployee_IdAndMesAnoOrderByDataDesc(employeeId, mesAno);
         }else {
-            registros = registroPontoRepository.findByIdOrderByDataDesc(id);
+            registros = registroPontoRepository.findByEmployee_IdOrderByDataDesc(employeeId);
         }
 
         List<RegistroPontoDTO> dtos = registros.stream()
@@ -51,14 +50,14 @@ public class RegistroPontoService {
     }
 
     @Transactional
-    public ResponseEntity<?> createRegistro(UUID id, RegistroPontoRequestDTO dto){
-        Employee employee = employeeRepository.findById(id).orElse(null);
+    public ResponseEntity<?> createRegistro(UUID employeeId, RegistroPontoRequestDTO dto){
+        Employee employee = employeeRepository.findById(employeeId).orElse(null);
 
         if(employee == null){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Funcionário não encontrado");
         }
 
-        var registroExistente = registroPontoRepository.findByIdAndData(id, dto.data());
+        var registroExistente = registroPontoRepository.findByEmployee_IdAndData(employeeId, dto.data());
 
         if(registroExistente.isPresent()){
             return ResponseEntity.status(HttpStatus.CONFLICT).body("já existe um registro para esta data");
@@ -133,7 +132,7 @@ public class RegistroPontoService {
 
     public ResponseEntity<?> getRegistroByData(UUID employeeId, LocalDate data) {
         var registro = registroPontoRepository
-                .findByIdAndData(employeeId, data);
+                .findByEmployee_IdAndData(employeeId, data);
 
         if (registro.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
