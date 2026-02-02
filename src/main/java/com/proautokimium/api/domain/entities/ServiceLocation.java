@@ -19,8 +19,8 @@ public class ServiceLocation extends Partner {
     @Column(name = "address")
     private String address;
 
-    public ServiceLocation(String systemCode, String documento, String nome, Email email, boolean ativo, String address){
-        super(systemCode,documento,nome,email,ativo);
+    public ServiceLocation(String systemCode, String documento, String nome, String username, Email email, boolean ativo, String address){
+        super(systemCode,documento,nome,email, username, ativo);
         this.address = address;
     }
 }
