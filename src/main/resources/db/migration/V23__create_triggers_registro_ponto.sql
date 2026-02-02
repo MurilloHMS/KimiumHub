@@ -1,35 +1,26 @@
-DELIMITER $$
-
-CREATE TRIGGER before_update_registros_ponto
-    BEFORE UPDATE ON registros_ponto
-    FOR EACH ROW
+CREATE OR REPLACE FUNCTION registros_ponto_set_defaults()
+RETURNS TRIGGER AS $$
 BEGIN
-    SET NEW.updated_at = CURRENT_TIMESTAMP;
-
     IF NEW.data IS NOT NULL THEN
-        SET NEW.mes_ano = DATE_FORMAT(NEW.data, '%Y-%m');
+        NEW.mes_ano := to_char(NEW.data, 'YYYY-MM');
 END IF;
-END$$
 
-DELIMITER ;
+    IF TG_OP = 'INSERT' AND NEW.created_at IS NULL THEN
+        NEW.created_at := CURRENT_TIMESTAMP;
+END IF;
 
-DELIMITER $$
+    NEW.updated_at := CURRENT_TIMESTAMP;
 
-CREATE TRIGGER before_insert_registros_ponto
+RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_registros_ponto_before_insert
     BEFORE INSERT ON registros_ponto
     FOR EACH ROW
-BEGIN
-    IF NEW.data IS NOT NULL THEN
-        SET NEW.mes_ano = DATE_FORMAT(NEW.data, '%Y-%m');
-END IF;
+    EXECUTE FUNCTION registros_ponto_set_defaults();
 
-IF NEW.created_at IS NULL THEN
-        SET NEW.created_at = CURRENT_TIMESTAMP;
-END IF;
-
-    IF NEW.updated_at IS NULL THEN
-        SET NEW.updated_at = CURRENT_TIMESTAMP;
-END IF;
-END$$
-
-DELIMITER ;
+CREATE TRIGGER trg_registros_ponto_before_update
+    BEFORE UPDATE ON registros_ponto
+    FOR EACH ROW
+    EXECUTE FUNCTION registros_ponto_set_defaults();
