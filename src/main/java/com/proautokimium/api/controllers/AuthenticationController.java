@@ -47,7 +47,7 @@ public class AuthenticationController {
 
             var token = tokenService.generateToken((User) auth.getPrincipal());
 
-            Employee employee = employeeRepository.findByEmail_Address(data.login()).orElse(null);
+            Employee employee = employeeRepository.findByUsername(data.login()).orElse(null);
 
             if (employee == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)

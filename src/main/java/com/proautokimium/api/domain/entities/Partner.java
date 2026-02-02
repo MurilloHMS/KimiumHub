@@ -25,6 +25,8 @@ public abstract class Partner extends com.proautokimium.api.domain.abstractions.
     @Embedded
     @AttributeOverride(name = "address", column = @Column(name = "email", length = 200, nullable = false))
     private Email email;
+    @Column(name = "username")
+    private String username;
     @Column(name = "ativo", nullable = false)
     private boolean ativo = true;
 }
