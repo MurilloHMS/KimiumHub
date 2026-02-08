@@ -126,11 +126,10 @@ public class CustomerService {
     }
 	
 	@Transactional
-	public ResponseEntity<Void> DeleteCustomer(String codParceiro){
+	public void DeleteCustomer(String codParceiro){
         Customer customer = this.repository.findByCodParceiro(codParceiro)
                 .orElseThrow(CustomerNotFoundException::new);
 
         this.repository.delete(customer);
-        return ResponseEntity.ok().build();
     }
 }

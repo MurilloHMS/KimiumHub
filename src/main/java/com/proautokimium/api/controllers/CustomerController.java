@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,33 +19,32 @@ public class CustomerController {
     CustomerService service;
 
     @PostMapping
-    public ResponseEntity<Object> CreateCustomer(@RequestBody @NotNull @Valid CustomerRequestDTO customer){
-        ResponseEntity<Object> responseEntity = service.createCustomer(customer);
-        return responseEntity;
+    public ResponseEntity<String> CreateCustomer(@RequestBody @NotNull @Valid CustomerRequestDTO customer){
+        service.createCustomer(customer);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Cliente cadastrado com sucesso!");
     }
     
     @PostMapping("upload")
-    public ResponseEntity<Object> createCustomersByExcel(@RequestParam MultipartFile file) throws Exception{
-    	ResponseEntity<Object> responseEntity = service.includeCustomersByExcel(file);
-    	return responseEntity;
+    public ResponseEntity<String> createCustomersByExcel(@RequestParam MultipartFile file){
+        service.includeCustomersByExcel(file);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Clientes cadastrado com sucesso via planilha!");
     }
 
     @GetMapping
     public ResponseEntity<Object> GetAllCustomer(){
-    	 ResponseEntity<Object> responseEntity = service.getAllCustomers();
-    	 return responseEntity;
+        return service.getAllCustomers();
     }
 
     @PutMapping
-    public ResponseEntity<Void> UpdateCustomer(@RequestBody @NotNull @Valid CustomerRequestDTO dto){
-    	 ResponseEntity<Void> responseEntity = service.UpdateCustomer(dto);
-    	 return responseEntity;
+    public ResponseEntity<String> UpdateCustomer(@RequestBody @NotNull @Valid CustomerRequestDTO dto){
+        service.UpdateCustomer(dto);
+        return ResponseEntity.status(HttpStatus.OK).body("Cliente atualizado com sucesso!");
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> DeleteCustomer(@RequestBody @NotNull @Valid String codParceiro){
-    	 ResponseEntity<Void> responseEntity = service.DeleteCustomer(codParceiro);
-    	 return responseEntity;
+    public ResponseEntity<String> DeleteCustomer(@RequestBody @NotNull @Valid String codParceiro){
+    	 service.DeleteCustomer(codParceiro);
+    	 return ResponseEntity.status(HttpStatus.OK).body("Cliente deletado com sucesso!");
     }
     
 }
