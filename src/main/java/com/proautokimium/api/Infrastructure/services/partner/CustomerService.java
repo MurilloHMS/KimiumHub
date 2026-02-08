@@ -3,8 +3,11 @@ package com.proautokimium.api.Infrastructure.services.partner;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.domain.exceptions.CustomerAlreadyExistsException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +20,9 @@ import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.valueObjects.Email;
 
 import jakarta.transaction.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import javax.swing.text.html.Option;
 
 @Service
 public class CustomerService {
@@ -26,11 +32,15 @@ public class CustomerService {
 	
 	@Autowired
 	PartnerReaderService reader;
+
+    @Autowired
+    ObjectMapper mapper;
 	
 	@Transactional
 	public ResponseEntity<Object> createCustomer(CustomerRequestDTO dto){
-		if(this.repository.findByCodParceiro(dto.codParceiro()) != null) return ResponseEntity.status(HttpStatus.CONFLICT).body("Parceiro já existe no banco");
-		
+        repository.findByCodParceiro(dto.codParceiro()).ifPresent(c -> {throw new CustomerAlreadyExistsException();
+        });
+
 		Customer newCustomer = Customer.fromDTO(dto);
 		this.repository.save(newCustomer);
 		return ResponseEntity.status(203).body("Parceiro criado com sucesso!");
@@ -103,8 +113,8 @@ public class CustomerService {
 	
 	@Transactional
 	public ResponseEntity<Void> UpdateCustomer(CustomerRequestDTO dto){
-        var customer = this.repository.findByCodParceiro(dto.codParceiro());
-        if(customer == null) return ResponseEntity.notFound().build();
+        Customer customer = this.repository.findByCodParceiro(dto.codParceiro())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         customer.setCodigoMatriz(dto.codMatriz());
         customer.setAtivo(dto.ativo());
@@ -119,8 +129,8 @@ public class CustomerService {
 	
 	@Transactional
 	public ResponseEntity<Void> DeleteCustomer(String codParceiro){
-        var customer = this.repository.findByCodParceiro(codParceiro);
-        if(customer == null) return ResponseEntity.notFound().build();
+        Customer customer = this.repository.findByCodParceiro(codParceiro)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         this.repository.delete(customer);
         return ResponseEntity.ok().build();
