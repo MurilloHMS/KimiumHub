@@ -35,17 +35,15 @@ public class CustomerService {
     ObjectMapper mapper;
 	
 	@Transactional
-	public ResponseEntity<Object> createCustomer(CustomerRequestDTO dto){
-        repository.findByCodParceiro(dto.codParceiro()).ifPresent(c -> {throw new CustomerAlreadyExistsException();
-        });
+	public void createCustomer(CustomerRequestDTO dto){
+        repository.findByCodParceiro(dto.codParceiro()).ifPresent(c -> { throw new CustomerAlreadyExistsException(); });
 
 		Customer newCustomer = Customer.fromDTO(dto);
 		this.repository.save(newCustomer);
-		return ResponseEntity.status(203).body("Parceiro criado com sucesso!");
 	}
 	
 	@Transactional
-	public ResponseEntity<Object> includeCustomersByExcel(MultipartFile file){
+	public void includeCustomersByExcel(MultipartFile file){
 		try {
 			List<Customer> customers = reader.getCustomersByExcel(file.getInputStream());
 			
@@ -83,14 +81,8 @@ public class CustomerService {
 	        if (!toUpdate.isEmpty()) {
 	            repository.saveAll(toUpdate);
 	        }
-	        
-	        return ResponseEntity.ok(String.format(
-	                "%d clientes adicionados, %d atualizados.",
-	                toInsert.size(), toUpdate.size()
-	            ));
 		} catch (Exception e) {
-	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-	                .body("Erro ao processar arquivo: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
 	    }
 	}
 	
@@ -110,7 +102,7 @@ public class CustomerService {
 	}
 	
 	@Transactional
-	public ResponseEntity<Void> UpdateCustomer(CustomerRequestDTO dto){
+	public void UpdateCustomer(CustomerRequestDTO dto){
         Customer customer = this.repository.findByCodParceiro(dto.codParceiro())
                 .orElseThrow(CustomerNotFoundException::new);
 
@@ -122,7 +114,6 @@ public class CustomerService {
         customer.setName(dto.nome());
 
         this.repository.save(customer);
-        return ResponseEntity.ok().build();
     }
 	
 	@Transactional
