@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.proautokimium.api.Application.DTOs.certificateHolder.CertificateHolderDTO;
 import com.proautokimium.api.Infrastructure.repositories.CertificateHolderRepository;
 import com.proautokimium.api.domain.entities.CertificateHolder;
+import com.proautokimium.api.domain.exceptions.certificate.CertificateAlreadyExistsException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,7 @@ public class CertificateController {
     public ResponseEntity<?> createCertificateHolder(@RequestBody @NotNull @Valid CertificateHolderDTO dto){
         Optional<CertificateHolder> holder = repository.findByEmail(dto.email());
         if(holder.isPresent()){
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Já existe uma emissão de certificado no email cadastrado!");
+            throw new CertificateAlreadyExistsException();
         }
 
         CertificateHolder entity = mapper.convertValue(dto, CertificateHolder.class);
