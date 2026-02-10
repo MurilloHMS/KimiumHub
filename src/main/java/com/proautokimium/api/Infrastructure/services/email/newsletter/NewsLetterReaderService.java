@@ -27,7 +27,7 @@ import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
 @Service
 public class NewsLetterReaderService implements INewsletterReader{
 	
-	private static final Logger LOGGER = LoggerFactory.getLogger(NewsletterService.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(NewsLetterReaderService.class);
 	private final int FIRST_DATA_ROW = 3;
 
 	@Override
@@ -88,7 +88,7 @@ public class NewsLetterReaderService implements INewsletterReader{
 				Cell nome = row.getCell(3);
 				if(nome != null)
 					info.setPartnerName(nome.getStringCellValue());
-				
+
 //				Cell apelido = row.getCell(4);
 //				if(apelido != null)
 //					info.setPartnerName(apelido.getStringCellValue());
