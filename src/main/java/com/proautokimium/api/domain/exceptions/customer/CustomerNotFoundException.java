@@ -5,9 +5,6 @@ import org.springframework.http.HttpStatus;
 
 public class CustomerNotFoundException extends DomainException {
     public CustomerNotFoundException() {
-        super("Cliente não encontrado");
+        super("Cliente não encontrado", HttpStatus.NOT_FOUND);
     }
-
-    @Override
-    public HttpStatus getStatus() {return HttpStatus.NOT_FOUND; }
 }

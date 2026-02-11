@@ -5,11 +5,7 @@ import org.springframework.http.HttpStatus;
 
 public class CustomerAlreadyExistsException extends DomainException {
     public CustomerAlreadyExistsException() {
-        super("Cliente já existe no banco");
+        super("Cliente já existe no banco", HttpStatus.CONFLICT);
     }
 
-    @Override
-    public HttpStatus getStatus(){
-        return HttpStatus.CONFLICT;
-    }
 }

@@ -3,9 +3,15 @@ package com.proautokimium.api.domain.exceptions;
 import org.springframework.http.HttpStatus;
 
 public abstract class DomainException extends RuntimeException {
-    protected DomainException(String message){
+    private final HttpStatus status;
+
+    protected DomainException(String message, HttpStatus status){
+
         super(message);
+        this.status = status;
     }
 
-    public abstract HttpStatus getStatus();
+    public HttpStatus getStatus(){
+        return status;
+    }
 }

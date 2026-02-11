@@ -5,11 +5,7 @@ import org.springframework.http.HttpStatus;
 
 public class MachineAlreadyExistsException extends DomainException {
     public MachineAlreadyExistsException() {
-        super("Máquina já está cadastrada!");
+        super("Máquina já está cadastrada!", HttpStatus.CONFLICT);
     }
 
-  @Override
-  public HttpStatus getStatus() {
-    return HttpStatus.CONFLICT;
-  }
 }
