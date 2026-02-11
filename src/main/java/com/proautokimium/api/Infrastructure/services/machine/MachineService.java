@@ -65,6 +65,9 @@ public class MachineService {
 
     @Transactional
     public void delete(UUID id){
+        if(id == null || machineRepository.existsById(id))
+            throw new MachineNotFoundException();
+
         machineRepository.deleteById(id);
     }
 
