@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.io.Serial;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -17,7 +18,8 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductInventory extends ProductEntity {
-	private static final long serialVersionUID = 1L;
+	@Serial
+    private static final long serialVersionUID = 1L;
 
 	@Column(name = "minimum_stock")
     private int minimumStock;

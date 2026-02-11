@@ -1,0 +1,4 @@
+ALTER TABLE products
+ADD COLUMN brand VARCHAR(100),
+ADD COLUMN machine_status VARCHAR(15),
+ADD COLUMN machine_type VARCHAR(10)

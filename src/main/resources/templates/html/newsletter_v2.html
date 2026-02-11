@@ -190,8 +190,8 @@
                                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                                         <tr>
                                                             <td style="background: linear-gradient(135deg, #41beb0 0%, #35a89b 100%); border-radius:8px; padding:20px; text-align:center;">
-                                                                <p style="margin:0 0 8px; font-family:'Arial', sans-serif; font-size:11px; color:#ffffff; text-transform:uppercase; font-weight:bold; letter-spacing:1px; opacity:0.9;">Valor Cobrado</p>
-                                                                <p style="margin:0; font-family:'Arial', sans-serif; font-size:32px; font-weight:bold; color:#ffffff;" th:text="|R$ ${valorTotalCobradoHoras}|">R$ 0</p>
+                                                                <p style="margin:0 0 8px; font-family:'Arial', sans-serif; font-size:11px; color:#ffffff; text-transform:uppercase; font-weight:bold; letter-spacing:1px; opacity:0.9;">Valor Total</p>
+                                                                <p style="margin:0; font-family:'Arial', sans-serif; font-size:32px; font-weight:bold; color:#ffffff;" th:text="|R$ ${#numbers.formatDecilam(valorTotalCobradoHoras, 1, 'COMMA', 2, 'POINT')}|">R$ 0,00</p>
                                                             </td>
                                                         </tr>
                                                     </table>
@@ -303,7 +303,7 @@
                                 <tr>
                                     <td align="center" style="padding-top:20px;">
                                         <p style="margin:0; font-family:'Arial', sans-serif; font-size:11px; color:#6c7589; line-height:1.5;">
-                                            © 2025 Proauto Kimium. Todos os direitos reservados.
+                                            © 2026 Proauto Kimium. Todos os direitos reservados.
                                         </p>
                                     </td>
                                 </tr>

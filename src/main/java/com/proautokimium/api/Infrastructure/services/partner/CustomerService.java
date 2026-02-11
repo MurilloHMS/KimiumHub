@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.domain.exceptions.customer.CustomerAlreadyExistsException;
+import com.proautokimium.api.domain.exceptions.customer.CustomerNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +20,7 @@ import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.valueObjects.Email;
 
 import jakarta.transaction.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class CustomerService {
@@ -26,23 +30,25 @@ public class CustomerService {
 	
 	@Autowired
 	PartnerReaderService reader;
+
+    @Autowired
+    ObjectMapper mapper;
 	
 	@Transactional
-	public ResponseEntity<Object> createCustomer(CustomerRequestDTO dto){
-		if(this.repository.findByCodParceiro(dto.codParceiro()) != null) return ResponseEntity.status(HttpStatus.CONFLICT).body("Parceiro já existe no banco");
-		
+	public void createCustomer(CustomerRequestDTO dto){
+        repository.findByCodParceiro(dto.codParceiro()).ifPresent(c -> { throw new CustomerAlreadyExistsException(); });
+
 		Customer newCustomer = Customer.fromDTO(dto);
 		this.repository.save(newCustomer);
-		return ResponseEntity.status(203).body("Parceiro criado com sucesso!");
 	}
 	
 	@Transactional
-	public ResponseEntity<Object> includeCustomersByExcel(MultipartFile file){
+	public void includeCustomersByExcel(MultipartFile file){
 		try {
 			List<Customer> customers = reader.getCustomersByExcel(file.getInputStream());
 			
 			if(customers.isEmpty()) {
-				return ResponseEntity.badRequest().body("Nenhum cliente encontrado no arquivo.");
+                throw new CustomerNotFoundException();
 			}
 			
 			List<String> partnersCode = customers.stream()
@@ -75,14 +81,8 @@ public class CustomerService {
 	        if (!toUpdate.isEmpty()) {
 	            repository.saveAll(toUpdate);
 	        }
-	        
-	        return ResponseEntity.ok(String.format(
-	                "%d clientes adicionados, %d atualizados.",
-	                toInsert.size(), toUpdate.size()
-	            ));
 		} catch (Exception e) {
-	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-	                .body("Erro ao processar arquivo: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
 	    }
 	}
 	
@@ -102,9 +102,9 @@ public class CustomerService {
 	}
 	
 	@Transactional
-	public ResponseEntity<Void> UpdateCustomer(CustomerRequestDTO dto){
-        var customer = this.repository.findByCodParceiro(dto.codParceiro());
-        if(customer == null) return ResponseEntity.notFound().build();
+	public void UpdateCustomer(CustomerRequestDTO dto){
+        Customer customer = this.repository.findByCodParceiro(dto.codParceiro())
+                .orElseThrow(CustomerNotFoundException::new);
 
         customer.setCodigoMatriz(dto.codMatriz());
         customer.setAtivo(dto.ativo());
@@ -114,15 +114,13 @@ public class CustomerService {
         customer.setName(dto.nome());
 
         this.repository.save(customer);
-        return ResponseEntity.ok().build();
     }
 	
 	@Transactional
-	public ResponseEntity<Void> DeleteCustomer(String codParceiro){
-        var customer = this.repository.findByCodParceiro(codParceiro);
-        if(customer == null) return ResponseEntity.notFound().build();
+	public void DeleteCustomer(String codParceiro){
+        Customer customer = this.repository.findByCodParceiro(codParceiro)
+                .orElseThrow(CustomerNotFoundException::new);
 
         this.repository.delete(customer);
-        return ResponseEntity.ok().build();
     }
 }
