@@ -1,6 +1,5 @@
 package com.proautokimium.api.Infrastructure.services.machine;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.proautokimium.api.Application.DTOs.machine.MachineDTO;
 import com.proautokimium.api.Infrastructure.repositories.MachineRepository;
@@ -11,9 +10,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.swing.text.html.Option;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class MachineService {
@@ -42,11 +39,12 @@ public class MachineService {
                 .orElseThrow(MachineNotFoundException::new);
 
         machine.setName(dto.name());
-        machine.setMachineStatus(dto.status());
+        machine.setSystemCode(dto.systemCode());
+        machine.setMachineStatus(dto.machineStatus());
         machine.setBrand(dto.brand());
         machine.setActive(dto.active());
         machine.setMinimum_Stock(dto.minimum_stock());
-        machine.setMachineType(dto.type());
+        machine.setMachineType(dto.machineType());
 
         machineRepository.save(machine);
     }

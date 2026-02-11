@@ -7,10 +7,11 @@ import java.util.UUID;
 
 public record MachineDTO(
         UUID id,
+        String systemCode,
         String name,
         String brand,
-        MachineType type,
-        MachineStatus status,
+        MachineType machineType,
+        MachineStatus machineStatus,
         int minimum_stock,
         boolean active
 ) { }
