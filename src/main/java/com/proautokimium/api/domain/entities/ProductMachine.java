@@ -21,7 +21,7 @@ import java.util.Set;
 public class ProductMachine extends ProductEntity{
 
     @Column(name = "minimum_stock")
-    private int minimum_Stock;
+    private int minimum_stock;
 
     @Column(name = "brand", length = 100)
     private String brand;
