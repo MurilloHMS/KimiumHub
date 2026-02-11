@@ -1,4 +1,4 @@
-package com.proautokimium.api.controllers;
+package com.proautokimium.api.controllers.prostock;
 
 import com.proautokimium.api.Application.DTOs.product.ProductInventoryDTO;
 import com.proautokimium.api.Application.DTOs.product.ProductMovementDTO;
