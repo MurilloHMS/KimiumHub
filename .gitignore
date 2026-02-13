@@ -2,12 +2,7 @@
 !.mvn/wrapper/maven-wrapper.jar
 
 ### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
 .settings
-.springBeans
 .sts4-cache
 
 ### Eclipse ###
@@ -117,6 +112,9 @@ local.properties
 *.tar.gz
 *.rar
 
+# Environment Files #
+.env
+
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
@@ -182,17 +180,11 @@ build/
 .#*
 *#
 *~
-.classpath
-.project
-.settings
 bin
 build
 target
-dependency-reduced-pom.xml
 *.sublime-*
 /scratch
 .gradle
 README.html
-*.iml
-.idea
 .exercism

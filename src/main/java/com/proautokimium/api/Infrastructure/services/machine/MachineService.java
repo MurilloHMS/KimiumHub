@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -52,7 +51,7 @@ public class MachineService {
         machine.setMachineStatus(dto.machineStatus());
         machine.setBrand(dto.brand());
         machine.setActive(dto.active());
-        machine.setMinimum_Stock(dto.minimum_stock());
+        machine.setMinimum_stock(dto.minimum_stock());
         machine.setMachineType(dto.machineType());
 
         machineRepository.save(machine);
