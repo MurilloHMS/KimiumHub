@@ -13,6 +13,7 @@ import java.util.Optional;
 
 import com.proautokimium.api.Infrastructure.exceptions.newsletter.NewsletterFileNotValidException;
 import com.proautokimium.api.domain.entities.Newsletter;
+import com.proautokimium.api.domain.enums.EmailStatus;
 import org.apache.poi.sl.draw.geom.GuideIf;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -344,6 +345,8 @@ public class NewsLetterReaderService implements INewsletterReader{
 
 				Optional<Cell> emailCliente = Optional.ofNullable(row.getCell(19));
 				emailCliente.ifPresent(cell -> newsletter.setEmailCliente(cell.getStringCellValue()));
+
+				newsletter.setStatus(EmailStatus.PENDING);
 
 				list.add(newsletter);
 			}
