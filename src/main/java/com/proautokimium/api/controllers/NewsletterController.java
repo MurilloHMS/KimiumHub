@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 
@@ -43,6 +44,12 @@ public class NewsletterController {
     	
     	newsletterOrchestratorService.includeMonthlyNewsletter(files, isMatriz);
     	return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("upload/one-file")
+    public ResponseEntity<Object> includeNewsletters(@RequestParam MultipartFile file) throws FileNotFoundException {
+        newsletterOrchestratorService.includeMonthlyNewsletterByExcel(file);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
     
     @GetMapping("pending")
