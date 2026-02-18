@@ -1,19 +1,12 @@
 package com.proautokimium.api.domain.entities;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDate;
 
 import com.proautokimium.api.domain.abstractions.Entity;
 import com.proautokimium.api.domain.enums.EmailStatus;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
 
 @jakarta.persistence.Entity
 @Table(name = "newsletter")
@@ -79,4 +72,10 @@ public class Newsletter extends Entity{
 
 	    @Column(name = "email_cliente", length = 255)
 	    private String emailCliente;
+
+		@Column(name = "codigo_matriz", length = 50)
+		private String matrizCode;
+
+		@Column(name = "nome_matriz")
+		private String matrizName;
 }
