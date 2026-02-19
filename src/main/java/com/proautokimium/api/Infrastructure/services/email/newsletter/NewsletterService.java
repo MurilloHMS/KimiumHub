@@ -62,7 +62,9 @@ public class NewsletterService {
     					m.getValorTotalDeHorasMauUso(),
     					m.getValorTotalCobradoHorasMauUso(),
     					m.getStatus(),
-    					m.getEmailCliente()
+    					m.getEmailCliente(),
+                        m.getMatrizCode(),
+                        m.getMatrizName()
     					)).toList();
     }
 
