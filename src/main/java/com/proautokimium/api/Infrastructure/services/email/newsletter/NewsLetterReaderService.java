@@ -290,10 +290,10 @@ public class NewsLetterReaderService implements INewsletterReader{
 				Newsletter newsletter = new Newsletter();
 
 				Optional<Cell> codigoParceiro = Optional.ofNullable(row.getCell(0));
-                codigoParceiro.ifPresent(cell -> newsletter.setCodigoCliente(cell.getStringCellValue()));
+                codigoParceiro.ifPresent(cell -> newsletter.setCodigoCliente(String.valueOf((int) cell.getNumericCellValue())));
 
 				Optional<Cell> codigoMatriz = Optional.ofNullable(row.getCell(1));
-				codigoMatriz.ifPresent(cell -> newsletter.setMatrizCode(cell.getStringCellValue()));
+				codigoMatriz.ifPresent(cell -> newsletter.setMatrizCode(String.valueOf(((int) cell.getNumericCellValue()))));
 
 				Optional<Cell> nomeCliente = Optional.ofNullable(row.getCell(2));
 				nomeCliente.ifPresent(cell -> newsletter.setNomeDoCliente(cell.getStringCellValue()));
