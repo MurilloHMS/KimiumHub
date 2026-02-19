@@ -47,7 +47,7 @@ public class NewsletterController {
     }
 
     @PostMapping("upload/one-file")
-    public ResponseEntity<Object> includeNewsletters(@RequestParam MultipartFile file) throws FileNotFoundException {
+    public ResponseEntity<Object> includeNewsletters(@RequestParam MultipartFile file) {
         newsletterOrchestratorService.includeMonthlyNewsletterByExcel(file);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
