@@ -1,21 +1,31 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
+import com.proautokimium.api.Infrastructure.exceptions.newsletter.NewsletterFileNotValidException;
+import com.proautokimium.api.domain.entities.Newsletter;
+import com.proautokimium.api.domain.enums.EmailStatus;
+import org.apache.poi.sl.draw.geom.GuideIf;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.binary.XSSFBParseException;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cglib.core.Local;
+import org.springframework.security.config.annotation.web.oauth2.resourceserver.OpaqueTokenDsl;
 import org.springframework.stereotype.Service;
 
 import com.proautokimium.api.Infrastructure.interfaces.email.newsletter.INewsletterReader;
@@ -261,5 +271,90 @@ public class NewsLetterReaderService implements INewsletterReader{
 		
 		return list;
 	}
-	
+
+	@Override
+	public List<Newsletter> getNewsletterInfoByExcel(InputStream stream){
+		List<Newsletter> list = new ArrayList<>();
+
+		try{
+			XSSFWorkbook workbook = new XSSFWorkbook(stream);
+
+			XSSFSheet sheet = workbook.getSheetAt(0);
+
+			int lastRow = sheet.getLastRowNum();
+
+			for(int i = 1; i < lastRow; i++){
+				Row row  = sheet.getRow(i);
+				if(row == null) continue;
+
+				Newsletter newsletter = new Newsletter();
+
+				Optional<Cell> codigoParceiro = Optional.ofNullable(row.getCell(0));
+                codigoParceiro.ifPresent(cell -> newsletter.setCodigoCliente(String.valueOf((int) cell.getNumericCellValue())));
+
+				Optional<Cell> codigoMatriz = Optional.ofNullable(row.getCell(1));
+				codigoMatriz.ifPresent(cell -> newsletter.setMatrizCode(String.valueOf(((int) cell.getNumericCellValue()))));
+
+				Optional<Cell> nomeCliente = Optional.ofNullable(row.getCell(2));
+				nomeCliente.ifPresent(cell -> newsletter.setNomeDoCliente(cell.getStringCellValue()));
+
+				Optional<Cell> nomeMatriz = Optional.ofNullable(row.getCell(3));
+				nomeMatriz.ifPresent(cell -> newsletter.setMatrizName(cell.getStringCellValue()));
+
+				Optional<Cell> data = Optional.ofNullable(row.getCell(4));
+				data.ifPresent(cell -> newsletter.setData(LocalDate.ofInstant(cell.getDateCellValue().toInstant(), ZoneId.systemDefault())));
+
+				Optional<Cell> mes = Optional.ofNullable(row.getCell(5));
+				mes.ifPresent(cell -> newsletter.setMes(cell.getStringCellValue()));
+
+				Optional<Cell> quantidadeProdutos = Optional.ofNullable(row.getCell(6));
+				quantidadeProdutos.ifPresent(cell -> newsletter.setQuantidadeDeProdutos(((int) cell.getNumericCellValue())));
+
+				Optional<Cell> quantidadeLitros = Optional.ofNullable(row.getCell(7));
+				quantidadeLitros.ifPresent(cell -> newsletter.setQuantidadeDeLitros((cell.getNumericCellValue())));
+
+				Optional<Cell> quantidadeVisitas = Optional.ofNullable(row.getCell(8));
+				quantidadeVisitas.ifPresent(cell -> newsletter.setQuantidadeDeVisitas(((int) cell.getNumericCellValue())));
+
+				Optional<Cell> quantidadeNotasEmitidas = Optional.ofNullable(row.getCell(9));
+				quantidadeNotasEmitidas.ifPresent(cell -> newsletter.setQuantidadeNotasEmitidas(((int) cell.getNumericCellValue())));
+
+				Optional<Cell> mediaDiasEmAtendimento = Optional.ofNullable(row.getCell(10));
+				mediaDiasEmAtendimento.ifPresent(cell -> newsletter.setMediaDiasAtendimento(((int) cell.getNumericCellValue())));
+
+				Optional<Cell> produtoMaisComprado = Optional.ofNullable(row.getCell(11));
+				produtoMaisComprado.ifPresent(cell -> newsletter.setProdutoEmDestaque(cell.getStringCellValue()));
+
+				Optional<Cell> totalFaturado = Optional.ofNullable(row.getCell(12));
+				totalFaturado.ifPresent(cell -> newsletter.setFaturamentoTotal(cell.getNumericCellValue()));
+
+				Optional<Cell> vlrPecasTrocadas = Optional.ofNullable(row.getCell(13));
+				vlrPecasTrocadas.ifPresent(cell -> newsletter.setValorDePecasTrocadas(cell.getNumericCellValue()));
+
+				Optional<Cell> vlrTotalHoras = Optional.ofNullable(row.getCell(14));
+				vlrTotalHoras.ifPresent(cell -> newsletter.setValorTotalDeHoras(cell.getNumericCellValue()));
+
+				Optional<Cell> vlrTotalCobradoHoras = Optional.ofNullable(row.getCell(15));
+				vlrTotalCobradoHoras.ifPresent(cell -> newsletter.setValorTotalCobradoHoras(cell.getNumericCellValue()));
+
+				Optional<Cell> vlrCobradoMauUso = Optional.ofNullable(row.getCell(17));
+				vlrCobradoMauUso.ifPresent(cell -> newsletter.setValorTotalCobradoHorasMauUso(cell.getNumericCellValue()));
+
+				Optional<Cell> vlrTotalHorasMauUso = Optional.ofNullable(row.getCell(18));
+				vlrTotalHorasMauUso.ifPresent(cell -> newsletter.setValorTotalCobradoHorasMauUso(cell.getNumericCellValue()));
+
+				Optional<Cell> emailCliente = Optional.ofNullable(row.getCell(19));
+				emailCliente.ifPresent(cell -> newsletter.setEmailCliente(cell.getStringCellValue()));
+
+				newsletter.setStatus(EmailStatus.PENDING);
+
+				list.add(newsletter);
+			}
+		}catch (Exception e) {
+			if (e instanceof IOException)
+				throw new NewsletterFileNotValidException("Erro ao ler o arquivo: " + e.getMessage() + "\n\nCausado por: " + e.getCause());
+		}
+
+		return list;
+	}
 }

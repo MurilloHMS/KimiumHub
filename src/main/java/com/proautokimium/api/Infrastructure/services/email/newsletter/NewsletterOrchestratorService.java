@@ -1,7 +1,12 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
+
+import com.proautokimium.api.Infrastructure.exceptions.newsletter.NewsletterFileNotValidException;
+import com.proautokimium.api.Infrastructure.exceptions.newsletter.NewsletterNullException;
 import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.entities.Newsletter;
 import com.proautokimium.api.domain.enums.EmailStatus;
@@ -12,6 +17,7 @@ import com.proautokimium.api.domain.models.newsletter.NewsletterTechnicalHours;
 
 import jakarta.transaction.Transactional;
 
+import org.apache.poi.EmptyFileException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -88,8 +94,24 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
             LOGGER.error("Ocorreu um erro ao criar as newsletters. Error: " + e.getMessage());
         }
     }
-	
-	@Override 
+
+    @Override
+    public void includeMonthlyNewsletterByExcel(MultipartFile file) {
+            if(file == null || file.isEmpty())
+                throw new NewsletterFileNotValidException("Arquivo não encontrado");
+
+        try {
+            List<Newsletter> newsletters = reader.getNewsletterInfoByExcel(file.getInputStream());
+            if (newsletters == null || newsletters.isEmpty()) {
+                throw new NewsletterNullException("Nenhum dado válido encontrado na planilha.");
+            }
+            repository.saveAll(newsletters);
+        } catch (IOException e) {
+            throw new NewsletterFileNotValidException("Erro ao ler o arquivo enviado.");
+        }
+    }
+
+    @Override
 	public void executeMonthlyNewsletter() {
 		List<Newsletter> newslettersToSend = repository.findAllByStatusIn(List.of(EmailStatus.PENDING, EmailStatus.RETRYING));
 		LOGGER.info("Iniciando envios de emails");
