@@ -1,0 +1,34 @@
+<!-- Created with Jaspersoft Studio version 7.0.3.final using JasperReports Library version 7.0.3-41034ca841d452f3305ba55b9042260aaa1ab5dd  -->
+<jasperReport name="certificate" language="java" columnCount="1" pageWidth="842" pageHeight="595" columnWidth="842" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="6f015bf4-85d2-4025-8cb2-6fbb390a1fbf">
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
+	<parameter name="NAME" class="java.lang.String"/>
+	<parameter name="BACKGROUND_IMAGE" class="java.io.InputStream"/>
+	<variable name="personName" class="java.lang.String"/>
+	<background height="595" splitType="Stretch">
+		<element kind="image" uuid="6db327d9-6d7a-4801-910e-64039011fb58" stretchType="ContainerHeight" x="0" y="0" width="842" height="595" scaleImage="FillFrame" linkType="None" linkTarget="Self">
+			<expression><![CDATA[$P{BACKGROUND_IMAGE}]]></expression>
+			<property name="com.jaspersoft.studio.unit.x" value="px"/>
+			<box padding="0"/>
+		</element>
+		<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.grid.JSSGridBagLayout"/>
+		<property name="com.jaspersoft.studio.unit.height" value="px"/>
+	</background>
+	<detail>
+		<band height="595" splitType="Stretch">
+			<element kind="textField" uuid="d181d949-66fa-4e12-9c8a-458d71b9bcfe" x="170" y="200" width="530" height="50" forecolor="#232E61" fontName="Arial" fontSize="25.0" bold="false" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$P{NAME}]]></expression>
+			</element>
+			<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.FreeLayout"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</band>
+	</detail>
+</jasperReport>

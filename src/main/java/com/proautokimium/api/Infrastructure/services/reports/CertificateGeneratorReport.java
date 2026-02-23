@@ -1,9 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.reports;
 
-import net.sf.jasperreports.engine.JREmptyDataSource;
-import net.sf.jasperreports.engine.JasperExportManager;
-import net.sf.jasperreports.engine.JasperFillManager;
-import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.*;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
@@ -15,12 +12,14 @@ public class CertificateGeneratorReport {
 
     public byte[] generate(Map<String, Object> params, String reportName){
         try{
-            InputStream jasperStream = getClass().getResourceAsStream("/templates/reports" + reportName);
+            InputStream jasperStream = getClass().getResourceAsStream("/templates/reports/certificado/" + reportName);
             if(jasperStream == null){
                 throw new RuntimeException("Arquivo de relatório não encontrado: " + reportName);
             }
 
-            JasperPrint print = JasperFillManager.fillReport(jasperStream, params, new JREmptyDataSource(1));
+            JasperReport jasperReport = JasperCompileManager.compileReport(jasperStream);
+
+            JasperPrint print = JasperFillManager.fillReport(jasperReport, params, new JREmptyDataSource(1));
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             JasperExportManager.exportReportToPdfStream(print, outputStream);

@@ -137,6 +137,14 @@
 		    <version>7.0.3</version>
 		</dependency>
 
+		<!-- Source: https://mvnrepository.com/artifact/net.sf.jasperreports/jasperreports-pdf -->
+		<dependency>
+			<groupId>net.sf.jasperreports</groupId>
+			<artifactId>jasperreports-pdf</artifactId>
+			<version>7.0.3</version>
+			<scope>compile</scope>
+		</dependency>
+
         <!-- https://mvnrepository.com/artifact/com.h2database/h2 -->
         <dependency>
             <groupId>com.h2database</groupId>
