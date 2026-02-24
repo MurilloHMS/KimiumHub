@@ -37,6 +37,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/auth/login/android").permitAll()
                         .requestMatchers(HttpMethod.POST ,"/api/contact").permitAll()
                         .requestMatchers(HttpMethod.POST ,"/api/certificate").permitAll()
+                        .requestMatchers(HttpMethod.POST ,"/api/certificate/no-validation").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("ADMIN")
                         .requestMatchers(
                                 "/v3/api-docs/**",

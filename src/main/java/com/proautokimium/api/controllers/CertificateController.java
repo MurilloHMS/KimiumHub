@@ -56,6 +56,26 @@ public class CertificateController {
         }
     }
 
+    @PostMapping("/no-validation")
+    public ResponseEntity<?> createCertificateHolderWithoutValidation(@RequestBody @NotNull @Valid CertificateHolderDTO dto){
+        try{
+            String fileName = dto.name().toUpperCase() + ".pdf";
+            byte[] certificate = generator.generateCertificate(dto.name());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentLength(certificate.length);
+            headers.setContentDisposition(
+                    ContentDisposition.attachment()
+                            .filename(fileName)
+                            .build()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).headers(headers).body(certificate);
+
+        }catch (Exception e){
+            throw new FailedToCreateCertificate("Erro ao criar o certificado: " + e.getMessage());
+        }
+    }
+
     @PostMapping("{name}")
     public ResponseEntity<?> createCertificate(@PathVariable String name){
         try{
