@@ -8,5 +8,4 @@ public record CertificateHolderDTO(
         String name,
         @NotBlank(message = "Celular é obrigatório")
         String cellphone,
-        @NotBlank(message = "Email é obrigatório")
         Email email) {}
