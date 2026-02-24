@@ -1,4 +1,4 @@
-package com.proautokimium.api.Application.DTOs.certificateHolder;
+package com.proautokimium.api.Application.DTOs.certificate;
 
 import com.proautokimium.api.domain.valueObjects.Email;
 import jakarta.validation.constraints.NotBlank;
