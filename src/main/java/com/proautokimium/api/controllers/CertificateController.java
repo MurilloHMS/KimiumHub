@@ -1,7 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.proautokimium.api.Application.DTOs.certificateHolder.CertificateHolderDTO;
+import com.proautokimium.api.Application.DTOs.certificate.CertificateHolderDTO;
 import com.proautokimium.api.Infrastructure.exceptions.certificate.FailedToCreateCertificate;
 import com.proautokimium.api.Infrastructure.interfaces.certificate.CertificateGenerator;
 import com.proautokimium.api.Infrastructure.repositories.CertificateHolderRepository;
@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.InputStream;
 import java.util.Optional;
 
 @RestController
@@ -36,11 +35,25 @@ public class CertificateController {
             throw new CertificateAlreadyExistsException();
         }
 
-        CertificateHolder entity = mapper.convertValue(dto, CertificateHolder.class);
+        try{
+            CertificateHolder entity = mapper.convertValue(dto, CertificateHolder.class);
+            repository.save(entity);
 
-        repository.save(entity);
+            String fileName = dto.name().toUpperCase() + ".pdf";
+            byte[] certificate = generator.generateCertificate(dto.name());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentLength(certificate.length);
+            headers.setContentDisposition(
+                    ContentDisposition.attachment()
+                            .filename(fileName)
+                            .build()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).headers(headers).body(certificate);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body("Certificado liberado com sucesso!");
+        }catch (Exception e){
+            throw new FailedToCreateCertificate("Erro ao criar o certificado: " + e.getMessage());
+        }
     }
 
     @PostMapping("{name}")
