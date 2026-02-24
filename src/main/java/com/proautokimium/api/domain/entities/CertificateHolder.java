@@ -15,7 +15,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class CertificateHolder extends com.proautokimium.api.domain.abstractions.Entity {
 
-    @Column(name = "name", length = 100, nullable = false, unique = true)
+    @Column(name = "name", length = 100, nullable = false)
     private String name;
 
     @Column(name = "cellphone", length = 11, nullable = false)

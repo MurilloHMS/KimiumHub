@@ -1,0 +1,2 @@
+ALTER TABLE certificate_holder
+DROP CONSTRAINT certificate_holder_name_key;
