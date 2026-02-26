@@ -24,7 +24,7 @@
 	</background>
 	<detail>
 		<band height="595" splitType="Stretch">
-			<element kind="textField" uuid="d181d949-66fa-4e12-9c8a-458d71b9bcfe" x="170" y="200" width="530" height="50" forecolor="#232E61" fontName="Arial" fontSize="25.0" bold="false" hTextAlign="Center" vTextAlign="Middle">
+			<element kind="textField" uuid="d181d949-66fa-4e12-9c8a-458d71b9bcfe" x="170" y="200" width="530" height="50" forecolor="#232E61" fontName="SansSerif" fontSize="25.0" bold="false" hTextAlign="Center" vTextAlign="Middle">
 				<expression><![CDATA[$P{NAME}]]></expression>
 			</element>
 			<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.FreeLayout"/>
