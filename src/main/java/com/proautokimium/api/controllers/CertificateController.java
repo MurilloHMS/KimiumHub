@@ -39,8 +39,9 @@ public class CertificateController {
             CertificateHolder entity = mapper.convertValue(dto, CertificateHolder.class);
             repository.save(entity);
 
-            String fileName = dto.name().toUpperCase() + ".pdf";
-            byte[] certificate = generator.generateCertificate(dto.name());
+            String name = dto.name().toUpperCase();
+            String fileName = name + ".pdf";
+            byte[] certificate = generator.generateCertificate(name);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
             headers.setContentLength(certificate.length);
