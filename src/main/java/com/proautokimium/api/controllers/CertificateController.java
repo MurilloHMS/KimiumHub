@@ -30,11 +30,10 @@ public class CertificateController {
 
     @PostMapping
     public ResponseEntity<?> createCertificateHolder(@RequestBody @NotNull @Valid CertificateHolderDTO dto){
-        Optional<CertificateHolder> holder = repository.findByEmail(dto.email());
-        if(holder.isPresent()){
-            throw new CertificateAlreadyExistsException();
-        }
-
+//        Optional<CertificateHolder> holder = repository.findByEmail(dto.email());
+//        if(holder.isPresent()){
+//            throw new CertificateAlreadyExistsException();
+//        }
         try{
             CertificateHolder entity = mapper.convertValue(dto, CertificateHolder.class);
             repository.save(entity);
