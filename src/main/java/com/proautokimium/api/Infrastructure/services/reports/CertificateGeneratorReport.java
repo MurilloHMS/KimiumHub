@@ -25,7 +25,7 @@ public class CertificateGeneratorReport {
             JasperExportManager.exportReportToPdfStream(print, outputStream);
             return outputStream.toByteArray();
         }catch (Exception e){
-            throw new RuntimeException("Erro ao gerar relatório", e);
+            throw new RuntimeException("Erro ao gerar relatório: " + e.getMessage(), e);
         }
     }
 }
