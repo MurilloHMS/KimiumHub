@@ -1,4 +1,4 @@
-package com.proautokimium.api.Infrastructure.services;
+package com.proautokimium.api.Infrastructure.services.email;
 
 import com.proautokimium.api.Application.DTOs.email.SmtpEmailRequestDTO;
 import com.proautokimium.api.Infrastructure.repositories.SmtpEmailRepository;

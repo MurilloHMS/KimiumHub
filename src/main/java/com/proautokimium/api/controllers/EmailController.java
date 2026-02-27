@@ -1,7 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.proautokimium.api.Application.DTOs.email.SmtpEmailRequestDTO;
-import com.proautokimium.api.Infrastructure.services.EmailService;
+import com.proautokimium.api.Infrastructure.services.email.EmailService;
 import com.proautokimium.api.domain.entities.EmailEntity;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
