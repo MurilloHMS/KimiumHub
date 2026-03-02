@@ -14,6 +14,6 @@ public record EmailSignatureDTO(
         @NotBlank
         String whatsapp,
         @NotBlank
-        String site
-
+        String site,
+        Boolean preview
 ) { }

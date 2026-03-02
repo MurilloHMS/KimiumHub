@@ -38,8 +38,9 @@ public class EmailSignatureController {
         params.put("BACKGROUND_IMAGE", backgroundImage);
         byte[] png = emailSignatureService.generate(params, "email_signature.jrxml");
 
+        String headerValue = dto.preview() ? "inline; filename=preview_assinatura_email.png" : "attachment; filename=assinatura_email.png";
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=assinatura_email.png")
+                .header("Content-Disposition", headerValue)
                 .contentType(MediaType.IMAGE_PNG)
                 .body(png);
     }
