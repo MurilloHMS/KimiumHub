@@ -24,7 +24,7 @@ public class EmailSignatureService {
 
             JasperPrint print = JasperFillManager.fillReport(jr, params, new JREmptyDataSource(1));
 
-            BufferedImage image = (BufferedImage) JasperPrintManager.printPageToImage(print, 0,2f);
+            BufferedImage image = (BufferedImage) JasperPrintManager.printPageToImage(print, 0,1f);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ImageIO.write(image, "png", baos);
             return baos.toByteArray();
