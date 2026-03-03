@@ -1,4 +1,4 @@
-package com.proautokimium.api.Infrastructure.services;
+package com.proautokimium.api.Infrastructure.services.authentication;
 
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
