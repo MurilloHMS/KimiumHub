@@ -38,7 +38,9 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST ,"/api/contact").permitAll()
                         .requestMatchers(HttpMethod.POST ,"/api/certificate").permitAll()
                         .requestMatchers(HttpMethod.POST ,"/api/certificate/no-validation").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST ,"/api/auth/forgot-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
