@@ -1,0 +1,9 @@
+CREATE TABLE password_reset_tokens (
+    id UUID PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    token VARCHAR(255) NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
