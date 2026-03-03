@@ -24,8 +24,8 @@ public class SmtpService {
 		try {
 			MimeMessage message = mailSender.createMimeMessage();
 			MimeMessageHelper helper = new MimeMessageHelper(message, true);
-			
-			helper.setFrom(request.sender());
+
+			helper.setFrom(request.sender(), "Proauto Kimium");
 			helper.setTo(request.recipients().toArray(new String[0]));
 			if(request.cc() != null) helper.setCc(request.cc().toArray(new String[0]));
 			if(request.bcc() != null) helper.setBcc(request.bcc().toArray(new String[0]));
