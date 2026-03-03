@@ -2,10 +2,7 @@ package com.proautokimium.api.domain.entities;
 
 import com.proautokimium.api.domain.enums.UserRole;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,6 +14,7 @@ import java.util.List;
 @Table(name = "users")
 @Entity(name = "users")
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(of = "id")
@@ -30,6 +28,8 @@ public class User implements UserDetails {
     private String login;
     @Column(name = "password", nullable = false)
     private String password;
+    @Column(name = "email", unique = true, nullable = false)
+    private String email;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
@@ -37,8 +37,9 @@ public class User implements UserDetails {
     @Column(name = "role", nullable = false)
     private List<UserRole> roles = new ArrayList<>();
 
-    public User(String login, String password, List<UserRole> roles){
+    public User(String login, String email, String password, List<UserRole> roles){
         this.login = login;
+        this.email = email;
         this.password = password;
         this.roles = roles;
     }
@@ -70,5 +71,9 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return UserDetails.super.isEnabled();
+    }
+
+    public void set() {
+
     }
 }
