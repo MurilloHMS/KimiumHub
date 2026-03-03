@@ -19,20 +19,20 @@ public class PasswordResetService {
     }
 
     public String createToken(User user) {
-        byte[] bytes = new byte[16];
-        new SecureRandom().nextBytes(bytes);
+        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        SecureRandom random = new SecureRandom();
+        StringBuilder token = new StringBuilder(5);
 
-        String token = Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(bytes)
-                .substring(0, 5);
+        for (int i = 0; i < 6; i++) {
+            token.append(characters.charAt(random.nextInt(characters.length())));
+        }
 
         PasswordResetToken resetToken = new PasswordResetToken();
-        resetToken.setToken(token);
+        resetToken.setToken(token.toString());
         resetToken.setUser(user);
         resetToken.setExpiration(LocalDateTime.now().plusMinutes(30));
 
         repository.save(resetToken);
-        return token;
+        return token.toString();
     }
 }
