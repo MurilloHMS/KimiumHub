@@ -35,6 +35,11 @@ public class CustomerController {
         return service.getAllCustomers();
     }
 
+    @GetMapping("only-email")
+    public ResponseEntity<Object> GetAllCustomerEmail(){
+        return service.getAllCustomersEmail();
+    }
+
     @PutMapping
     public ResponseEntity<String> UpdateCustomer(@RequestBody @NotNull @Valid CustomerRequestDTO dto){
         service.UpdateCustomer(dto);

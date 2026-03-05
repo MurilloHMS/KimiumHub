@@ -2,6 +2,7 @@ package com.proautokimium.api.Infrastructure.services.partner;
 
 import java.util.List;
 
+import com.proautokimium.api.Application.DTOs.partners.PartnerRecipientDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -79,6 +80,23 @@ public class EmployeeService {
 							)).toList();
 			return ResponseEntity.ok(employesList);
 		}catch (Exception e) {
+			return ResponseEntity.badRequest().body("Ocorreu um erro ao obter a lista de funcionários. Error Message: " + e.getMessage());
+		}
+	}
+
+	public ResponseEntity<?> getAllEmployesEmail() {
+
+		try {
+			List<PartnerRecipientDTO> employesList = repository.findAll()
+					.stream().map(m -> new PartnerRecipientDTO(
+							m.getId(),
+							m.getName(),
+							m.getEmail().getAddress(),
+							"employee"
+							)
+					).toList();
+			return ResponseEntity.ok(employesList);
+		} catch (Exception e) {
 			return ResponseEntity.badRequest().body("Ocorreu um erro ao obter a lista de funcionários. Error Message: " + e.getMessage());
 		}
 	}
