@@ -17,25 +17,14 @@ public class SmtpController {
 	
 	@Autowired
 	SmtpService service;
-	
-	@PostMapping( value = "send", consumes = "multipart/form-data")
+
+	@PostMapping(value = "send", consumes = "multipart/form-data")
 	public ResponseEntity<?> sendEmail(
-            @RequestPart("data") SmtpMail request,
-	        @RequestPart(value = "attachments", required = false) MultipartFile[] attachments) {
-	
-	    
-	    SmtpMail emailData = new SmtpMail(
-	            request.recipients(),
-	            request.sender(),
-	            request.subject(),
-	            request.body(),
-	            request.cc(),
-	            request.bcc(),
-	            attachments,
-	            request.imageBase64()
-	    );
-	
-	    service.sendEmail(emailData);
-	    return ResponseEntity.ok("E-mail enviado com sucesso!");
+			@RequestPart("data") SmtpMail request,
+			@RequestPart(value = "attachments", required = false) MultipartFile[] attachments) {
+
+		service.sendEmail(request, attachments);
+
+		return ResponseEntity.ok("E-mail enviado com sucesso!");
 	}
 }
