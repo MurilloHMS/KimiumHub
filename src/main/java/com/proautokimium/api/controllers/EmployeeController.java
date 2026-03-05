@@ -26,6 +26,11 @@ public class EmployeeController {
 	public ResponseEntity<?> getEmployes(){
 		return service.getAllEmployes();
 	}
+
+	@GetMapping("only-email")
+	public ResponseEntity<?> getEmployesEmail(){
+		return service.getAllEmployesEmail();
+	}
 	
 	@PostMapping
 	public ResponseEntity<?> createEmploye(@RequestBody @Valid @NotNull EmployeeDTO dto){

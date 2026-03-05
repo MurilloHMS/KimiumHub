@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Application.DTOs.partners.PartnerRecipientDTO;
 import com.proautokimium.api.domain.exceptions.customer.CustomerAlreadyExistsException;
 import com.proautokimium.api.domain.exceptions.customer.CustomerNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,6 +100,18 @@ public class CustomerService {
 		return customerList.isEmpty() 
 				? ResponseEntity.noContent().build() 
 				: ResponseEntity.ok(customerList);
+	}
+
+	public ResponseEntity<Object> getAllCustomersEmail(){
+		List<PartnerRecipientDTO> customerList = this.repository.findAll()
+				.stream()
+				.map(c -> new PartnerRecipientDTO(
+					c.getId(),
+					c.getName(),
+					c.getEmail().getAddress(),
+					"customer"
+			)).toList();
+		return  ResponseEntity.ok(customerList);
 	}
 	
 	@Transactional

@@ -131,15 +131,15 @@ public class AuthenticationController {
         SmtpMail mail = new SmtpMail(
                 List.of(user.getEmail()),
                 "noreply@envios.proautokimium.com.br",
+                null,
                 "Token de recuperação de senha",
                 "Use o seguinte token para redefinir sua senha: " + token,
-                null,
                 null,
                 null,
                 null
         );
 
-        emailService.sendEmail(mail);
+        emailService.sendEmail(mail, null);
         return ResponseEntity.ok("Token de recuperação de senha enviado para o e-mail cadastrado.");
     }
 
