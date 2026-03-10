@@ -38,7 +38,7 @@ public class HolerithExtractorService {
 
                 String nome = extract(text, "Nome do Funcionário\\s+.*\\n.*?\\s([A-Z ]+)\\s\\d");
                 String cpf = extract(text, "CPF:\\s([0-9.\\-]+)");
-                String cargo = extract(text, "([A-Z][A-Z ()A-ZÀ-Ú]+?)\\s{2,}Data Admissão");
+                String cargo = extract(text, "([A-ZÀ-Ú0-9 ()/-]+)\\s+Data Admissão");
                 String empresa = extract(text, "(PIOFEX REPRESENTAÇÃO COMERCIAL E SERVIÇOS)");
                 String departamento = extract(text, "\\s(\\d{3}\\.\\d{3})\\s\\d{2}");
 
@@ -46,9 +46,12 @@ public class HolerithExtractorService {
 
                 Double inss = events.get(1950);
                 Double inssFerias = events.get(1952);
+                Double inssDecimo = events.get(1951);
                 Double emprestimo = events.get(4004);
                 Double fgts = extractFgts(text);
                 Double irrf = events.get(1920);
+                Double irrfFerias = events.get(1922);
+                Double irrfDecimo = events.get(1921);
 
                 PdfPageInfoExtractorDTO dto = new PdfPageInfoExtractorDTO(
                         nome,
@@ -59,9 +62,9 @@ public class HolerithExtractorService {
                         inss,
                         irrf,
                         inssFerias,
-                        null,
-                        null,
-                        null,
+                        irrfFerias,
+                        inssDecimo,
+                        irrfDecimo,
                         fgts,
                         emprestimo
                 );
