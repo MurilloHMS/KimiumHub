@@ -1,8 +1,10 @@
 package com.proautokimium.api.controllers;
 
 import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfoDTO;
+import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfoExtractorDTO;
 import com.proautokimium.api.Infrastructure.services.pdf.PdfReaderService;
 import com.proautokimium.api.Infrastructure.services.pdf.PdfWriterService;
+import com.proautokimium.api.Infrastructure.services.pdf.holerith.HolerithExtractorService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,12 +28,13 @@ import java.util.zip.ZipOutputStream;
 public class PdfController {
     private final PdfReaderService pdfReaderService;
     private final PdfWriterService pdfWriterService;
+    private final HolerithExtractorService holerithExtractorService;
     private static final Map<String, File> uploadedFiles = new ConcurrentHashMap<>();
 
-    public PdfController(PdfReaderService pdfReaderService,
-                              PdfWriterService pdfWriterService) {
+    public PdfController(PdfReaderService pdfReaderService, PdfWriterService pdfWriterService, HolerithExtractorService holerithExtractorService) {
         this.pdfReaderService = pdfReaderService;
         this.pdfWriterService = pdfWriterService;
+        this.holerithExtractorService = holerithExtractorService;
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -104,5 +107,39 @@ public class PdfController {
             return ResponseEntity.internalServerError().body("Erro ao salvar PDFs: " + e.getMessage());
         }
     }
+
+    @PostMapping(path = "/holerith/extract", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> extract(@RequestParam("file") MultipartFile file) {
+
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body("Arquivo inválido");
+        }
+
+        File tempFile = null;
+
+        try {
+
+            tempFile = File.createTempFile("holerith_", ".pdf");
+            file.transferTo(tempFile);
+
+            List<PdfPageInfoExtractorDTO> result =
+                    holerithExtractorService.extract(tempFile.getAbsolutePath());
+
+            return ResponseEntity.ok(result);
+
+        } catch (IOException e) {
+
+            return ResponseEntity.internalServerError()
+                    .body("Erro ao processar PDF: " + e.getMessage());
+
+        } finally {
+
+            if (tempFile != null && tempFile.exists()) {
+                tempFile.delete();
+            }
+
+        }
+    }
+
 
 }
