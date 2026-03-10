@@ -29,7 +29,7 @@ public class HolerithExtractorService {
             PDFTextStripper stripper = new PDFTextStripper();
             int totalPages = document.getNumberOfPages();
 
-            for (int i = 1; i <= totalPages; i+=2) {
+            for (int i = 1; i <= totalPages; i++) {
 
                 stripper.setStartPage(i);
                 stripper.setEndPage(i);
@@ -38,7 +38,7 @@ public class HolerithExtractorService {
 
                 String nome = extract(text, "Nome do Funcionário\\s+.*\\n.*?\\s([A-Z ]+)\\s\\d");
                 String cpf = extract(text, "CPF:\\s([0-9.\\-]+)");
-                String cargo = extract(text, "([A-Z ]+) Data Admissão");
+                String cargo = extract(text, "([A-Z][A-Z ()A-ZÀ-Ú]+?)\\s{2,}Data Admissão");
                 String empresa = extract(text, "(PIOFEX REPRESENTAÇÃO COMERCIAL E SERVIÇOS)");
                 String departamento = extract(text, "\\s(\\d{3}\\.\\d{3})\\s\\d{2}");
 
