@@ -14,6 +14,7 @@ import com.proautokimium.api.Infrastructure.services.email.smtp.SmtpService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.User;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
+import com.proautokimium.api.domain.enums.UserRole;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -173,6 +174,16 @@ public class AuthenticationController {
         user.setPassword(new BCryptPasswordEncoder().encode(dto.newPassword()));
         repository.save(user);
         return ResponseEntity.ok("Senha alterada com sucesso.");
+    }
+    @PutMapping("/users/{login}/roles")
+    public ResponseEntity<Object> getUserRoles(@PathVariable("login") String login, @RequestBody UpdateRolesRequest roles) {
+        User user = (User) repository.findByLogin(login);
+
+        if(user == null) return ResponseEntity.notFound().build();
+
+        user.setRoles(roles.roles());
+        repository.save(user);
+        return ResponseEntity.ok().body("Roles Atualizadas com sucesso!");
     }
 
 }
