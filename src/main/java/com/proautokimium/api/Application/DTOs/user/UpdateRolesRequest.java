@@ -2,7 +2,7 @@ package com.proautokimium.api.Application.DTOs.user;
 
 import com.proautokimium.api.domain.enums.UserRole;
 
-import java.util.Collection;
+import java.util.List;
 
-public record UserResponseDTO(String login, Collection<UserRole> roles) {
+public record UpdateRolesRequest(List<UserRole> roles) {
 }
