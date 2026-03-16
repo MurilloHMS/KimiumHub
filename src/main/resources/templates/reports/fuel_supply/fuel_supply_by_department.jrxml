@@ -12,7 +12,7 @@
 	<field name="uf" class="java.lang.String"/>
 	<field name="plate" class="java.lang.String"/>
 	<field name="driverName" class="java.lang.String"/>
-	<field name="department" class="com.proautokimium.api.domain.enums.Department"/>
+	<field name="departmentName" class="java.lang.String"/>
 	<field name="actualHodometer" class="java.lang.Double"/>
 	<field name="lastHodometer" class="java.lang.Double"/>
 	<field name="diferenceHodometer" class="java.lang.Double"/>
@@ -28,7 +28,7 @@
 		<expression><![CDATA[$F{totalValue}]]></expression>
 	</variable>
 	<variable name="SETOR_COUNT" resetType="Group" calculation="Count" resetGroup="SetorGroup" class="java.lang.Integer">
-		<expression><![CDATA[$F{department}]]></expression>
+		<expression><![CDATA[$F{departmentName}]]></expression>
 	</variable>
 	<variable name="SETOR_MEDIA" resetType="Group" calculation="Average" resetGroup="SetorGroup" class="java.lang.Double">
 		<expression><![CDATA[$F{averageKm}]]></expression>
@@ -40,7 +40,7 @@
 		<expression><![CDATA[$F{totalValue}]]></expression>
 	</variable>
 	<group name="SetorGroup" keepTogether="true">
-		<expression><![CDATA[$F{department}]]></expression>
+		<expression><![CDATA[$F{departmentName}]]></expression>
 		<groupHeader>
 			<band height="28" splitType="Prevent">
 				<element kind="rectangle" uuid="657324c0-7246-42c3-b67a-b01f2db3926d" x="0" y="4" width="802" height="24" backcolor="#232E61">
@@ -50,7 +50,7 @@
 					<text><![CDATA[SETOR:]]></text>
 				</element>
 				<element kind="textField" uuid="ac4458e1-ec35-4030-890c-486a90532c84" x="65" y="6" width="250" height="18" forecolor="#FFFFFF" fontSize="11.0" bold="true" vTextAlign="Middle">
-					<expression><![CDATA[$F{department}.name()]]></expression>
+					<expression><![CDATA[$F{departmentName}]]></expression>
 				</element>
 				<element kind="staticText" uuid="5f695482-1c94-4e63-aec4-5c4a106fa4a1" x="430" y="6" width="90" height="18" forecolor="#99AAFF" fontSize="8.0" hTextAlign="Right" vTextAlign="Middle">
 					<text><![CDATA[Período ref.:]]></text>
@@ -96,7 +96,7 @@
 		</groupFooter>
 	</group>
 	<group name="SetorPlacaGroup">
-		<expression><![CDATA[$F{department} + "|" + $F{plate}]]></expression>
+		<expression><![CDATA[$F{departmentName} + "|" + $F{plate}]]></expression>
 		<groupHeader>
 			<band height="18" splitType="Prevent">
 				<element kind="rectangle" uuid="db2e2646-f8d3-4e03-9673-9973c854a865" x="0" y="1" width="802" height="16" backcolor="#EEF0FB">
