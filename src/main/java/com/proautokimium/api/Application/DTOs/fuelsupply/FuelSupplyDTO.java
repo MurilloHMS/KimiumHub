@@ -14,5 +14,6 @@ public record FuelSupplyDTO(LocalDate fuelSupplyDate,
 								 double diferenceHodometer,
 								 double averageKm,
 								 String fuelType,
+								 double liters,
 								 double price,
 								 double totalValue) {}
