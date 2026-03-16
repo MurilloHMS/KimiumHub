@@ -67,4 +67,8 @@ public class FuelSupply extends Entity{
         this.price = dto.price();
         this.totalValue = dto.totalValue();
     }
+
+    public String getDepartmentName() {
+        return department != null ? department.name() : "";
+    }
 }

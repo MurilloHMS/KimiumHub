@@ -12,7 +12,7 @@
 	<field name="uf" class="java.lang.String"/>
 	<field name="plate" class="java.lang.String"/>
 	<field name="driverName" class="java.lang.String"/>
-	<field name="department" class="com.proautokimium.api.domain.enums.Department"/>
+	<field name="departmentName" class="java.lang.String"/>
 	<field name="actualHodometer" class="java.lang.Double"/>
 	<field name="lastHodometer" class="java.lang.Double"/>
 	<field name="diferenceHodometer" class="java.lang.Double"/>
@@ -130,7 +130,7 @@
 					<text><![CDATA[Setor:]]></text>
 				</element>
 				<element kind="textField" uuid="57bbc37a-9763-4cdd-96be-5c5d7bf1e318" x="385" y="2" width="180" height="13" forecolor="#CBD4FF" fontSize="7.5" vTextAlign="Middle">
-					<expression><![CDATA[$F{department}.name()]]></expression>
+					<expression><![CDATA[$F{departmentName}]]></expression>
 				</element>
 			</band>
 		</groupHeader>
