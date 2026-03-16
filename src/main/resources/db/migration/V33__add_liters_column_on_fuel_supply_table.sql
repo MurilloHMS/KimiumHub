@@ -1,0 +1,2 @@
+ALTER TABLE fuelsupply
+ADD COLUMN liters DOUBLE PRECISION;

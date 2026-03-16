@@ -1,0 +1,320 @@
+<!-- Created with Jaspersoft Studio version 7.0.3.final using JasperReports Library version 7.0.3-41034ca841d452f3305ba55b9042260aaa1ab5dd  -->
+<jasperReport name="fuel_supply_by_department" language="java" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+	<parameter name="ANO_REFERENCIA" class="java.lang.String"/>
+	<parameter name="ANO_COMPARATIVO" class="java.lang.String"/>
+	<parameter name="MES_COMPARATIVO" class="java.lang.String"/>
+	<parameter name="MES_REFERENCIA" class="java.lang.String"/>
+	<parameter name="TOTAL_GASTO" class="java.lang.Double"/>
+	<parameter name="TOTAL_LITROS" class="java.lang.Double"/>
+	<parameter name="ABASTECIMENTOS" class="java.lang.String"/>
+	<parameter name="MEDIA" class="java.lang.Double"/>
+	<field name="fuelSupplyDate" class="java.time.LocalDate"/>
+	<field name="uf" class="java.lang.String"/>
+	<field name="plate" class="java.lang.String"/>
+	<field name="driverName" class="java.lang.String"/>
+	<field name="department" class="com.proautokimium.api.domain.enums.Department"/>
+	<field name="actualHodometer" class="java.lang.Double"/>
+	<field name="lastHodometer" class="java.lang.Double"/>
+	<field name="diferenceHodometer" class="java.lang.Double"/>
+	<field name="averageKm" class="java.lang.Double"/>
+	<field name="fuelType" class="java.lang.String"/>
+	<field name="liters" class="java.lang.Double"/>
+	<field name="price" class="java.lang.Double"/>
+	<field name="totalValue" class="java.lang.Double"/>
+	<variable name="SETOR_LITROS" resetType="Group" calculation="Sum" resetGroup="SetorGroup" class="java.lang.Double">
+		<expression><![CDATA[$F{liters}]]></expression>
+	</variable>
+	<variable name="SETOR_VALOR" resetType="Group" calculation="Sum" resetGroup="SetorGroup" class="java.lang.Double">
+		<expression><![CDATA[$F{totalValue}]]></expression>
+	</variable>
+	<variable name="SETOR_COUNT" resetType="Group" calculation="Count" resetGroup="SetorGroup" class="java.lang.Integer">
+		<expression><![CDATA[$F{department}]]></expression>
+	</variable>
+	<variable name="SETOR_MEDIA" resetType="Group" calculation="Average" resetGroup="SetorGroup" class="java.lang.Double">
+		<expression><![CDATA[$F{averageKm}]]></expression>
+	</variable>
+	<variable name="VEI_LITROS" resetType="Group" calculation="Sum" resetGroup="SetorPlacaGroup" class="java.lang.Double">
+		<expression><![CDATA[$F{liters}]]></expression>
+	</variable>
+	<variable name="VEI_VALOR" resetType="Group" calculation="Sum" resetGroup="SetorPlacaGroup" class="java.lang.Double">
+		<expression><![CDATA[$F{totalValue}]]></expression>
+	</variable>
+	<group name="SetorGroup" keepTogether="true">
+		<expression><![CDATA[$F{department}]]></expression>
+		<groupHeader>
+			<band height="28" splitType="Prevent">
+				<element kind="rectangle" uuid="657324c0-7246-42c3-b67a-b01f2db3926d" x="0" y="4" width="802" height="24" backcolor="#232E61">
+					<pen lineWidth="0.0"/>
+				</element>
+				<element kind="staticText" uuid="9c1614b3-d395-447f-b5a7-4b46c49f9f40" x="5" y="6" width="60" height="18" forecolor="#99AAFF" fontSize="9.0" bold="true" vTextAlign="Middle">
+					<text><![CDATA[SETOR:]]></text>
+				</element>
+				<element kind="textField" uuid="ac4458e1-ec35-4030-890c-486a90532c84" x="65" y="6" width="250" height="18" forecolor="#FFFFFF" fontSize="11.0" bold="true" vTextAlign="Middle">
+					<expression><![CDATA[$F{department}.name()]]></expression>
+				</element>
+				<element kind="staticText" uuid="5f695482-1c94-4e63-aec4-5c4a106fa4a1" x="430" y="6" width="90" height="18" forecolor="#99AAFF" fontSize="8.0" hTextAlign="Right" vTextAlign="Middle">
+					<text><![CDATA[Período ref.:]]></text>
+				</element>
+				<element kind="textField" uuid="8786e64b-b253-489c-8350-09e5b393a376" x="522" y="6" width="150" height="18" forecolor="#CCDDFF" fontSize="8.0" vTextAlign="Middle">
+					<expression><![CDATA[$P{MES_REFERENCIA} + "/" + $P{ANO_REFERENCIA}]]></expression>
+				</element>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="32" splitType="Prevent">
+				<element kind="rectangle" uuid="f1504f45-6019-4c2d-971c-26362a294573" x="0" y="2" width="802" height="28" backcolor="#E3E5F6">
+					<pen lineWidth="1.0" lineColor="#9FA8DA"/>
+				</element>
+				<element kind="staticText" uuid="191fc6ad-4220-4b52-bc41-302feb0142bb" x="5" y="5" width="200" height="18" forecolor="#232E61" fontSize="8.5" bold="true" vTextAlign="Middle">
+					<text><![CDATA[TOTAL DO SETOR:]]></text>
+				</element>
+				<element kind="staticText" uuid="1201d7c6-b042-446d-bb4a-d19e3a714e34" x="310" y="5" width="80" height="18" forecolor="#555555" fontSize="8.0" hTextAlign="Right" vTextAlign="Middle">
+					<text><![CDATA[Abastecimentos:]]></text>
+				</element>
+				<element kind="textField" uuid="7c6119a1-37d5-41ed-855c-98888a3f8bf0" x="393" y="5" width="50" height="18" forecolor="#232E61" fontSize="9.0" bold="true" hTextAlign="Right" vTextAlign="Middle">
+					<expression><![CDATA[$V{SETOR_COUNT}]]></expression>
+				</element>
+				<element kind="staticText" uuid="00909495-7ee9-43fd-958d-8962fb494b85" x="448" y="5" width="60" height="18" forecolor="#555555" fontSize="8.0" hTextAlign="Right" vTextAlign="Middle">
+					<text><![CDATA[Média Km/L:]]></text>
+				</element>
+				<element kind="textField" uuid="4bb9fa8a-8795-4a57-8362-42e5f4630375" x="510" y="5" width="55" height="18" forecolor="#232E61" fontSize="9.0" pattern="#,##0.00" bold="true" hTextAlign="Right" vTextAlign="Middle">
+					<expression><![CDATA[$V{SETOR_MEDIA}]]></expression>
+				</element>
+				<element kind="staticText" uuid="fe17353e-7b01-4ede-b726-318bf589e805" x="568" y="5" width="60" height="18" forecolor="#555555" fontSize="8.0" hTextAlign="Right" vTextAlign="Middle">
+					<text><![CDATA[Total Litros:]]></text>
+				</element>
+				<element kind="textField" uuid="615172b2-7259-425c-be5f-fb175eeea9b9" x="630" y="5" width="60" height="18" forecolor="#232E61" fontSize="9.0" pattern="#,##0.000" bold="true" hTextAlign="Right" vTextAlign="Middle">
+					<expression><![CDATA[$V{SETOR_LITROS}]]></expression>
+				</element>
+				<element kind="staticText" uuid="fad0c1f4-e2b4-4c1c-8328-e28873c78c90" x="693" y="5" width="50" height="18" forecolor="#555555" fontSize="8.0" hTextAlign="Right" vTextAlign="Middle">
+					<text><![CDATA[Total Gasto:]]></text>
+				</element>
+				<element kind="textField" uuid="d2ec909a-90cf-4552-a35a-6986a96e9ce8" x="745" y="5" width="54" height="18" forecolor="#232E61" fontSize="9.0" pattern="R$ #,##0.00" bold="true" hTextAlign="Right" vTextAlign="Middle">
+					<expression><![CDATA[$V{SETOR_VALOR}]]></expression>
+				</element>
+			</band>
+		</groupFooter>
+	</group>
+	<group name="SetorPlacaGroup">
+		<expression><![CDATA[$F{department} + "|" + $F{plate}]]></expression>
+		<groupHeader>
+			<band height="18" splitType="Prevent">
+				<element kind="rectangle" uuid="db2e2646-f8d3-4e03-9673-9973c854a865" x="0" y="1" width="802" height="16" backcolor="#EEF0FB">
+					<pen lineWidth="0.5" lineColor="#C5CAE9"/>
+				</element>
+				<element kind="staticText" uuid="67b4194b-a4a2-4d38-a78f-5702219fff15" x="5" y="2" width="50" height="13" forecolor="#5C6694" fontSize="7.5" bold="true" vTextAlign="Middle">
+					<text><![CDATA[Placa:]]></text>
+				</element>
+				<element kind="textField" uuid="42e00098-61c1-4cc1-95dd-2cacffe0763d" x="55" y="2" width="80" height="13" forecolor="#232E61" fontSize="8.0" bold="true" vTextAlign="Middle">
+					<expression><![CDATA[$F{plate}]]></expression>
+				</element>
+				<element kind="staticText" uuid="e6701819-52ca-401e-878c-5cdd3cc05ee4" x="140" y="2" width="60" height="13" forecolor="#5C6694" fontSize="7.5" bold="true" vTextAlign="Middle">
+					<text><![CDATA[Motorista:]]></text>
+				</element>
+				<element kind="textField" uuid="13bde84b-6304-49b0-beca-c77b46d827dc" x="200" y="2" width="200" height="13" forecolor="#333333" fontSize="7.5" vTextAlign="Middle">
+					<expression><![CDATA[$F{driverName}]]></expression>
+				</element>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="16" splitType="Prevent">
+				<element kind="rectangle" uuid="a1a54c63-45ef-4675-bb96-b1395623e46b" x="0" y="0" width="802" height="15" backcolor="#DDEEFF">
+					<pen lineWidth="0.5" lineColor="#B0C4DE"/>
+				</element>
+				<element kind="staticText" uuid="3c8cd99e-e976-4935-8c40-519aa286f66d" x="5" y="1" width="150" height="13" forecolor="#333366" fontSize="7.5" bold="true" vTextAlign="Middle">
+					<text><![CDATA[Subtotal veículo:]]></text>
+				</element>
+				<element kind="staticText" uuid="28a66ebd-5e2c-4a27-8a7c-65c78255e56c" x="575" y="1" width="55" height="13" forecolor="#555555" fontSize="7.5" hTextAlign="Right" vTextAlign="Middle">
+					<text><![CDATA[Litros:]]></text>
+				</element>
+				<element kind="textField" uuid="3d1f60dd-f006-46d8-8b9f-1812fdaca3b9" x="632" y="1" width="58" height="13" forecolor="#232E61" fontSize="7.5" pattern="#,##0.000" bold="true" hTextAlign="Right" vTextAlign="Middle">
+					<expression><![CDATA[$V{VEI_LITROS}]]></expression>
+				</element>
+				<element kind="staticText" uuid="a21f4e8b-8d8f-47ed-8eba-9e07b72ce227" x="693" y="1" width="50" height="13" forecolor="#555555" fontSize="7.5" hTextAlign="Right" vTextAlign="Middle">
+					<text><![CDATA[Total:]]></text>
+				</element>
+				<element kind="textField" uuid="d101d518-e8d5-4330-b8c8-a9c8930d40fb" x="745" y="1" width="54" height="13" forecolor="#232E61" fontSize="7.5" pattern="R$ #,##0.00" bold="true" hTextAlign="Right" vTextAlign="Middle">
+					<expression><![CDATA[$V{VEI_VALOR}]]></expression>
+				</element>
+			</band>
+		</groupFooter>
+	</group>
+	<background splitType="Stretch"/>
+	<title height="67" splitType="Stretch">
+		<element kind="rectangle" uuid="4ca4bb0b-56c1-4ac0-93c4-1aa8ff1eccb8" x="0" y="10" width="622" height="51" backcolor="#232E61">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="rectangle" uuid="8d2bc996-b34b-4bae-bcec-d4e7c80881a1" x="622" y="10" width="180" height="51" backcolor="#5C6694">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="staticText" uuid="0a71ab24-229e-4e1c-adef-22e3310df0ae" x="10" y="12" width="600" height="26" forecolor="#FFFFFF" fontSize="16.0" bold="true" vTextAlign="Middle">
+			<text><![CDATA[RELATÓRIO DE ABASTECIMENTO - POR SETOR]]></text>
+		</element>
+		<element kind="textField" uuid="72884ad1-0e54-40b2-ae7b-03e2494392b8" x="10" y="38" width="600" height="16" forecolor="#CBD5FF" vTextAlign="Middle">
+			<expression><![CDATA["Referência: " + $P{MES_REFERENCIA} + "/" + $P{ANO_REFERENCIA} + "   |   Comparativo: " + $P{MES_COMPARATIVO} + "/" + $P{ANO_COMPARATIVO}]]></expression>
+		</element>
+		<element kind="textField" uuid="8bea312d-72a1-4020-83c7-2416eb894931" x="622" y="17" width="180" height="20" forecolor="#FFFFFF" fontSize="11.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<expression><![CDATA["Proauto Kimium"]]></expression>
+		</element>
+		<element kind="textField" uuid="0f5198ac-c17d-42ac-bef6-e94e50cec9a0" x="622" y="38" width="180" height="16" forecolor="#CCCCFF" fontSize="8.0" hTextAlign="Center" vTextAlign="Middle">
+			<expression><![CDATA["Gerado: " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(new java.util.Date())]]></expression>
+		</element>
+	</title>
+	<pageHeader height="55" splitType="Stretch">
+		<element kind="rectangle" uuid="caaba910-8d80-4d5c-aa9c-ea3ee39c2b87" x="0" y="5" width="190" height="45" backcolor="#F5F5F5">
+			<pen lineWidth="1.0" lineColor="#CCCCCC"/>
+		</element>
+		<element kind="staticText" uuid="489e5cbc-a36f-4728-81ae-7500025a51af" x="10" y="8" width="170" height="14" forecolor="#888888" fontSize="8.0" hTextAlign="Center" vTextAlign="Middle">
+			<text><![CDATA[Total Gasto]]></text>
+		</element>
+		<element kind="textField" uuid="58dc1fe8-57ed-4b52-b0d7-b60699e2d333" x="10" y="22" width="170" height="20" forecolor="#232E61" fontSize="14.0" pattern="R$ #,##0.00" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<expression><![CDATA[$P{TOTAL_GASTO}]]></expression>
+		</element>
+		<element kind="rectangle" uuid="8046f8ff-499d-49b0-abec-3fff6eb3dba9" x="201" y="5" width="190" height="45" backcolor="#F5F5F5">
+			<pen lineWidth="1.0" lineColor="#CCCCCC"/>
+		</element>
+		<element kind="staticText" uuid="5eef1be2-b79d-40c5-b5be-7b1cdc0d1ad4" x="211" y="8" width="170" height="14" forecolor="#888888" fontSize="8.0" hTextAlign="Center" vTextAlign="Middle">
+			<text><![CDATA[Total Litros]]></text>
+		</element>
+		<element kind="textField" uuid="237ac0ed-879b-49a3-8bbc-8b7730dad0c8" x="211" y="22" width="170" height="20" forecolor="#232E61" fontSize="14.0" pattern="#,##0.000 L" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<expression><![CDATA[$P{TOTAL_LITROS}]]></expression>
+		</element>
+		<element kind="rectangle" uuid="1e06a8f7-31de-431f-8b3c-5390409817e2" x="402" y="5" width="190" height="45" backcolor="#F5F5F5">
+			<pen lineWidth="1.0" lineColor="#CCCCCC"/>
+		</element>
+		<element kind="staticText" uuid="b54648d2-6b80-45ed-8ed4-b362bab25bb5" x="412" y="8" width="170" height="14" forecolor="#888888" fontSize="8.0" hTextAlign="Center" vTextAlign="Middle">
+			<text><![CDATA[Média Km/L]]></text>
+		</element>
+		<element kind="textField" uuid="f5aec2da-08bd-47a8-90e0-a8cf8a284cc5" x="412" y="22" width="170" height="20" forecolor="#232E61" fontSize="14.0" pattern="#,##0.00 Km/L" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<expression><![CDATA[$P{MEDIA}]]></expression>
+		</element>
+		<element kind="rectangle" uuid="fc1da63e-1d28-4caa-a538-aece6e5c0f16" x="603" y="5" width="199" height="45" backcolor="#F5F5F5">
+			<pen lineWidth="1.0" lineColor="#CCCCCC"/>
+		</element>
+		<element kind="staticText" uuid="49f4623b-c4c7-4ba5-940e-0424ad8c623b" x="613" y="8" width="179" height="14" forecolor="#888888" fontSize="8.0" hTextAlign="Center" vTextAlign="Middle">
+			<text><![CDATA[Abastecimentos]]></text>
+		</element>
+		<element kind="textField" uuid="3e133c39-bddf-4a0e-b11d-c22771246851" x="613" y="22" width="179" height="20" forecolor="#232E61" fontSize="14.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<expression><![CDATA[$P{ABASTECIMENTOS} + " reg."]]></expression>
+		</element>
+	</pageHeader>
+	<columnHeader height="20" splitType="Stretch">
+		<element kind="rectangle" uuid="3c94cd1a-9987-483d-8d00-1f7e92fb4b66" x="0" y="0" width="802" height="20" backcolor="#3949AB">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="staticText" uuid="ee709271-2ff8-469f-b9f2-618be1b94736" x="0" y="2" width="70" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<text><![CDATA[Data]]></text>
+		</element>
+		<element kind="staticText" uuid="93cd3424-f134-4992-a040-2a7120a1e749" x="70" y="2" width="30" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<text><![CDATA[UF]]></text>
+		</element>
+		<element kind="staticText" uuid="3319d2ee-2b58-46b8-8f65-8c42f491826a" x="100" y="2" width="75" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<text><![CDATA[Placa]]></text>
+		</element>
+		<element kind="staticText" uuid="3f2799aa-0eb4-4ebc-9dd6-e52ddb3ae970" x="175" y="2" width="130" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Left" vTextAlign="Middle">
+			<text><![CDATA[Motorista]]></text>
+		</element>
+		<element kind="staticText" uuid="d28f6d57-0c17-4c97-958f-7038474b031b" x="305" y="2" width="65" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Right" vTextAlign="Middle">
+			<text><![CDATA[Hod. Atual]]></text>
+		</element>
+		<element kind="staticText" uuid="3c4073fd-19ff-4f57-bf1e-0f1854e64072" x="370" y="2" width="65" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Right" vTextAlign="Middle">
+			<text><![CDATA[Hod. Ant.]]></text>
+		</element>
+		<element kind="staticText" uuid="af7470dc-b26c-410f-a28d-c2aa50a3b202" x="435" y="2" width="65" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Right" vTextAlign="Middle">
+			<text><![CDATA[Km Rodado]]></text>
+		</element>
+		<element kind="staticText" uuid="5416af2f-c102-450b-b327-2dbd0b508de1" x="500" y="2" width="70" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<text><![CDATA[Combustível]]></text>
+		</element>
+		<element kind="staticText" uuid="a481feff-22a0-457d-9c14-142bef235a62" x="570" y="2" width="55" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Right" vTextAlign="Middle">
+			<text><![CDATA[Litros]]></text>
+		</element>
+		<element kind="staticText" uuid="b966b561-029c-4e52-bb23-1243f24e6264" x="625" y="2" width="55" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Right" vTextAlign="Middle">
+			<text><![CDATA[Preço/L]]></text>
+		</element>
+		<element kind="staticText" uuid="8cf517c3-f0e5-402c-974c-a09dff6f652f" x="680" y="2" width="75" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Right" vTextAlign="Middle">
+			<text><![CDATA[Total (R$)]]></text>
+		</element>
+		<element kind="staticText" uuid="daad736d-dcb6-472a-a825-1d39bf3bacef" x="755" y="2" width="47" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Right" vTextAlign="Middle">
+			<text><![CDATA[Km/L]]></text>
+		</element>
+	</columnHeader>
+	<detail>
+		<band height="14" splitType="Stretch">
+			<element kind="rectangle" uuid="c4d4c301-1d02-448e-a854-23be8a3e6a7d" x="0" y="0" width="802" height="14" backcolor="#F8F9FF">
+				<printWhenExpression><![CDATA[$V{REPORT_COUNT} % 2 == 0]]></printWhenExpression>
+				<pen lineWidth="0.3" lineColor="#E8E8E8"/>
+			</element>
+			<element kind="rectangle" uuid="786952b6-8f48-45bc-b734-561c83a9b4ae" x="0" y="0" width="802" height="14" backcolor="#FFFFFF">
+				<printWhenExpression><![CDATA[$V{REPORT_COUNT} % 2 != 0]]></printWhenExpression>
+				<pen lineWidth="0.3" lineColor="#E8E8E8"/>
+			</element>
+			<element kind="textField" uuid="bbf61699-88a5-4ee7-8305-bef92f5e99b6" x="0" y="1" width="70" height="12" fontSize="7.5" pattern="dd/MM/yyyy" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$F{fuelSupplyDate}]]></expression>
+			</element>
+			<element kind="textField" uuid="8091893a-3981-42b8-aa2a-8f5b3efca660" x="70" y="1" width="30" height="12" fontSize="7.5" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$F{uf}]]></expression>
+			</element>
+			<element kind="textField" uuid="146d1aff-eaeb-4c7b-a5ed-ed2115bea4cf" x="100" y="1" width="75" height="12" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$F{plate}]]></expression>
+			</element>
+			<element kind="textField" uuid="8aabc359-52a7-448b-bd83-9e3c65d8ab9e" x="175" y="1" width="130" height="12" fontSize="7.5" hTextAlign="Left" vTextAlign="Middle">
+				<expression><![CDATA[$F{driverName}]]></expression>
+			</element>
+			<element kind="textField" uuid="3ef4c15c-4966-4bb3-b339-adaf356db9d8" x="305" y="1" width="65" height="12" fontSize="7.5" pattern="#,##0.0" hTextAlign="Right" vTextAlign="Middle">
+				<expression><![CDATA[$F{actualHodometer}]]></expression>
+			</element>
+			<element kind="textField" uuid="ecb5a028-8f01-438d-8d94-c75c60545069" x="370" y="1" width="65" height="12" fontSize="7.5" pattern="#,##0.0" hTextAlign="Right" vTextAlign="Middle">
+				<expression><![CDATA[$F{lastHodometer}]]></expression>
+			</element>
+			<element kind="textField" uuid="b8a20c99-46af-4068-9b5b-9ebdd40de3a1" x="435" y="1" width="65" height="12" fontSize="7.5" pattern="#,##0.0" hTextAlign="Right" vTextAlign="Middle">
+				<expression><![CDATA[$F{diferenceHodometer}]]></expression>
+			</element>
+			<element kind="textField" uuid="7b60cc6e-e0ac-4117-b0f8-331ff16cb70d" x="500" y="1" width="70" height="12" fontSize="7.5" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$F{fuelType}]]></expression>
+			</element>
+			<element kind="textField" uuid="c6e9bbfc-fe75-460e-a195-46e23fe679b5" x="570" y="1" width="55" height="12" fontSize="7.5" pattern="#,##0.000" hTextAlign="Right" vTextAlign="Middle">
+				<expression><![CDATA[$F{liters}]]></expression>
+			</element>
+			<element kind="textField" uuid="ddc0a296-4abb-4931-8a03-ca47ee121ae7" x="625" y="1" width="55" height="12" fontSize="7.5" pattern="R$ #,##0.00" hTextAlign="Right" vTextAlign="Middle">
+				<expression><![CDATA[$F{price}]]></expression>
+			</element>
+			<element kind="textField" uuid="6f936e17-962c-49b0-a5fb-9ddff4d8cdbf" x="680" y="1" width="75" height="12" fontSize="7.5" pattern="R$ #,##0.00" bold="true" hTextAlign="Right" vTextAlign="Middle">
+				<expression><![CDATA[$F{totalValue}]]></expression>
+			</element>
+			<element kind="textField" uuid="76083a7a-da3d-4e49-8ad7-ddab3b76a6da" x="755" y="1" width="47" height="12" fontSize="7.5" pattern="#,##0.00" hTextAlign="Right" vTextAlign="Middle">
+				<expression><![CDATA[$F{averageKm}]]></expression>
+			</element>
+		</band>
+	</detail>
+	<columnFooter height="5" splitType="Stretch"/>
+	<pageFooter height="20" splitType="Stretch">
+		<element kind="line" uuid="db163a36-cd00-4045-8a76-df6a4dce1b09" x="0" y="0" width="802" height="1" forecolor="#CCCCCC"/>
+		<element kind="staticText" uuid="dbf71e3d-0f79-4570-96ba-d7e0ea95be98" x="0" y="4" width="300" height="14" forecolor="#888888" fontSize="7.5" vTextAlign="Middle">
+			<text><![CDATA[Proauto Kimium - Sistema de Gestão de Frota]]></text>
+		</element>
+		<element kind="textField" uuid="a73e1028-b555-4a43-a13e-3f8600d491f4" x="602" y="4" width="200" height="14" forecolor="#888888" fontSize="7.5" evaluationTime="Report" hTextAlign="Right" vTextAlign="Middle">
+			<expression><![CDATA["Página " + $V{PAGE_NUMBER} + " de " + $V{PAGE_COUNT}]]></expression>
+		</element>
+	</pageFooter>
+	<summary height="30" splitType="Stretch">
+		<element kind="rectangle" uuid="d59a72ef-30f9-4251-adbe-5458c0df42ca" x="0" y="5" width="802" height="22" backcolor="#232E61">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="staticText" uuid="8699d448-e381-4898-bca8-e46b25022695" x="5" y="7" width="200" height="16" forecolor="#AAAAFF" fontSize="9.0" bold="true" vTextAlign="Middle">
+			<text><![CDATA[TOTAIS GERAIS (TODOS OS SETORES):]]></text>
+		</element>
+		<element kind="staticText" uuid="c07112d3-9439-4195-94ba-9dcb9eb49ba5" x="490" y="7" width="80" height="16" forecolor="#AAAAFF" fontSize="8.0" hTextAlign="Right" vTextAlign="Middle">
+			<text><![CDATA[Total Litros:]]></text>
+		</element>
+		<element kind="textField" uuid="00cf8df4-5f8f-4e6a-b5a5-8100e42f9a44" x="572" y="7" width="58" height="16" forecolor="#FFFFFF" fontSize="9.0" pattern="#,##0.000" bold="true" hTextAlign="Right" vTextAlign="Middle">
+			<expression><![CDATA[$P{TOTAL_LITROS}]]></expression>
+		</element>
+		<element kind="staticText" uuid="e2bce462-06f8-4c06-88be-172523bab840" x="633" y="7" width="65" height="16" forecolor="#AAAAFF" fontSize="8.0" hTextAlign="Right" vTextAlign="Middle">
+			<text><![CDATA[Total Gasto:]]></text>
+		</element>
+		<element kind="textField" uuid="e5224ddd-1661-4ba0-85d9-1732fa0ea72c" x="700" y="7" width="100" height="16" forecolor="#FFFFFF" fontSize="9.0" pattern="R$ #,##0.00" bold="true" hTextAlign="Right" vTextAlign="Middle">
+			<expression><![CDATA[$P{TOTAL_GASTO}]]></expression>
+		</element>
+	</summary>
+</jasperReport>

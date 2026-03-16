@@ -1,15 +1,17 @@
 package com.proautokimium.api.controllers;
 
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.proautokimium.api.Application.DTOs.fuelsupply.FuelSupplyReportFilterDTO;
+import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyReportService;
+import com.proautokimium.api.domain.enums.Department;
+import com.proautokimium.api.domain.enums.ReportFormat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.proautokimium.api.Infrastructure.interfaces.fuelsupply.IFuelSupplyReader;
@@ -28,38 +30,59 @@ public class FuelSupplyController {
 	
 	@Autowired
 	FuelSupplyService service;
+
+	@Autowired
+	FuelSupplyReportService reportService;
 	
 	@Autowired
 	EmployeeRepository employeeRepository;
-	
-	@PostMapping("upload")
-	public ResponseEntity<?> importfuel(@RequestParam MultipartFile file){
-		
-		try {
-			List<FuelSupply> fuelSupplies = reader.getFuelSuppliesByExcel(file.getInputStream());
-			List<Employee> employees = employeeRepository.findAll();
-			
-			Map<String,	Employee> employeeMap = employees.stream().collect(Collectors.toMap(e -> e.getName().toLowerCase(), e -> e));
-			
-			
-			fuelSupplies.forEach(fs -> {
-				String driverName = fs.getDriverName();
-				
-				if(driverName != null) {
-					Employee emp = employeeMap.get(driverName.toLowerCase());
-					if(emp != null) {
-						fs.setDepartment(emp.getDepartment());
-					}
-				}
-			});
-			
-			service.insertByRange(fuelSupplies);
-			 return ResponseEntity.ok("Importação concluída com sucesso!");
 
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	        return ResponseEntity.internalServerError()
-	                .body("Erro ao importar arquivo: " + e.getMessage());
-	    }
+	@PostMapping("/upload")
+	public ResponseEntity<?> importFuel(@RequestParam MultipartFile file) {
+
+		try (InputStream is = file.getInputStream()) {
+
+			List<FuelSupply> fuelSupplies = reader.getFuelSuppliesByExcel(is);
+			List<Employee> employees = employeeRepository.findAll();
+
+			Map<String, Employee> employeeMap = employees.stream()
+					.collect(Collectors.toMap(
+							e -> e.getName().toLowerCase().trim(),
+							e -> e,
+							(a, b) -> a
+					));
+
+			fuelSupplies.forEach(fs -> {
+
+				String driverName = fs.getDriverName();
+
+				Employee emp = driverName == null
+						? null
+						: employeeMap.get(driverName.toLowerCase().trim());
+
+				Department department =
+						(emp != null && emp.getDepartment() != null)
+								? emp.getDepartment()
+								: Department.SEM_DEPARTAMENTO;
+
+				fs.setDepartment(department);
+			});
+
+			service.insertByRange(fuelSupplies);
+
+			return ResponseEntity.ok("Importação concluída com sucesso!");
+
+		} catch (Exception e) {
+			e.printStackTrace();
+
+			return ResponseEntity.internalServerError()
+					.body("Erro ao importar arquivo: " + e.getMessage());
+		}
 	}
+
+	@PostMapping
+	public ResponseEntity<byte[]> generateReport(@RequestBody FuelSupplyReportFilterDTO dto) {
+		return reportService.generateReport(dto);
+	}
+
 }
