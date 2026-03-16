@@ -43,30 +43,35 @@ public class FuelSupplyReaderService implements IFuelSupplyReader{
 				Cell driverName = row.getCell(0);
 				if(driverName != null)
 					fuel.setDriverName(driverName.getStringCellValue());
-				
+
 				Cell date = row.getCell(1);
-				if(date != null && date.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(date)) {
-					fuel.setFuelSupplyDate(date.getDateCellValue().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
-				}else if (date.getCellType() == CellType.STRING) {
+				if (date != null && date.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(date)) {
+					fuel.setFuelSupplyDate(
+							date.getDateCellValue()
+									.toInstant()
+									.atZone(ZoneId.systemDefault())
+									.toLocalDate()
+					);
+
+				} else if (date != null && date.getCellType() == CellType.STRING) {
+
 					String value = date.getStringCellValue().trim()
+							.replace("'", "")
 							.replace("\u00A0", "")
 							.replace("\u202F", "")
 							.replace(".", "/")
 							.replace("-", "/");
-					
+
+					if (value.contains(" ")) {
+						value = value.split(" ")[0];
+					}
+
 					try {
-						DateTimeFormatter formatter;
-						if(value.matches("\\d{4}-\\d{2}-\\d{2}")) {
-							formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-						}else if (value.matches("\\d{2}-\\d{2}-\\d{4}")) {
-							formatter = DateTimeFormatter.ofPattern("dd/mm/yyyy");
-						}else {
-							formatter = DateTimeFormatter.ofPattern("d/M/yyyy");
-						}
+						DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/yyyy");
 						fuel.setFuelSupplyDate(LocalDate.parse(value, formatter));
-					 } catch (Exception e) {
-					        System.err.println("⚠️ Erro ao converter data da célula: [" + value + "] " + e.getMessage());
-				    }
+					} catch (Exception e) {
+						System.err.println("⚠️ Erro ao converter data da célula: [" + value + "] " + e.getMessage());
+					}
 				}
 				
 				Cell uf = row.getCell(3);
@@ -78,7 +83,7 @@ public class FuelSupplyReaderService implements IFuelSupplyReader{
 					fuel.setPlate(plate.getStringCellValue());
 				
 				Cell actualHodometer = row.getCell(5);
-				if(actualHodometer != null && plate.getCellType() == CellType.NUMERIC)
+				if(actualHodometer != null && actualHodometer.getCellType() == CellType.NUMERIC)
 					fuel.setActualHodometer((int) actualHodometer.getNumericCellValue());
 				
 				Cell fuelType = row.getCell(6);
