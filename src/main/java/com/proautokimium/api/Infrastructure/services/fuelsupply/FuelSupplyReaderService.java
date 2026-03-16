@@ -89,6 +89,10 @@ public class FuelSupplyReaderService implements IFuelSupplyReader{
 				Cell fuelType = row.getCell(6);
 				if(fuelType != null)
 					fuel.setFuelType(fuelType.getStringCellValue());
+
+				Cell liters = row.getCell(7);
+				if(liters != null && liters.getCellType() == CellType.NUMERIC)
+					fuel.setLiters(liters.getNumericCellValue());
 				
 				Cell totalValue = row.getCell(8);
 				if(totalValue != null && totalValue.getCellType() == CellType.NUMERIC)
