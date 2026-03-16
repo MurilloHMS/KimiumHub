@@ -1,0 +1,2 @@
+ALTER TABLE fuelsupply
+ALTER COLUMN fuelType TYPE VARCHAR(30);
