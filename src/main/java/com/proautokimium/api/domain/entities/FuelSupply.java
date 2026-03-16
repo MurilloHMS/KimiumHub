@@ -6,6 +6,7 @@ import com.proautokimium.api.Application.DTOs.fuelsupply.FuelSupplyDTO;
 import com.proautokimium.api.domain.abstractions.Entity;
 import com.proautokimium.api.domain.enums.Department;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
@@ -22,19 +23,33 @@ import lombok.Setter;
 @NoArgsConstructor
 public class FuelSupply extends Entity{
 
+    @Column(name = "fuelsupplydate")
 	private LocalDate fuelSupplyDate;
+    @Column(name = "uf")
 	private String uf;
+    @Column(name = "plate")
 	private String plate;
+    @Column(name = "drivername")
 	private String driverName;
 	
 	@Enumerated(EnumType.STRING)
-	private Department department;
+    @Column(name = "department", nullable = false)
+	private Department department = Department.SEM_DEPARTAMENTO;
+    @Column(name = "actualhodometer")
 	private double actualHodometer;
+    @Column(name = "lasthodometer")
 	private double lastHodometer;
+    @Column(name = "diferencehodometer")
 	private double diferenceHodometer;
+    @Column(name = "averagekm")
 	private double averageKm;
+    @Column(name = "fueltype")
 	private String fuelType;
+    @Column(name = "liters")
+    private double liters;
+    @Column(name = "price")
 	private double price;
+    @Column(name = "totalvalue")
 	private double totalValue;
 
     public FuelSupply(FuelSupplyDTO dto){
@@ -48,6 +63,7 @@ public class FuelSupply extends Entity{
         this.diferenceHodometer = dto.diferenceHodometer();
         this.averageKm = dto.averageKm();
         this.fuelType = dto.fuelType();
+        this.liters = dto.liters();
         this.price = dto.price();
         this.totalValue = dto.totalValue();
     }
