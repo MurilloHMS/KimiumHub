@@ -8,6 +8,7 @@ import com.proautokimium.api.domain.enums.ReportFormat;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import net.sf.jasperreports.engine.export.ooxml.JRXlsxExporter;
+import net.sf.jasperreports.engine.util.JRLoader;
 import net.sf.jasperreports.export.SimpleExporterInput;
 import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
 import net.sf.jasperreports.export.SimpleXlsxReportConfiguration;
@@ -97,7 +98,7 @@ public class FuelSupplyReportService {
                         .thenComparing(FuelSupply::getFuelType)
                         .thenComparing(FuelSupply::getFuelSupplyDate))
                 .toList();
-        return fill("fuel_supply.jrxml", sorted, buildParams(data, month, year));
+        return fill("fuel_supply", sorted, buildParams(data, month, year));
     }
 
     private JasperPrint buildDepartmentPrint(List<FuelSupply> deptData,
@@ -105,7 +106,7 @@ public class FuelSupplyReportService {
                                              int mes, int ano) throws Exception {
         Map<String, Object> params = buildParams(deptData, mes, ano);
         params.put("DEPARTMENT_NAME", dept.name());
-        return fill("fuel_supply_by_department.jrxml", deptData, params);
+        return fill("fuel_supply_by_department", deptData, params);
     }
 
     private byte[] exportPdf(List<JasperPrint> prints) throws Exception {
@@ -150,7 +151,7 @@ public class FuelSupplyReportService {
     }
 
     private JasperPrint fill(String jrxmlFile, List<FuelSupply> data, Map<String, Object> params) throws Exception {
-        JasperReport compiled = compile(REPORT_PATH + jrxmlFile);
+        JasperReport compiled = generateReport(REPORT_PATH + jrxmlFile + ".jasper");
         return JasperFillManager.fillReport(compiled, params, new JRBeanCollectionDataSource(data));
     }
 
@@ -180,6 +181,14 @@ public class FuelSupplyReportService {
             throw new IllegalStateException("Relatório não encontrado: " + resourcePath);
         }
         return JasperCompileManager.compileReport(stream);
+    }
+
+    private JasperReport generateReport(String resourcePath) throws Exception {
+        InputStream stream = getClass().getClassLoader().getResourceAsStream(resourcePath);
+        if(stream == null) {
+            throw new IllegalStateException("Relatório não encontrado: " + resourcePath);
+        }
+        return (JasperReport) JRLoader.loadObject(stream);
     }
 
     private String monthName(int mes) {
