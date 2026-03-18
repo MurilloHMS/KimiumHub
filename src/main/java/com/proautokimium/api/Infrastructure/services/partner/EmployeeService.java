@@ -54,6 +54,7 @@ public class EmployeeService {
 			employee.setEmail(new Email(dto.email()));
 			employee.setHierarquia(dto.hierarchy());
 			employee.setName(dto.name());
+			employee.setDepartment(dto.department());
 			
 			repository.save(employee);
 			
