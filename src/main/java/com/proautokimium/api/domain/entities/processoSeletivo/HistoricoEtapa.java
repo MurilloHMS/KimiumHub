@@ -3,8 +3,7 @@ package com.proautokimium.api.domain.entities.processoSeletivo;
 import com.proautokimium.api.domain.enums.processoSeletivo.Etapa;
 import com.proautokimium.api.domain.enums.processoSeletivo.StatusCandidatura;
 import com.proautokimium.api.domain.enums.processoSeletivo.StatusVaga;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,11 +19,13 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class HistoricoEtapa extends com.proautokimium.api.domain.abstractions.Entity{
-    private UUID candidaturaID;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "candidatura_id", nullable = false)
+    private Candidatura candidatura;
+
     private Etapa etapaAnterior;
     private Etapa etapaNova;
     private StatusCandidatura status;
     private String observacao;
-    private UUID responsavelID;
     private LocalDateTime dataMovimentacao;
 }

@@ -1,8 +1,7 @@
 package com.proautokimium.api.domain.entities.processoSeletivo;
 
 import com.proautokimium.api.domain.enums.processoSeletivo.TipoPergunta;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,9 +16,12 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PerguntaPersonalizada extends com.proautokimium.api.domain.abstractions.Entity{
-    private UUID vagaID;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vaga_id", nullable = false)
+    private Vaga vaga;
     private String enunciado;
+    @Enumerated(EnumType.STRING)
     private TipoPergunta tipo;
     private Boolean obrigatoria;
-    private int ordem;
+    private short ordem;
 }

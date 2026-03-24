@@ -1,7 +1,6 @@
 package com.proautokimium.api.domain.entities.processoSeletivo;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,8 +16,14 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RespostaPergunta extends com.proautokimium.api.domain.abstractions.Entity{
-    private UUID candidaturaID;
-    private UUID perguntaID;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "candidatura_id", nullable = false)
+    private Candidatura candidatura;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pergunta_id", nullable = false)
+    private PerguntaPersonalizada pergunta;
+
     private String resposta;
     private LocalDateTime respondido_em;
 }
