@@ -8,7 +8,7 @@ CREATE TABLE vagas (
     status VARCHAR(9) NOT NULL,
     data_abertura TIMESTAMP,
     data_encerramento TIMESTAMP
-)
+);
 
 CREATE TABLE candidatos (
     id UUID PRIMARY KEY,
@@ -18,7 +18,7 @@ CREATE TABLE candidatos (
     url_linkedin VARCHAR(100),
     path_curriculo VARCHAR(200),
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
+);
 
 CREATE TABLE candidaturas (
     id UUID PRIMARY KEY,
@@ -27,11 +27,11 @@ CREATE TABLE candidaturas (
     etapa_atual VARCHAR(20),
     status VARCHAR(20),
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    atualizado_em TIMESTAMP DEFAULT,
+    atualizado_em TIMESTAMP,
 
     FOREIGN KEY (candidato_id) REFERENCES candidatos(id),
     FOREIGN KEY (vaga_id) REFERENCES vagas(id)
-)
+);
 
 CREATE TABLE historico_etapas (
     id UUID PRIMARY KEY,
@@ -43,7 +43,7 @@ CREATE TABLE historico_etapas (
     data_movimentacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (candidatura_id) REFERENCES candidaturas(id)
-)
+);
 
 CREATE TABLE perguntas_personalizadas (
     id UUID PRIMARY KEY,
@@ -54,7 +54,7 @@ CREATE TABLE perguntas_personalizadas (
     ordem SMALLINT NOT NULL,
 
     FOREIGN KEY (vaga_id) REFERENCES vagas(id)
-)
+);
 
 CREATE TABLE resposta_perguntas(
     id UUID PRIMARY KEY,
@@ -65,7 +65,7 @@ CREATE TABLE resposta_perguntas(
 
     FOREIGN KEY (candidatura_id) REFERENCES candidaturas(id),
     FOREIGN KEY (pergunta_id) REFERENCES perguntas_personalizadas(id)
-)
+);
 
 CREATE TABLE template_email (
     id UUID PRIMARY KEY,
@@ -74,7 +74,7 @@ CREATE TABLE template_email (
     assunto VARCHAR(50) NOT NULL,
     corpo VARCHAR(1000) NOT NULL,
     ativo BOOLEAN DEFAULT TRUE
-)
+);
 
 CREATE TABLE notificacao_processo_seletivo (
     id UUID PRIMARY KEY,
