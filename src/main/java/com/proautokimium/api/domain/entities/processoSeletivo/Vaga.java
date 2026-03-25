@@ -33,4 +33,21 @@ public class Vaga  extends com.proautokimium.api.domain.abstractions.Entity{
     private LocalDateTime data_abertura;
     @Column(name = "data_encerramento")
     private LocalDateTime data_encerramento;
+
+    // Methods
+    public void publicar(){
+        this.status = StatusVaga.PUBLICADA;
+    }
+
+    public void encerrar(){
+        this.status = StatusVaga.ENCERRADA;
+    }
+
+    public void arquivar(){
+        this.status = StatusVaga.ARQUIVADA;
+    }
+
+    public void rascunho(){
+        this.status = StatusVaga.RASCUNHO;
+    }
 }
