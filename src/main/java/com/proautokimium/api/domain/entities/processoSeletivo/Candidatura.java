@@ -35,4 +35,31 @@ public class Candidatura extends com.proautokimium.api.domain.abstractions.Entit
     private LocalDateTime criadoEm;
     @Column(name = "atualizado_em")
     private LocalDateTime atualizadoEm;
+
+
+    // Methods
+    public void avancarEtapa() {
+        switch (this.etapaAtual) {
+            case TRIAGEM:
+                this.etapaAtual = Etapa.ENTREVISTA_RH;
+                break;
+            case ENTREVISTA_RH:
+                this.etapaAtual = Etapa.PROPOSTA;
+                break;
+            case PROPOSTA:
+                this.etapaAtual = Etapa.CONTRATADO;
+                break;
+            default:
+                this.etapaAtual = Etapa.TRIAGEM;
+                break;
+        }
+    }
+
+    public void reprovar(){
+        this.status = StatusCandidatura.REPROVADO;
+    }
+
+    public void encerrar(){
+        this.status = StatusCandidatura.ENCERRADO;
+    }
 }
