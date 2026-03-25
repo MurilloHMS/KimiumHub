@@ -1,4 +1,4 @@
-package com.proautokimium.api.domain.entities;
+package com.proautokimium.api.domain.entities.prostock;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -6,20 +6,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.io.Serial;
-import java.io.Serializable;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "products_movements")
+@Table(name = "machine_movements")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class MovementInventory extends com.proautokimium.api.domain.abstractions.Entity implements Serializable {
-    @Serial
-    private static final long serialVersionUID = 1L;
+public class MovementMachine extends com.proautokimium.api.domain.abstractions.Entity {
 
     @Column(name = "movement_date", nullable = false)
     private LocalDateTime movementDate;
@@ -28,6 +23,6 @@ public class MovementInventory extends com.proautokimium.api.domain.abstractions
     private int quantity;
 
     @ManyToOne
-    @JoinColumn(name = "product_id")
-    private ProductInventory product;
+    @JoinColumn(name = "machine_id")
+    private ProductMachine machine;
 }

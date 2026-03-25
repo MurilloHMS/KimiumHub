@@ -5,7 +5,7 @@ import com.proautokimium.api.Application.DTOs.ponto.RegistroPontoUpdateDTO;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.services.ponto.RegistroPontoService;
 import com.proautokimium.api.domain.entities.Employee;
-import com.proautokimium.api.domain.entities.User;
+import com.proautokimium.api.domain.entities.auth.User;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;

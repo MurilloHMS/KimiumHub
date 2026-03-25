@@ -4,8 +4,8 @@ import com.proautokimium.api.Application.DTOs.product.ProductInventoryDTO;
 import com.proautokimium.api.Application.DTOs.product.ProductMovementDTO;
 import com.proautokimium.api.Infrastructure.repositories.ProductInventoryRepository;
 import com.proautokimium.api.Infrastructure.repositories.ProductMovementRepository;
-import com.proautokimium.api.domain.entities.MovementInventory;
-import com.proautokimium.api.domain.entities.ProductInventory;
+import com.proautokimium.api.domain.entities.prostock.MovementInventory;
+import com.proautokimium.api.domain.entities.prostock.ProductInventory;
 import jakarta.transaction.Transactional;
 
 

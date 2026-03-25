@@ -12,7 +12,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
 import com.proautokimium.api.Infrastructure.abstractions.excel.ExcelReader;
-import com.proautokimium.api.domain.entities.ProductInventory;
+import com.proautokimium.api.domain.entities.prostock.ProductInventory;
 
 @Service
 public class InventoryProductExcelReaderService extends ExcelReader<ProductInventory>{

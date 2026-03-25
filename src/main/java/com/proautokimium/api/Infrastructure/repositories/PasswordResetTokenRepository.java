@@ -1,6 +1,6 @@
 package com.proautokimium.api.Infrastructure.repositories;
 
-import com.proautokimium.api.domain.entities.PasswordResetToken;
+import com.proautokimium.api.domain.entities.auth.PasswordResetToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

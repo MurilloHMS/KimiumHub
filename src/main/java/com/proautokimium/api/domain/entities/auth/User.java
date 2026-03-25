@@ -1,4 +1,4 @@
-package com.proautokimium.api.domain.entities;
+package com.proautokimium.api.domain.entities.auth;
 
 import com.proautokimium.api.domain.enums.UserRole;
 import jakarta.persistence.*;

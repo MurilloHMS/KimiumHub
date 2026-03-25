@@ -1,4 +1,4 @@
-package com.proautokimium.api.domain.entities;
+package com.proautokimium.api.domain.entities.prostock;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
