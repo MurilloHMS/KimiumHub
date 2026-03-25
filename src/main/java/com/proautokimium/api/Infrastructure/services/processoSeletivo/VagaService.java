@@ -56,6 +56,14 @@ public class VagaService {
         this.vagaRepository.save(vaga);
     }
 
+    public void encerrar(Vaga vaga) {
+        if(!this.vagaRepository.existsById(vaga.getId()))
+            throw new VagaNotExistsException();
+
+        vaga.encerrar();
+        this.vagaRepository.save(vaga);
+    }
+
     public List<Vaga> listarVagasPublicadas() {
         return this.vagaRepository.findByStatus(StatusVaga.PUBLICADA);
     }
