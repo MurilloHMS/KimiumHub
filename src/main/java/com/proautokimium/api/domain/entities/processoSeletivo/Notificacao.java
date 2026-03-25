@@ -1,8 +1,7 @@
 package com.proautokimium.api.domain.entities.processoSeletivo;
 
 import com.proautokimium.api.domain.enums.processoSeletivo.TipoNotificacao;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,10 +17,13 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Notificacao extends com.proautokimium.api.domain.abstractions.Entity{
-    private UUID candidaturaID;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "candidatura_id", nullable = false)
+    private Candidatura candidatura;
+    @Enumerated(EnumType.STRING)
     private TipoNotificacao tipo;
     private String Assunto;
     private String corpo;
     private Boolean enviado;
-    private LocalDateTime enviado_em;
+    private LocalDateTime enviadoEm;
 }

@@ -32,7 +32,7 @@ public class Candidatura extends com.proautokimium.api.domain.abstractions.Entit
     @Column(name = "status")
     private StatusCandidatura status;
     @Column(name = "criado_em")
-    private LocalDateTime criado_em;
+    private LocalDateTime criadoEm;
     @Column(name = "atualizado_em")
-    private LocalDateTime atualizado_em;
+    private LocalDateTime atualizadoEm;
 }

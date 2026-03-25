@@ -25,5 +25,5 @@ public class RespostaPergunta extends com.proautokimium.api.domain.abstractions.
     private PerguntaPersonalizada pergunta;
 
     private String resposta;
-    private LocalDateTime respondido_em;
+    private LocalDateTime respondidoEm;
 }

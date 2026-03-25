@@ -28,5 +28,5 @@ public class Candidato extends com.proautokimium.api.domain.abstractions.Entity{
     @Column(name = "path_curriculo", length = 200)
     private String pathCurriculo;
     @Column(name = "criado_em" )
-    private LocalDateTime criado_em;
+    private LocalDateTime criadoEm;
 }

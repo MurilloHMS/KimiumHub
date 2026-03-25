@@ -19,10 +19,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class HistoricoEtapa extends com.proautokimium.api.domain.abstractions.Entity{
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "candidatura_id", nullable = false)
     private Candidatura candidatura;
-
     private Etapa etapaAnterior;
     private Etapa etapaNova;
     private StatusCandidatura status;
