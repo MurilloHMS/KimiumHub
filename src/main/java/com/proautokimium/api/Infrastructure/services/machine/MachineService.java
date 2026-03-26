@@ -1,8 +1,8 @@
 package com.proautokimium.api.Infrastructure.services.machine;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.proautokimium.api.Application.DTOs.machine.MachineDTO;
-import com.proautokimium.api.Application.DTOs.machine.MachineMovementDTO;
+import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDTO;
+import com.proautokimium.api.Application.DTOs.prostock.machine.MachineMovementDTO;
 import com.proautokimium.api.Infrastructure.repositories.MachineMovementRepository;
 import com.proautokimium.api.Infrastructure.repositories.MachineRepository;
 import com.proautokimium.api.domain.entities.prostock.MovementMachine;

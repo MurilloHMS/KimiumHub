@@ -1,4 +1,4 @@
-package com.proautokimium.api.Application.DTOs.product;
+package com.proautokimium.api.Application.DTOs.prostock.product;
 
 public record ProductInventoryDTO(String systemCode,
                                   String name,

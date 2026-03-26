@@ -1,4 +1,4 @@
-package com.proautokimium.api.Application.DTOs.machine;
+package com.proautokimium.api.Application.DTOs.prostock.machine;
 
 import com.proautokimium.api.domain.enums.MachineStatus;
 import com.proautokimium.api.domain.enums.MachineType;

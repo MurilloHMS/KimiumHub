@@ -1,7 +1,7 @@
 package com.proautokimium.api.controllers.prostock;
 
-import com.proautokimium.api.Application.DTOs.product.ProductInventoryDTO;
-import com.proautokimium.api.Application.DTOs.product.ProductMovementDTO;
+import com.proautokimium.api.Application.DTOs.prostock.product.ProductInventoryDTO;
+import com.proautokimium.api.Application.DTOs.prostock.product.ProductMovementDTO;
 import com.proautokimium.api.Infrastructure.services.inventoryProducts.ProductInventoryService;
 
 import jakarta.validation.Valid;
