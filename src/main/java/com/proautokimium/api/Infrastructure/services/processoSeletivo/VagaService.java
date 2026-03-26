@@ -7,6 +7,7 @@ import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.VagaNotF
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.VagaRepository;
 import com.proautokimium.api.domain.entities.processoSeletivo.Vaga;
 import com.proautokimium.api.domain.enums.processoSeletivo.StatusVaga;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,36 +22,42 @@ public class VagaService {
         this.vagaRepository = vagaRepository;
     }
 
+    @Transactional
     public void create(CreateVagaDTO dto) {
         Vaga vaga = new Vaga();
         vaga.fromDTO(dto);
         vagaRepository.save(vaga);
     }
 
+    @Transactional
     public void update(UpdateVagaDTO dto){
         Vaga vaga = vagaRepository.findById(dto.id()).orElseThrow(VagaNotFoundException::new);
         vaga.fromDTO(dto);
         vagaRepository.save(vaga);
     }
 
+    @Transactional
     public void publicar(UUID id) {
         Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotFoundException::new);
         vaga.publicar();
         vagaRepository.save(vaga);
     }
 
+    @Transactional
     public void rascunho(UUID id) {
         Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotFoundException::new);
         vaga.rascunho();
         vagaRepository.save(vaga);
     }
 
+    @Transactional
     public void arquivar(UUID id) {
        Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotFoundException::new);
         vaga.arquivar();
         vagaRepository.save(vaga);
     }
 
+    @Transactional
     public void encerrar(UUID id) {
         Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotFoundException::new);
         vaga.encerrar();
