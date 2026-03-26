@@ -38,7 +38,19 @@ public class Candidatura extends com.proautokimium.api.domain.abstractions.Entit
 
 
     // Methods
+    public void iniciar() {
+        this.etapaAtual = Etapa.TRIAGEM;
+        this.status = StatusCandidatura.EM_ANDAMENTO;
+        this.criadoEm = LocalDateTime.now();
+    }
+
     public void avancarEtapa() {
+
+        if (this.status == StatusCandidatura.REPROVADO ||
+                this.status == StatusCandidatura.ENCERRADO) {
+            throw new IllegalStateException("Candidatura finalizada");
+        }
+
         switch (this.etapaAtual) {
             case TRIAGEM:
                 this.etapaAtual = Etapa.ENTREVISTA_RH;
@@ -49,10 +61,19 @@ public class Candidatura extends com.proautokimium.api.domain.abstractions.Entit
             case PROPOSTA:
                 this.etapaAtual = Etapa.CONTRATADO;
                 break;
+            case CONTRATADO:
+                throw new IllegalStateException("Já está na última etapa");
             default:
-                this.etapaAtual = Etapa.TRIAGEM;
-                break;
+                throw new IllegalStateException("Etapa inválida");
         }
+
+        this.atualizadoEm = LocalDateTime.now();
+    }
+
+    public void aprovar() {
+        this.status = StatusCandidatura.APROVADO;
+        this.etapaAtual = Etapa.CONTRATADO;
+        this.atualizadoEm = LocalDateTime.now();
     }
 
     public void reprovar(){

@@ -1,5 +1,7 @@
 package com.proautokimium.api.domain.entities.processoSeletivo;
 
+import com.proautokimium.api.Application.DTOs.processoSeletivo.candidato.CreateCandidatoDTO;
+import com.proautokimium.api.Application.DTOs.processoSeletivo.candidato.ResponseCandidatoDTO;
 import com.proautokimium.api.domain.valueObjects.Email;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -29,4 +31,26 @@ public class Candidato extends com.proautokimium.api.domain.abstractions.Entity{
     private String pathCurriculo;
     @Column(name = "criado_em" )
     private LocalDateTime criadoEm;
+
+    // Converters
+
+    public void fromDTO(CreateCandidatoDTO dto){
+        this.nome = dto.nome();
+        this.email = new Email(dto.email());
+        this.telefone = dto.telefone();
+        this.urlLinkedin = dto.urlLinkedin();
+        this.pathCurriculo = dto.pathCurriculo();
+        this.criadoEm = LocalDateTime.now();
+    }
+
+    public ResponseCandidatoDTO toDTO(){
+        return new ResponseCandidatoDTO(
+          this.nome,
+          this.email.getAddress(),
+          this.telefone,
+          this.urlLinkedin,
+          this.pathCurriculo,
+          this.criadoEm
+        );
+    }
 }
