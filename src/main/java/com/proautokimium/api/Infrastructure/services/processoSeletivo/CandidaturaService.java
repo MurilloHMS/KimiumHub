@@ -1,7 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.processoSeletivo;
 
 import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.CreateCandidaturaDTO;
-import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.VagaNotExistsException;
+import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.VagaNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.CandidatoRepository;
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.CandidaturaRepository;
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.VagaRepository;
@@ -44,7 +44,7 @@ public class CandidaturaService {
                 });
 
         Vaga vaga = vagaRepository.findById(dto.vagaID())
-                .orElseThrow(VagaNotExistsException::new);
+                .orElseThrow(VagaNotFoundException::new);
 
         if (candidaturaRepository.existsByCandidatoAndVaga(candidato, vaga)) {
             throw new RuntimeException("Candidato já se candidatou para essa vaga");

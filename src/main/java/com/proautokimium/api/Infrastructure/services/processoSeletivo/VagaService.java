@@ -3,11 +3,10 @@ package com.proautokimium.api.Infrastructure.services.processoSeletivo;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.vaga.CreateVagaDTO;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.vaga.ResponseVagaDTO;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.vaga.UpdateVagaDTO;
-import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.VagaNotExistsException;
+import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.VagaNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.VagaRepository;
 import com.proautokimium.api.domain.entities.processoSeletivo.Vaga;
 import com.proautokimium.api.domain.enums.processoSeletivo.StatusVaga;
-import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,37 +28,37 @@ public class VagaService {
     }
 
     public void update(UpdateVagaDTO dto){
-        Vaga vaga = vagaRepository.findById(dto.id()).orElseThrow(VagaNotExistsException::new);
+        Vaga vaga = vagaRepository.findById(dto.id()).orElseThrow(VagaNotFoundException::new);
         vaga.fromDTO(dto);
         vagaRepository.save(vaga);
     }
 
     public void publicar(UUID id) {
-        Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotExistsException::new);
+        Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotFoundException::new);
         vaga.publicar();
         vagaRepository.save(vaga);
     }
 
     public void rascunho(UUID id) {
-        Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotExistsException::new);
+        Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotFoundException::new);
         vaga.rascunho();
         vagaRepository.save(vaga);
     }
 
     public void arquivar(UUID id) {
-       Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotExistsException::new);
+       Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotFoundException::new);
         vaga.arquivar();
         vagaRepository.save(vaga);
     }
 
     public void encerrar(UUID id) {
-        Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotExistsException::new);
+        Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotFoundException::new);
         vaga.encerrar();
         vagaRepository.save(vaga);
     }
 
     public ResponseVagaDTO listarVaga(UUID id){
-        Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotExistsException::new);
+        Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotFoundException::new);
         return vaga.toDTO();
     }
 
