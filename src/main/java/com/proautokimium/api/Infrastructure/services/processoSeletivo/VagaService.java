@@ -58,6 +58,11 @@ public class VagaService {
         vagaRepository.save(vaga);
     }
 
+    public ResponseVagaDTO listarVaga(UUID id){
+        Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotExistsException::new);
+        return vaga.toDTO();
+    }
+
     public List<ResponseVagaDTO> listarVagasPublicadas() {
         List<Vaga> byStatus = this.vagaRepository.findByStatus(StatusVaga.PUBLICADA);
         return byStatus.stream().map(Vaga::toDTO).toList();
