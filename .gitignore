@@ -175,6 +175,10 @@ build/
 ### VS Code ###
 .vscode/
 
+### Postman ###
+.postman/
+postman/
+
 ### Some additional ignores (sort later)
 *.DS_Store
 *.sw?
