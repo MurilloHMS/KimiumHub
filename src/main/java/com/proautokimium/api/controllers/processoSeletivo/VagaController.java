@@ -42,8 +42,8 @@ public class VagaController {
 
     @PostMapping
     public ResponseEntity<?> cadastrarVaga(@RequestBody @Valid CreateVagaDTO dto){
-        vagaService.create(dto);
-        return ResponseEntity.ok("Vaga Cadastrada com sucesso!");
+        UUID id = vagaService.create(dto).getId();
+        return ResponseEntity.ok(id);
     }
 
     @PutMapping

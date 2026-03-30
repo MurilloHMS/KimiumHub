@@ -23,10 +23,10 @@ public class VagaService {
     }
 
     @Transactional
-    public void create(CreateVagaDTO dto) {
+    public Vaga create(CreateVagaDTO dto) {
         Vaga vaga = new Vaga();
         vaga.fromDTO(dto);
-        vagaRepository.save(vaga);
+        return vagaRepository.save(vaga);
     }
 
     @Transactional
