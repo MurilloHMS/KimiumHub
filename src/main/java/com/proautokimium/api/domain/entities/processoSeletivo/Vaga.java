@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 public class Vaga  extends com.proautokimium.api.domain.abstractions.Entity{
     @Column(name = "titulo", length = 100, nullable = false)
     private String titulo;
-    @Column(name = "descricao", length = 100, nullable = false)
+    @Column(name = "descricao", length = 1000, nullable = false)
     private String descricao;
     @Column(name = "requisitos", length = 1000, nullable = false)
     private String requisitos;
