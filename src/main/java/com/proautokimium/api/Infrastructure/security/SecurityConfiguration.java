@@ -41,6 +41,8 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST ,"/api/auth/forgot-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/vaga/publicadas").permitAll()
+                        .requestMatchers(HttpMethod.POST, "api/candidatura").permitAll()
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
@@ -67,7 +69,8 @@ public class SecurityConfiguration {
         		"https://proautokimium.com.br",
         		"https://proautokimium.com",
         		"http://proautokimium.com",
-        		"http://proautokimium.com.br")
+        		"http://proautokimium.com.br",
+                        "http://localhost:4200")
         		);
         
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
