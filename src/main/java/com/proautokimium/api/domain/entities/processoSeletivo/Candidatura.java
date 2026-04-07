@@ -60,7 +60,7 @@ public class Candidatura extends com.proautokimium.api.domain.abstractions.Entit
                 this.etapaAtual = Etapa.PROPOSTA;
                 break;
             case PROPOSTA:
-                this.etapaAtual = Etapa.CONTRATADO;
+                this.aprovar();
                 break;
             case CONTRATADO:
                 throw new IllegalStateException("Já está na última etapa");
