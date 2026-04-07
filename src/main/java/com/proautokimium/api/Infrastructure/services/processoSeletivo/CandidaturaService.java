@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.processoSeletivo;
 
 import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.CreateCandidaturaDTO;
+import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.ResponseCandidaturaDTO;
 import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.VagaNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.CandidatoRepository;
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.CandidaturaRepository;
@@ -29,11 +30,11 @@ public class CandidaturaService {
         this.vagaRepository = vagaRepository;
     }
 
-    public List<Candidatura> getCandidaturaByVagaId(UUID vagaId){
+    public List<ResponseCandidaturaDTO> getCandidaturaByVagaId(UUID vagaId){
         vagaRepository.findById(vagaId)
                 .orElseThrow(VagaNotFoundException::new);
 
-        return candidaturaRepository.findCandidaturasByVagaId(vagaId);
+        return candidaturaRepository.findCandidaturasByVagaId(vagaId).stream().map(Candidatura::toDTO).toList();
     }
 
     @Transactional

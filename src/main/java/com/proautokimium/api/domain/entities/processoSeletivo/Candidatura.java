@@ -1,5 +1,6 @@
 package com.proautokimium.api.domain.entities.processoSeletivo;
 
+import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.ResponseCandidaturaDTO;
 import com.proautokimium.api.domain.enums.processoSeletivo.Etapa;
 import com.proautokimium.api.domain.enums.processoSeletivo.StatusCandidatura;
 import jakarta.persistence.*;
@@ -82,5 +83,23 @@ public class Candidatura extends com.proautokimium.api.domain.abstractions.Entit
 
     public void encerrar(){
         this.status = StatusCandidatura.ENCERRADO;
+    }
+
+    // Converters
+
+    public ResponseCandidaturaDTO toDTO() {
+        return new ResponseCandidaturaDTO(
+                this.getId(),
+                this.getCandidato().getNome(),
+                this.getCandidato().getEmail().getAddress(),
+                this.getCandidato().getTelefone(),
+                this.getCandidato().getUrlLinkedin(),
+                this.getCandidato().getPathCurriculo(),
+                this.getVaga().getTitulo(),
+                this.getEtapaAtual(),
+                this.getStatus(),
+                this.getCriadoEm(),
+                this.getAtualizadoEm()
+        );
     }
 }
