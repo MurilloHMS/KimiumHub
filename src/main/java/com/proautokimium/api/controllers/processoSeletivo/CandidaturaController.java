@@ -2,9 +2,11 @@ package com.proautokimium.api.controllers.processoSeletivo;
 
 import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.CreateCandidaturaDTO;
 import com.proautokimium.api.Infrastructure.services.processoSeletivo.CandidaturaService;
+import com.proautokimium.api.domain.entities.processoSeletivo.Candidatura;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -15,6 +17,12 @@ public class CandidaturaController {
 
     public CandidaturaController(CandidaturaService candidaturaService) {
         this.candidaturaService = candidaturaService;
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getCandidaturasByVagaId(@PathVariable UUID id){
+        List<Candidatura> result = candidaturaService.getCandidaturaByVagaId(id);
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping

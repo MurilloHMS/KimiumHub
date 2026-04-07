@@ -13,6 +13,7 @@ import com.proautokimium.api.domain.valueObjects.Email;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -26,6 +27,13 @@ public class CandidaturaService {
         this.candidatoRepository = candidatoRepository;
         this.candidaturaRepository = candidaturaRepository;
         this.vagaRepository = vagaRepository;
+    }
+
+    public List<Candidatura> getCandidaturaByVagaId(UUID vagaId){
+        vagaRepository.findById(vagaId)
+                .orElseThrow(VagaNotFoundException::new);
+
+        return candidaturaRepository.findCandidaturasByVagaId(vagaId);
     }
 
     @Transactional
