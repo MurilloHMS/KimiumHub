@@ -21,7 +21,7 @@ public class CandidaturaController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCandidaturasByVagaId(@PathVariable UUID id){
+    public ResponseEntity<List<ResponseCandidaturaDTO>> getCandidaturasByVagaId(@PathVariable UUID id) {
         List<ResponseCandidaturaDTO> result = candidaturaService.getCandidaturaByVagaId(id);
         return ResponseEntity.ok(result);
     }

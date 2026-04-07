@@ -30,11 +30,13 @@ public class CandidaturaService {
         this.vagaRepository = vagaRepository;
     }
 
-    public List<ResponseCandidaturaDTO> getCandidaturaByVagaId(UUID vagaId){
-        vagaRepository.findById(vagaId)
-                .orElseThrow(VagaNotFoundException::new);
+    public List<ResponseCandidaturaDTO> getCandidaturaByVagaId(UUID vagaId) {
+        vagaRepository.findById(vagaId).orElseThrow(VagaNotFoundException::new);
 
-        return candidaturaRepository.findCandidaturasByVagaId(vagaId).stream().map(Candidatura::toDTO).toList();
+        return candidaturaRepository.findCandidaturasByVagaId(vagaId)
+                .stream()
+                .map(Candidatura::toDTO)
+                .toList();
     }
 
     @Transactional
