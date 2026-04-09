@@ -1,0 +1,46 @@
+<!-- Created with Jaspersoft Studio version 7.0.3.final using JasperReports Library version 7.0.3-41034ca841d452f3305ba55b9042260aaa1ab5dd  -->
+<jasperReport name="post_vagas" language="java" columnCount="1" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="e1f5e462-bfbf-4520-aabd-1d9bb85000f3">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="One Empty Record"/>
+	<parameter name="VAGA" class="java.lang.String"/>
+	<parameter name="DESCRICAO" class="java.lang.String"/>
+	<parameter name="REQUISITO_LOCOMOCAO" class="java.lang.String"/>
+	<parameter name="CONTATO" class="java.lang.String"/>
+	<parameter name="TIPO_CONTRATACAO" class="java.lang.String"/>
+	<parameter name="TIPO_VAGA" class="java.lang.String"/>
+	<parameter name="BACKGROUND" class="java.io.InputStream"/>
+	<query language="sql"><![CDATA[]]></query>
+	<background height="842" splitType="Stretch">
+		<element kind="image" uuid="2bbaab10-6f1d-4b78-90e9-22a12b3f1596" x="0" y="0" width="595" height="842" scaleImage="FillFrame" hImageAlign="Center" vImageAlign="Middle">
+			<expression><![CDATA[$P{BACKGROUND}]]></expression>
+		</element>
+		<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.grid.JSSGridBagLayout"/>
+		<property name="com.jaspersoft.studio.unit.height" value="px"/>
+	</background>
+	<title height="79" splitType="Stretch"/>
+	<pageHeader height="154" splitType="Stretch"/>
+	<columnHeader height="166" splitType="Stretch">
+		<element kind="textField" uuid="d3c44518-ca80-4a23-ac97-f6284560c318" x="100" y="0" width="400" height="166" forecolor="#232E61" fontSize="48.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<expression><![CDATA[$P{VAGA}]]></expression>
+		</element>
+	</columnHeader>
+	<detail>
+		<band height="407" splitType="Stretch">
+			<element kind="textField" uuid="d61684a4-f82b-4599-802a-fe0092a0af6c" x="70" y="0" width="460" height="80" forecolor="#FFFFFF" markup="styled" fontSize="14.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$P{DESCRICAO}]]></expression>
+			</element>
+			<element kind="textField" uuid="3c406bec-86c7-4c55-b25b-60e5086a604a" x="100" y="125" width="400" height="50" forecolor="#57C1AB" fontSize="18.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$P{REQUISITO_LOCOMOCAO}]]></expression>
+			</element>
+			<element kind="textField" uuid="8d2647a5-2dac-452a-8444-7f58a3a53139" x="170" y="193" width="260" height="50" forecolor="#57C1AB" fontSize="18.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$P{TIPO_VAGA}]]></expression>
+			</element>
+			<element kind="textField" uuid="37a19eac-553a-4494-ad83-810ce364ee04" x="169" y="274" width="260" height="50" forecolor="#FFFFFF" fontSize="15.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$P{TIPO_CONTRATACAO}]]></expression>
+			</element>
+			<element kind="textField" uuid="0e64d0aa-7b54-43b3-8e98-a552e3d81bde" x="130" y="338" width="340" height="50" forecolor="#FFFFFF" fontSize="15.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$P{CONTATO}]]></expression>
+			</element>
+		</band>
+	</detail>
+	<summary height="11" splitType="Stretch"/>
+</jasperReport>
