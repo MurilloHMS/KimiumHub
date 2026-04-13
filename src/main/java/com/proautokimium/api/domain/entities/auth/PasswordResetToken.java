@@ -1,4 +1,4 @@
-package com.proautokimium.api.domain.entities;
+package com.proautokimium.api.domain.entities.auth;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

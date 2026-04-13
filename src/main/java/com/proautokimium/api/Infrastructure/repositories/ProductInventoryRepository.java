@@ -1,8 +1,6 @@
 package com.proautokimium.api.Infrastructure.repositories;
 
-import com.proautokimium.api.Application.DTOs.product.ProductInventoryDTO;
-import com.proautokimium.api.domain.entities.ProductInventory;
-import org.apache.commons.math3.stat.descriptive.summary.Product;
+import com.proautokimium.api.domain.entities.prostock.ProductInventory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

@@ -1,6 +1,6 @@
 package com.proautokimium.api.Infrastructure.repositories;
 
-import com.proautokimium.api.domain.entities.MovementInventory;
+import com.proautokimium.api.domain.entities.prostock.MovementInventory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

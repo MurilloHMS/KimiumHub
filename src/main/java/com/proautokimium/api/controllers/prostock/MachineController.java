@@ -1,13 +1,11 @@
 package com.proautokimium.api.controllers.prostock;
 
-import com.proautokimium.api.Application.DTOs.machine.MachineDTO;
-import com.proautokimium.api.Application.DTOs.machine.MachineMovementDTO;
+import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDTO;
+import com.proautokimium.api.Application.DTOs.prostock.machine.MachineMovementDTO;
 import com.proautokimium.api.Infrastructure.services.machine.MachineService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
-import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

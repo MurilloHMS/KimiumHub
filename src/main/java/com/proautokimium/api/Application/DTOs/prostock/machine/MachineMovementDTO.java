@@ -1,4 +1,4 @@
-package com.proautokimium.api.Application.DTOs.machine;
+package com.proautokimium.api.Application.DTOs.prostock.machine;
 
 import jakarta.validation.constraints.NegativeOrZero;
 import jakarta.validation.constraints.NotBlank;

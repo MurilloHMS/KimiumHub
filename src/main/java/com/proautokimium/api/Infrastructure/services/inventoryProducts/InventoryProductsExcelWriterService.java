@@ -12,7 +12,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import com.proautokimium.api.Infrastructure.abstractions.excel.ExcelWriter;
-import com.proautokimium.api.domain.entities.MovementInventory;
+import com.proautokimium.api.domain.entities.prostock.MovementInventory;
 
 @Service
 public class InventoryProductsExcelWriterService extends ExcelWriter<MovementInventory>{

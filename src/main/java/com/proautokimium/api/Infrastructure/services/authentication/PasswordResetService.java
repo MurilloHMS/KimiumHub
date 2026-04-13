@@ -1,13 +1,12 @@
 package com.proautokimium.api.Infrastructure.services.authentication;
 
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
-import com.proautokimium.api.domain.entities.PasswordResetToken;
-import com.proautokimium.api.domain.entities.User;
+import com.proautokimium.api.domain.entities.auth.PasswordResetToken;
+import com.proautokimium.api.domain.entities.auth.User;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Base64;
 
 @Service
 public class PasswordResetService {
