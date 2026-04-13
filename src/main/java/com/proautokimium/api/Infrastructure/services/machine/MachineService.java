@@ -5,8 +5,8 @@ import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.MachineMovementDTO;
 import com.proautokimium.api.Infrastructure.repositories.MachineMovementRepository;
 import com.proautokimium.api.Infrastructure.repositories.MachineRepository;
-import com.proautokimium.api.domain.entities.prostock.machine.MovementMachine;
-import com.proautokimium.api.domain.entities.prostock.machine.ProductMachine;
+import com.proautokimium.api.domain.entities.prostock.machine.MachineMovement;
+import com.proautokimium.api.domain.entities.prostock.machine.Machine;
 import com.proautokimium.api.domain.exceptions.machine.MachineAlreadyExistsException;
 import com.proautokimium.api.domain.exceptions.machine.MachineMovementNotFoundException;
 import com.proautokimium.api.domain.exceptions.machine.MachineNotFoundException;
@@ -35,7 +35,7 @@ public class MachineService {
         if (dto.id() != null && machineRepository.existsById(dto.id()))
             throw new MachineAlreadyExistsException();
 
-        ProductMachine machine = mapper.convertValue(dto, ProductMachine.class);
+        Machine machine = mapper.convertValue(dto, Machine.class);
         machineRepository.save(machine);
     }
 
@@ -43,7 +43,7 @@ public class MachineService {
     @Transactional
     public void update(MachineDTO dto) {
 
-        ProductMachine machine = machineRepository.findById(dto.id())
+        Machine machine = machineRepository.findById(dto.id())
                 .orElseThrow(MachineNotFoundException::new);
 
         machine.setName(dto.name());
@@ -77,10 +77,10 @@ public class MachineService {
 
     @Transactional
     public void createMovement(MachineMovementDTO dto, UUID machine_id){
-        ProductMachine machine = machineRepository.findById(machine_id)
+        Machine machine = machineRepository.findById(machine_id)
                 .orElseThrow(MachineNotFoundException::new);
 
-        MovementMachine mov = new MovementMachine();
+        MachineMovement mov = new MachineMovement();
         mov.setMovementDate(dto.movementDate());
         mov.setQuantity(dto.quantity());
         mov.setMachine(machine);
@@ -89,7 +89,7 @@ public class MachineService {
 
     @Transactional
     public void updateMovement(MachineMovementDTO dto, UUID machine_id){
-        MovementMachine mov = machineMovementRepository.findById(dto.id())
+        MachineMovement mov = machineMovementRepository.findById(dto.id())
                 .orElseThrow(MachineMovementNotFoundException::new);
 
         mov.setMovementDate(dto.movementDate());

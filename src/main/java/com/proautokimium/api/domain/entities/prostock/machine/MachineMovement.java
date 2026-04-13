@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class MovementMachine extends com.proautokimium.api.domain.abstractions.Entity {
+public class MachineMovement extends com.proautokimium.api.domain.abstractions.Entity {
 
     @Column(name = "movement_date", nullable = false)
     private LocalDateTime movementDate;
@@ -24,5 +24,5 @@ public class MovementMachine extends com.proautokimium.api.domain.abstractions.E
 
     @ManyToOne
     @JoinColumn(name = "machine_id")
-    private ProductMachine machine;
+    private Machine machine;
 }
