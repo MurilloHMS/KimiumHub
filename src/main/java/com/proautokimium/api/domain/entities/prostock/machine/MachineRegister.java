@@ -2,16 +2,30 @@ package com.proautokimium.api.domain.entities.prostock.machine;
 
 import com.proautokimium.api.domain.enums.MachineStatus;
 import com.proautokimium.api.domain.enums.MachineType;
+import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-public class MachineRegister {
+@Entity
+@Table(name = "machine_registers")
+public class MachineRegister extends com.proautokimium.api.domain.abstractions.Entity{
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "machine_id", nullable = false)
     private Machine machine;
+    @Column(name = "nome_cliente", length = 200, nullable = false)
     private String nomeCliente;
+    @Column(name = "tag")
+    private short tag;
+    @Column(name = "solicitante", length = 100)
     private String solicitante;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
     private MachineStatus status;
+    @Column(name = "observacao", length = 500)
     private String observacao;
+    @Column(name = "previsao_entrega")
     private LocalDateTime previsaoEntrega;
+    @Column(name = "tecnico", length = 100)
     private String tecnico;
 
     public MachineRegister(Machine machine, String nomeCliente, String solicitante, MachineStatus status, String observacao, LocalDateTime previsaoEntrega, String tecnico) {
@@ -23,6 +37,8 @@ public class MachineRegister {
         this.previsaoEntrega = previsaoEntrega;
         this.tecnico = tecnico;
     }
+
+    protected MachineRegister() { }
 
     // Getters and Setters
 
@@ -42,6 +58,10 @@ public class MachineRegister {
     public void setNomeCliente(String nomeCliente) {
         this.nomeCliente = nomeCliente;
     }
+
+    public short getTag(){ return tag; }
+
+    public void setTag(short tag){ this.tag = tag; }
 
     public String getSolicitante() {
         return solicitante;
