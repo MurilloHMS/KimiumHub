@@ -1,8 +1,11 @@
 package com.proautokimium.api.controllers.prostock;
 
+import com.proautokimium.api.Application.DTOs.prostock.machine.CreateRegisterDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.MachineMovementDTO;
+import com.proautokimium.api.Application.DTOs.prostock.machine.UpdateRegisterDTO;
 import com.proautokimium.api.Infrastructure.services.machine.MachineService;
+import com.proautokimium.api.Infrastructure.services.machine.RegisterService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +21,9 @@ public class MachineController {
 
     @Autowired
     private MachineService service;
+
+    @Autowired
+    private RegisterService registerService;
 
     @GetMapping
     public ResponseEntity<Object> getMachines(){
@@ -42,6 +48,8 @@ public class MachineController {
         return ResponseEntity.status(HttpStatus.OK).body("Máquina Deletada com sucesso!");
     }
 
+    // Movements
+
     @GetMapping("movements/{id}")
     public ResponseEntity<Object> getMovementsByMachine(@PathVariable @NotNull UUID id){
         return ResponseEntity.status(HttpStatus.OK).body(service.getMovementsByMachineId(id));
@@ -65,4 +73,28 @@ public class MachineController {
         return ResponseEntity.status(HttpStatus.OK).body("Movimento da máquina Deletado com sucesso!");
     }
 
+    // Registers
+
+    @PostMapping("/register")
+    public ResponseEntity<?> createRegister(@RequestBody CreateRegisterDTO dto){
+        registerService.create(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Registro da máquina incluído com sucesso");
+    }
+
+    @PutMapping("/register/{id}")
+    public ResponseEntity<?> updateRegister(@RequestBody UpdateRegisterDTO dto, @PathVariable UUID id){
+        registerService.update(dto, id);
+        return ResponseEntity.status(HttpStatus.OK).body("Registro da máquina atualizado com sucesso");
+    }
+
+    @DeleteMapping("/register/{id}")
+    public ResponseEntity<?> deleteRegister(@PathVariable UUID id){
+        registerService.delete(id);
+        return ResponseEntity.status(HttpStatus.OK).body("Registro da máquina deletado com sucesso");
+    }
+
+    @GetMapping("/register/{id}")
+    public ResponseEntity<?> getRegistersByMachineId(@PathVariable UUID id){
+        return ResponseEntity.ok(registerService.listarRegistrosPorMaquina(id));
+    }
 }

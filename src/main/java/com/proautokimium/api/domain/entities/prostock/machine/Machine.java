@@ -1,6 +1,7 @@
-package com.proautokimium.api.domain.entities.prostock;
+package com.proautokimium.api.domain.entities.prostock.machine;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.proautokimium.api.domain.entities.prostock.ProductEntity;
 import com.proautokimium.api.domain.enums.MachineStatus;
 import com.proautokimium.api.domain.enums.MachineType;
 import jakarta.persistence.*;
@@ -18,7 +19,7 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductMachine extends ProductEntity{
+public class Machine extends ProductEntity {
 
     @Column(name = "minimum_stock")
     private int minimum_stock;
@@ -36,5 +37,5 @@ public class ProductMachine extends ProductEntity{
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @OneToMany(mappedBy = "machine", fetch = FetchType.LAZY)
-    private Set<MovementMachine> movements = new HashSet<>();
+    private Set<MachineMovement> movements = new HashSet<>();
 }

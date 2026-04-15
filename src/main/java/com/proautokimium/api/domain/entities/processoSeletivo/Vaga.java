@@ -86,7 +86,7 @@ public class Vaga  extends com.proautokimium.api.domain.abstractions.Entity{
         this.requisitos = dto.requisitos();
         this.beneficios = dto.beneficios();
         this.area = dto.area();
-        this.dataAbertura = dto.dataAbertura();
+        this.dataAbertura = dto.dataAbertura() == null ? LocalDateTime.now() : dto.dataAbertura();
         this.dataEncerramento = dto.dataEncerramento();
         this.status = StatusVaga.RASCUNHO;
     }
