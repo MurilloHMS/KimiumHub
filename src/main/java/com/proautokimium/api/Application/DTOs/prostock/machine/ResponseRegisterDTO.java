@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record ResponseRegisterDTO(
+        UUID id,
         UUID machineId,
         String nomeCliente,
         short tag,
