@@ -10,7 +10,7 @@ build:
 run:
 	docker run -p $(PORT) --name $(NAME) --network $(NETWORK) --restart=always --env-file $(ENV) -d $(CONTAINER) --verbose
 
-deploy: stop remove build run
+deploy: stop remove build run logs
 
 restart:
 	docker restart $(NAME)
