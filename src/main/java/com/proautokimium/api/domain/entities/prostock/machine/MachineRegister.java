@@ -1,5 +1,8 @@
 package com.proautokimium.api.domain.entities.prostock.machine;
 
+import com.proautokimium.api.Application.DTOs.prostock.machine.CreateRegisterDTO;
+import com.proautokimium.api.Application.DTOs.prostock.machine.ResponseRegisterDTO;
+import com.proautokimium.api.Application.DTOs.prostock.machine.UpdateRegisterDTO;
 import com.proautokimium.api.domain.enums.MachineStatus;
 import com.proautokimium.api.domain.enums.MachineType;
 import jakarta.persistence.*;
@@ -36,6 +39,10 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
         this.observacao = observacao;
         this.previsaoEntrega = previsaoEntrega;
         this.tecnico = tecnico;
+    }
+
+    public MachineRegister(Machine machine){
+        this.machine = machine;
     }
 
     protected MachineRegister() { }
@@ -101,5 +108,40 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
 
     public void setTecnico(String tecnico) {
         this.tecnico = tecnico;
+    }
+
+    // Methods
+
+    public void fromDto(CreateRegisterDTO dto){
+        this.tag = dto.tag();
+        this.nomeCliente = dto.nomeCliente();
+        this.observacao = dto.Observacao();
+        this.status = dto.status();
+        this.previsaoEntrega = dto.previsaoEntrega();
+        this.solicitante = dto.solicitante();
+        this.tecnico = dto.tecnico();
+    }
+
+    public void fromDto(UpdateRegisterDTO dto){
+        this.tag = dto.tag();
+        this.nomeCliente = dto.nomeCliente();
+        this.observacao = dto.Observacao();
+        this.status = dto.status();
+        this.previsaoEntrega = dto.previsaoEntrega();
+        this.solicitante = dto.solicitante();
+        this.tecnico = dto.tecnico();
+    }
+
+    public ResponseRegisterDTO toDto(){
+        return new ResponseRegisterDTO(
+                this.machine.id,
+                this.nomeCliente,
+                this.tag,
+                this.solicitante,
+                this.status,
+                this.observacao,
+                this.previsaoEntrega,
+                this.tecnico
+        );
     }
 }
