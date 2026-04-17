@@ -56,4 +56,8 @@ public class RegisterService {
         return registerRepository.findAllByMachine(machine)
                 .stream().map(MachineRegister::toDto).toList();
     }
+
+    public List<ResponseRegisterDTO> listarRegistros() {
+        return registerRepository.findAll().stream().map(MachineRegister::toDto).toList();
+    }
 }
