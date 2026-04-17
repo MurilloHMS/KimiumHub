@@ -135,7 +135,7 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
     public ResponseRegisterDTO toDto(){
         return new ResponseRegisterDTO(
                 this.id,
-                this.machine.id,
+                this.machine.getId(),
                 this.nomeCliente,
                 this.tag,
                 this.solicitante,
