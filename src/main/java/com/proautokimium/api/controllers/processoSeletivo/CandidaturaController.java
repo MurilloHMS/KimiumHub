@@ -4,9 +4,12 @@ import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.Crea
 import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.ResponseCandidaturaDTO;
 import com.proautokimium.api.Infrastructure.services.processoSeletivo.CandidaturaService;
 import com.proautokimium.api.domain.entities.processoSeletivo.Candidatura;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,9 +29,11 @@ public class CandidaturaController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping
-    public ResponseEntity<?> createCandidatura(@RequestBody CreateCandidaturaDTO dto){
-        candidaturaService.create(dto);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createCandidatura(
+            @RequestPart("dados") CreateCandidaturaDTO dto,
+            @RequestPart(value = "curriculo", required = false) MultipartFile curriculo) throws IOException {
+        candidaturaService.create(dto, curriculo);
         return ResponseEntity.ok("Candidatura realizada com sucesso");
     }
 

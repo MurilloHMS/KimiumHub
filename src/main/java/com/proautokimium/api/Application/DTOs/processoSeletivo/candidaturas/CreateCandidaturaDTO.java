@@ -7,7 +7,6 @@ public record CreateCandidaturaDTO(
         String nome,
         String email,
         String telefone,
-        String urlLinkedin,
-        String pathCurriculo
+        String urlLinkedin
 ) {
 }

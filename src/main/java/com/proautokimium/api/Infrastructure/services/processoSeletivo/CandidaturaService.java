@@ -13,7 +13,9 @@ import com.proautokimium.api.domain.entities.processoSeletivo.Vaga;
 import com.proautokimium.api.domain.valueObjects.Email;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,11 +25,13 @@ public class CandidaturaService {
     private final CandidatoRepository candidatoRepository;
     private final CandidaturaRepository candidaturaRepository;
     private final VagaRepository vagaRepository;
+    private final StorageService storageService;
 
-    public CandidaturaService(CandidatoRepository candidatoRepository, CandidaturaRepository candidaturaRepository, VagaRepository vagaRepository) {
+    public CandidaturaService(CandidatoRepository candidatoRepository, CandidaturaRepository candidaturaRepository, VagaRepository vagaRepository, StorageService storageService) {
         this.candidatoRepository = candidatoRepository;
         this.candidaturaRepository = candidaturaRepository;
         this.vagaRepository = vagaRepository;
+        this.storageService = storageService;
     }
 
     public List<ResponseCandidaturaDTO> getCandidaturaByVagaId(UUID vagaId) {
@@ -40,7 +44,7 @@ public class CandidaturaService {
     }
 
     @Transactional
-    public void create(CreateCandidaturaDTO dto){
+    public void create(CreateCandidaturaDTO dto, MultipartFile curriculo) throws IOException {
 
         Candidato candidato = candidatoRepository.findByEmail(new Email(dto.email()))
                 .orElseGet(() -> {
@@ -49,10 +53,14 @@ public class CandidaturaService {
                     novo.setEmail(new Email(dto.email()));
                     novo.setTelefone(dto.telefone());
                     novo.setUrlLinkedin(dto.urlLinkedin());
-                    novo.setPathCurriculo(dto.pathCurriculo());
-
                     return candidatoRepository.save(novo);
                 });
+
+        if (curriculo != null && !curriculo.isEmpty()) {
+            String nomeArquivo = storageService.salvarCurriculo(curriculo, candidato.getId());
+            candidato.setPathCurriculo(nomeArquivo);
+            candidatoRepository.save(candidato);
+        }
 
         Vaga vaga = vagaRepository.findById(dto.vagaID())
                 .orElseThrow(VagaNotFoundException::new);

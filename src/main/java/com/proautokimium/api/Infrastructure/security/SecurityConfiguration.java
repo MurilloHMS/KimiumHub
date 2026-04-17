@@ -42,7 +42,8 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/vaga/publicadas").permitAll()
-                        .requestMatchers(HttpMethod.POST, "api/candidatura").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/candidatura").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/curriculos").permitAll()
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
