@@ -5,6 +5,9 @@
 .settings
 .sts4-cache
 
+### ASDF ###
+.tool-versions
+
 ### Eclipse ###
 
 .metadata
