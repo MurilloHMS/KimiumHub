@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.email.smtp;
 
+import com.proautokimium.api.domain.entities.email.EmailQueue;
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.activation.FileDataSource;
@@ -65,6 +66,28 @@ public class SmtpService {
 
 		} catch (Exception e) {
 			LOGGER.error("Erro ao enviar e-mail: {}", e.getMessage(), e);
+		}
+	}
+
+	public void sendEmail(EmailQueue email) {
+
+		try {
+			MimeMessage message = mailSender.createMimeMessage();
+			MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+			helper.setFrom("seuemail@empresa.com", "Proauto Kimium");
+			helper.setTo(email.getToEmail());
+			helper.setSubject(email.getSubject());
+			helper.setText(email.getBody(), true);
+
+			if (email.getReplyTo() != null) {
+				helper.setReplyTo(email.getReplyTo());
+			}
+
+			mailSender.send(message);
+
+		} catch (Exception e) {
+			throw new RuntimeException("Erro ao enviar email", e);
 		}
 	}
 }
