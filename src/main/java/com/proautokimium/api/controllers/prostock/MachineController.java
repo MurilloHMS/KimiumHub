@@ -97,4 +97,9 @@ public class MachineController {
     public ResponseEntity<?> getRegistersByMachineId(@PathVariable UUID id){
         return ResponseEntity.ok(registerService.listarRegistrosPorMaquina(id));
     }
+
+    @GetMapping("/register")
+    public ResponseEntity<?> getAllRegisters(){
+        return ResponseEntity.ok(registerService.listarRegistros());
+    }
 }
