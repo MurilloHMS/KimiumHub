@@ -42,12 +42,11 @@ public class EmailScheduler {
                 logger.info("Iniciando tentativa {} de 05 envios", email.getAttempts() + 1);
                 emailService.sendEmail(email);
 
-                email.setStatus(EmailStatus.SENT);
-                email.setSentAt(LocalDateTime.now());
+                email.markEmailSent();
                 logger.info("Email enviado com sucesso!");
             } catch (Exception ex) {
 
-                email.setAttempts(email.getAttempts() + 1);
+                email.retrySentEmail();
 
                 if (email.getAttempts() >= 5) {
                     email.setStatus(EmailStatus.FAILED);
