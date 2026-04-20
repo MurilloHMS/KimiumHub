@@ -16,16 +16,18 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EmailQueue extends com.proautokimium.api.domain.abstractions.Entity{
-    @Column(name = "to_email")
+    @Column(name = "to_email", nullable = false)
     private String toEmail;
     @Column(name = "reply_to")
     private String replyTo;
-    @Column(name = "subject")
+    @Column(name = "from_email", nullable = false)
+    private String fromEmail;
+    @Column(name = "subject", nullable = false)
     private String subject;
-    @Column(name = "body" ,columnDefinition = "TEXT")
+    @Column(name = "body" ,columnDefinition = "TEXT", nullable = false)
     private String body;
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
+    @Column(name = "status", nullable = false)
     private EmailStatus status;
     @Column(name = "attempts")
     private int attempts;
