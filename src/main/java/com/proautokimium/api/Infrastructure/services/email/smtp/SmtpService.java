@@ -42,12 +42,10 @@ public class SmtpService {
 
 				if (attachments != null) {
 					for (MultipartFile file : attachments) {
-
 						helper.addAttachment(
-								file.getOriginalFilename(),
-								new ByteArrayDataSource(file.getBytes(), file.getContentType())
+							file.getOriginalFilename(),
+							new ByteArrayDataSource(file.getBytes(), file.getContentType())
 						);
-
 					}
 				}
 
@@ -65,7 +63,7 @@ public class SmtpService {
 			MimeMessage message = mailSender.createMimeMessage();
 			MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-			helper.setFrom("noreply@envios.proautokimium.com.br", "Proauto Kimium");
+			helper.setFrom(email.getFromEmail(), "Proauto Kimium");
 			helper.setTo(email.getToEmail());
 			helper.setSubject(email.getSubject());
 			helper.setText(email.getBody(), true);
