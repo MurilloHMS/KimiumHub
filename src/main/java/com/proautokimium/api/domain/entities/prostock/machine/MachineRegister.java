@@ -15,7 +15,7 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "machine_id", nullable = false)
     private Machine machine;
-    @Column(name = "nome_cliente", length = 200, nullable = false)
+    @Column(name = "nome_cliente", length = 200)
     private String nomeCliente;
     @Column(name = "tag")
     private short tag;
