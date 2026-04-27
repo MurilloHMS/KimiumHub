@@ -3,5 +3,8 @@ package com.proautokimium.api.domain.enums;
 public enum MachineStatus {
     PRONTA,
     REFORMA,
-    MANUTENCAO
+    MANUTENCAO,
+    ENTREGUE,
+    RESERVADA,
+    ENTRADA
 }
