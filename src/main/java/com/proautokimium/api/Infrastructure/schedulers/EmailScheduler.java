@@ -27,15 +27,14 @@ public class EmailScheduler {
     @Scheduled(cron = "0 * * * * *")
     public void processQueue() {
 
-        logger.info("Obtendo lista de emails");
         List<EmailQueue> emails = repository
                 .findTop15ByStatusOrderByCreatedAtAsc(EmailStatus.PENDING);
 
         if(emails == null || emails.isEmpty()){
-            logger.info("Não há emails pendentes de envio");
             return;
         }
 
+        logger.info("Obtendo lista de emails");
         for (EmailQueue email : emails) {
 
             try {
