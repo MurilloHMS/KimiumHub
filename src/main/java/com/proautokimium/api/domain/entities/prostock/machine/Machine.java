@@ -1,7 +1,7 @@
 package com.proautokimium.api.domain.entities.prostock.machine;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.proautokimium.api.domain.entities.prostock.ProductEntity;
+import com.proautokimium.api.domain.entities.ProductEntity;
 import com.proautokimium.api.domain.enums.MachineStatus;
 import com.proautokimium.api.domain.enums.MachineType;
 import jakarta.persistence.*;
