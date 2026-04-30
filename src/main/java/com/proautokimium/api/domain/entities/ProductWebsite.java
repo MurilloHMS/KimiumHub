@@ -23,7 +23,7 @@ public class ProductWebsite extends ProductEntity{
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @Column(name = "path_imagem", length = 200)
+    @Column(name = "imagem", length = 200)
     private String imagem;
 
     @JdbcTypeCode(SqlTypes.JSON)
