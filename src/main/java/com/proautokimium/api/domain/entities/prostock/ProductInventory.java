@@ -1,6 +1,7 @@
 package com.proautokimium.api.domain.entities.prostock;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.proautokimium.api.domain.entities.ProductEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

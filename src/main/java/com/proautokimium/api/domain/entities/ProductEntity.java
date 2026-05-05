@@ -1,4 +1,4 @@
-package com.proautokimium.api.domain.entities.prostock;
+package com.proautokimium.api.domain.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
