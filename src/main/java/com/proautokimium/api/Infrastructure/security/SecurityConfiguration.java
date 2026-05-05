@@ -46,6 +46,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/candidatura").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/curriculos").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/public-secrets/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/product/website/active").permitAll()
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
@@ -69,11 +70,15 @@ public class SecurityConfiguration {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
-        		"https://proautokimium.com.br",
-        		"https://proautokimium.com",
-        		"http://proautokimium.com",
-        		"http://proautokimium.com.br")
-        		);
+                        "https://proautokimium.com",
+                        "https://proautokimium.com.br",
+                        "https://www.proautokimium.com",
+                        "https://www.proautokimium.com.br",
+                        "http://proautokimium.com",
+                        "http://proautokimium.com.br",
+                        "http://www.proautokimium.com",
+                        "http://www.proautokimium.com.br")
+                );
         
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin"));
