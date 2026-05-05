@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.converters;
 
 import com.proautokimium.api.Application.DTOs.product.ProductWebSiteCreateDTO;
+import com.proautokimium.api.Application.DTOs.product.ProductWebSitePublicResponseDTO;
 import com.proautokimium.api.Application.DTOs.product.ProductWebSiteResponseDTO;
 import com.proautokimium.api.Application.DTOs.product.ProductWebSiteUpdateDTO;
 import com.proautokimium.api.Infrastructure.interfaces.converters.DtoConverter;
@@ -50,5 +51,19 @@ public class ProductWebSiteConverter implements DtoConverter<ProductWebsite, Pro
         entity.setFinalidade(dto.finalidade());
         entity.setDiluicao(dto.diluicao());
         entity.setDescricao(dto.descricao());
+    }
+
+    public ProductWebSitePublicResponseDTO toPublicDto(ProductWebsite entity) {
+        if(entity == null) return null;
+
+        return new ProductWebSitePublicResponseDTO(
+                entity.getSystemCode(),
+                entity.getName(),
+                entity.isActive(),
+                entity.getCores(),
+                entity.getFinalidade(),
+                entity.getDiluicao(),
+                entity.getDescricao()
+        );
     }
 }

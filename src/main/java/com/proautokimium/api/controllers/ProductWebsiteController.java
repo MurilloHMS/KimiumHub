@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.proautokimium.api.Application.DTOs.product.ProductWebSiteCreateDTO;
+import com.proautokimium.api.Application.DTOs.product.ProductWebSitePublicResponseDTO;
 import com.proautokimium.api.Application.DTOs.product.ProductWebSiteResponseDTO;
 import com.proautokimium.api.Application.DTOs.product.ProductWebSiteUpdateDTO;
 import com.proautokimium.api.Infrastructure.services.product.ProductWebsiteService;
@@ -26,7 +27,7 @@ public class ProductWebsiteController {
     }
 
     @GetMapping("/active")
-    public ResponseEntity<List<ProductWebSiteResponseDTO>> getAllActiveProducts(){
+    public ResponseEntity<List<ProductWebSitePublicResponseDTO>> getAllActiveProducts(){
         return ResponseEntity.status(HttpStatus.OK).body(service.getAllactiveProducts());
     }
 

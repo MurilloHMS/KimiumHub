@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.product;
 
 import com.proautokimium.api.Application.DTOs.product.ProductWebSiteCreateDTO;
+import com.proautokimium.api.Application.DTOs.product.ProductWebSitePublicResponseDTO;
 import com.proautokimium.api.Application.DTOs.product.ProductWebSiteResponseDTO;
 import com.proautokimium.api.Application.DTOs.product.ProductWebSiteUpdateDTO;
 import com.proautokimium.api.Infrastructure.converters.ProductWebSiteConverter;
@@ -60,7 +61,7 @@ public class ProductWebsiteService {
         return repository.findAll().stream().map(converter::toDto).toList();
     }
 
-    public List<ProductWebSiteResponseDTO> getAllactiveProducts(){
-        return repository.findAllByActive(true).stream().map(converter::toDto).toList();
+    public List<ProductWebSitePublicResponseDTO> getAllactiveProducts(){
+        return repository.findAllByActive(true).stream().map(converter::toPublicDto).toList();
     }
 }
