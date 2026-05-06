@@ -109,6 +109,7 @@ logs.*
 
 # Package Files #
 *.jar
+!libs/montserrat-font.jar
 *.war
 *.nar
 *.ear
