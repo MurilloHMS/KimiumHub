@@ -78,4 +78,10 @@ public class Newsletter extends Entity{
 
 		@Column(name = "nome_matriz")
 		private String matrizName;
+
+		// Methods
+
+		public void setScheduled(){
+			this.status = EmailStatus.SCHEDULED;
+		}
 }
