@@ -1,8 +1,10 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter;
 
+import com.proautokimium.api.Infrastructure.converters.NewsletterConverter;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.transaction.Transactional;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -32,40 +34,31 @@ public class NewsletterService {
     
     private final NewsletterRepository repository;
     private final SmtpEmailRepository emailRepository;
+    private final NewsletterConverter converter;
     
 
-    public NewsletterService(JavaMailSender mailSender, TemplateEngine htmlTemplateEngine, NewsletterRepository repository, SmtpEmailRepository emailRepository) {
+    public NewsletterService(JavaMailSender mailSender,
+                             TemplateEngine htmlTemplateEngine,
+                             NewsletterRepository repository,
+                             SmtpEmailRepository emailRepository,
+                             NewsletterConverter converter) {
         this.mailSender = mailSender;
         this.htmlTemplateEngine = htmlTemplateEngine;
         this.repository = repository;
         this.emailRepository = emailRepository;
+        this.converter = converter;
+    }
+
+    @Transactional
+    public void setReadyToSend(){
+        List<Newsletter> allByStatus = repository.findAllByStatus(EmailStatus.PENDING);
+        allByStatus.forEach(Newsletter::setScheduled);
     }
     
     public List<NewsletterResponseDTO> getAllPendingEmails(){
     	return repository.findAllByStatus(EmailStatus.PENDING)
     			.stream()
-    			.map(m -> new NewsletterResponseDTO(
-    					m.getCodigoCliente(),
-    					m.getNomeDoCliente(),
-    					m.getData(),
-    					m.getMes(),
-    					m.getQuantidadeDeProdutos(),
-    					m.getQuantidadeDeLitros(),
-    					m.getQuantidadeNotasEmitidas(),
-    					m.getMediaDiasAtendimento(),
-    					m.getProdutoEmDestaque(),
-    					m.getFaturamentoTotal(),
-    					m.getValorDePecasTrocadas(),
-    					m.getValorTotalDeHoras(),
-    					m.getValorTotalCobradoHoras(),
-    					m.isMauUso(),
-    					m.getValorTotalDeHorasMauUso(),
-    					m.getValorTotalCobradoHorasMauUso(),
-    					m.getStatus(),
-    					m.getEmailCliente(),
-                        m.getMatrizCode(),
-                        m.getMatrizName()
-    					)).toList();
+    			.map(converter::toDto).toList();
     }
 
     public void sendMailWithInline(Newsletter newsletter) throws MessagingException, UnsupportedEncodingException{

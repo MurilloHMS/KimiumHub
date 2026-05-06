@@ -113,7 +113,7 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
 
     @Override
 	public void executeMonthlyNewsletter() {
-		List<Newsletter> newslettersToSend = repository.findAllByStatusIn(List.of(EmailStatus.PENDING, EmailStatus.RETRYING));
+		List<Newsletter> newslettersToSend = repository.findTop15ByStatusIn(List.of(EmailStatus.SCHEDULED, EmailStatus.RETRYING));
 		LOGGER.info("Iniciando envios de emails");
 		for(Newsletter newsletter: newslettersToSend) {
 			try {

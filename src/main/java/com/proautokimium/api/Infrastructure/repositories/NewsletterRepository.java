@@ -13,4 +13,6 @@ public interface NewsletterRepository extends JpaRepository<Newsletter, UUID>{
 	List<Newsletter> findAllByStatus(EmailStatus status);
 
 	List<Newsletter> findAllByStatusIn(Collection<EmailStatus> status);
+
+	List<Newsletter> findTop15ByStatusIn(Collection<EmailStatus> status);
 }
