@@ -114,20 +114,26 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
     @Override
 	public void executeMonthlyNewsletter() {
 		List<Newsletter> newslettersToSend = repository.findTop15ByStatusIn(List.of(EmailStatus.SCHEDULED, EmailStatus.RETRYING));
+        if(newslettersToSend == null ||newslettersToSend.isEmpty())
+            return;
+
+        int success = 0;
+        int error = 0;
+
 		LOGGER.info("Iniciando envios de emails");
 		for(Newsletter newsletter: newslettersToSend) {
 			try {
 				service.sendMailWithInline(newsletter);
 				newsletter.setStatus(EmailStatus.SENT);
-				LOGGER.info("Email enviado com sucesso!");
+                success++;
 			}catch (Exception e) {
 				newsletter.setStatus(EmailStatus.ERROR);
-				 LOGGER.error("Erro ao enviar newsletter para " + newsletter.getCodigoCliente() + ": " + e.getMessage());
+//				LOGGER.error("Erro ao enviar newsletter para " + newsletter.getCodigoCliente() + ": " + e.getMessage());
+                error++;
 			}finally {
 				repository.save(newsletter);
-				LOGGER.info("Email Atualizado no banco de dados");
 			}
 		}
-		LOGGER.info("Newsletters enviadas com sucesso!");
+		LOGGER.info("Envio de Informativos finalizados!\n\nSucesso: {}\nError: {}",success, error );
 	}
 }
