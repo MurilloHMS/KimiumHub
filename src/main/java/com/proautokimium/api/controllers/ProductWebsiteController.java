@@ -8,9 +8,12 @@ import com.proautokimium.api.Infrastructure.services.product.ProductWebsiteServi
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,15 +34,21 @@ public class ProductWebsiteController {
         return ResponseEntity.status(HttpStatus.OK).body(service.getAllactiveProducts());
     }
 
-    @PostMapping
-    public ResponseEntity<?> create(@RequestBody @Valid ProductWebSiteCreateDTO dto) {
-        service.create(dto);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> create(
+            @RequestPart("dados") @Valid ProductWebSiteCreateDTO dto,
+            @RequestPart(value = "imagem", required = false)MultipartFile file) throws IOException {
+        service.create(dto, file);
         return ResponseEntity.status(HttpStatus.CREATED).body("Produto cadastrado com sucesso");
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> update(@RequestBody @Valid ProductWebSiteUpdateDTO dto, @PathVariable UUID id) {
-        service.update(dto, id);
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> update(
+            @RequestPart("dados") @Valid ProductWebSiteUpdateDTO dto,
+            @PathVariable UUID id,
+            @RequestPart(value = "imagem", required = false) MultipartFile file
+    ) throws IOException {
+        service.update(dto, id, file);
         return ResponseEntity.status(HttpStatus.OK).body("Produto atualizado com sucesso");
     }
 
