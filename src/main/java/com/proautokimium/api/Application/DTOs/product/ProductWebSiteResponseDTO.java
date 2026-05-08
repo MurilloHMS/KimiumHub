@@ -12,6 +12,6 @@ public record ProductWebSiteResponseDTO(
         String finalidade,
         String diluicao,
         String descricao,
-        String image
+        String imagem
 ) {
 }
