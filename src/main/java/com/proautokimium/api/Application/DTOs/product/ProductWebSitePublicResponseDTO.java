@@ -10,7 +10,8 @@ public record ProductWebSitePublicResponseDTO(
         List<String> cores,
         String finalidade,
         String diluicao,
-        String descricao
+        String descricao,
+        String imagem
 ) {
 
 }

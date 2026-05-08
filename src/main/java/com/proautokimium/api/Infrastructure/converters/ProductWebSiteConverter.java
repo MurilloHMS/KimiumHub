@@ -22,7 +22,8 @@ public class ProductWebSiteConverter implements DtoConverter<ProductWebsite, Pro
                 entity.getCores(),
                 entity.getFinalidade(),
                 entity.getDiluicao(),
-                entity.getDescricao()
+                entity.getDescricao(),
+                entity.getImagem()
         );
     }
 
@@ -63,7 +64,8 @@ public class ProductWebSiteConverter implements DtoConverter<ProductWebsite, Pro
                 entity.getCores(),
                 entity.getFinalidade(),
                 entity.getDiluicao(),
-                entity.getDescricao()
+                entity.getDescricao(),
+                entity.getImagem()
         );
     }
 }
