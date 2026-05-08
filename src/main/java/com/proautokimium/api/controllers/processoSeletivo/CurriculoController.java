@@ -1,6 +1,6 @@
 package com.proautokimium.api.controllers.processoSeletivo;
 
-import com.proautokimium.api.Infrastructure.services.processoSeletivo.StorageService;
+import com.proautokimium.api.Infrastructure.services.storage.StorageService;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;

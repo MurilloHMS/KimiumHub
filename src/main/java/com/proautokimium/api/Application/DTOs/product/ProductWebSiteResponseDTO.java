@@ -11,6 +11,7 @@ public record ProductWebSiteResponseDTO(
         List<String> cores,
         String finalidade,
         String diluicao,
-        String descricao
+        String descricao,
+        String image
 ) {
 }

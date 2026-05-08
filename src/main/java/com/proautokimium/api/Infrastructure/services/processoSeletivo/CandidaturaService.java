@@ -6,6 +6,7 @@ import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.VagaNotF
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.CandidatoRepository;
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.CandidaturaRepository;
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.VagaRepository;
+import com.proautokimium.api.Infrastructure.services.storage.StorageService;
 import com.proautokimium.api.domain.entities.processoSeletivo.Candidato;
 import com.proautokimium.api.domain.entities.processoSeletivo.Candidatura;
 import com.proautokimium.api.domain.entities.processoSeletivo.Vaga;

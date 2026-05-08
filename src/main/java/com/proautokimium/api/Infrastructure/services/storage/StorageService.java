@@ -1,4 +1,4 @@
-package com.proautokimium.api.Infrastructure.services.processoSeletivo;
+package com.proautokimium.api.Infrastructure.services.storage;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
