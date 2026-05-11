@@ -2,15 +2,21 @@ package com.proautokimium.api.Infrastructure.services.processoSeletivo;
 
 import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.CreateCandidaturaDTO;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.ResponseCandidaturaDTO;
+import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.CandidatoAlreadyExistsException;
+import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.CandidaturaAlreadyExistsException;
 import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.VagaNotFoundException;
+import com.proautokimium.api.Infrastructure.factories.EmailFactory;
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.CandidatoRepository;
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.CandidaturaRepository;
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.VagaRepository;
+import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
 import com.proautokimium.api.Infrastructure.services.storage.StorageService;
+import com.proautokimium.api.domain.entities.email.EmailQueue;
 import com.proautokimium.api.domain.entities.processoSeletivo.Candidato;
 import com.proautokimium.api.domain.entities.processoSeletivo.Candidatura;
 import com.proautokimium.api.domain.entities.processoSeletivo.Vaga;
 
+import com.proautokimium.api.domain.enums.processoSeletivo.Etapa;
 import com.proautokimium.api.domain.valueObjects.Email;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -27,12 +33,16 @@ public class CandidaturaService {
     private final CandidaturaRepository candidaturaRepository;
     private final VagaRepository vagaRepository;
     private final StorageService storageService;
+    private final EmailQueueService emailService;
+    private final EmailFactory emailFactory;
 
-    public CandidaturaService(CandidatoRepository candidatoRepository, CandidaturaRepository candidaturaRepository, VagaRepository vagaRepository, StorageService storageService) {
+    public CandidaturaService(CandidatoRepository candidatoRepository, CandidaturaRepository candidaturaRepository, VagaRepository vagaRepository, StorageService storageService, EmailQueueService emailService, EmailFactory emailFactory) {
         this.candidatoRepository = candidatoRepository;
         this.candidaturaRepository = candidaturaRepository;
         this.vagaRepository = vagaRepository;
         this.storageService = storageService;
+        this.emailService = emailService;
+        this.emailFactory = emailFactory;
     }
 
     public List<ResponseCandidaturaDTO> getCandidaturaByVagaId(UUID vagaId) {
@@ -67,7 +77,7 @@ public class CandidaturaService {
                 .orElseThrow(VagaNotFoundException::new);
 
         if (candidaturaRepository.existsByCandidatoAndVaga(candidato, vaga)) {
-            throw new RuntimeException("Candidato já se candidatou para essa vaga");
+            throw new CandidaturaAlreadyExistsException("Candidato já se candidatou para essa vaga");
         }
 
         Candidatura candidatura = new Candidatura();
@@ -75,7 +85,13 @@ public class CandidaturaService {
         candidatura.setVaga(vaga);
         candidatura.iniciar();
 
-        candidaturaRepository.save(candidatura);
+        Candidatura saved = candidaturaRepository.save(candidatura);
+
+        EmailQueue emailQueue = emailFactory.candidaturaConfirmada(
+                saved.getCandidato().getEmail().getAddress(),
+                saved.getCandidato().getNome(),
+                saved.getVaga().getTitulo());
+        emailService.create(emailQueue);
     }
 
     @Transactional
@@ -84,7 +100,8 @@ public class CandidaturaService {
                 .orElseThrow(() -> new RuntimeException("Candidatura não encontrada"));
 
         candidatura.avancarEtapa();
-        candidaturaRepository.save(candidatura);
+        Candidatura saved = candidaturaRepository.save(candidatura);
+        enviarEmailEtapa(saved);
     }
 
     @Transactional
@@ -93,7 +110,12 @@ public class CandidaturaService {
                 .orElseThrow(() -> new RuntimeException("Candidatura não encontrada"));
 
         candidatura.aprovar();
-        candidaturaRepository.save(candidatura);
+        Candidatura saved = candidaturaRepository.save(candidatura);
+        EmailQueue emailQueue = emailFactory.candidaturaAprovada(
+                saved.getCandidato().getEmail().getAddress(),
+                saved.getCandidato().getNome(),
+                saved.getVaga().getTitulo());
+        emailService.create(emailQueue);
     }
 
     @Transactional
@@ -102,7 +124,12 @@ public class CandidaturaService {
                 .orElseThrow(() -> new RuntimeException("Candidatura não encontrada"));
 
         candidatura.reprovar();
-        candidaturaRepository.save(candidatura);
+        Candidatura saved = candidaturaRepository.save(candidatura);
+        EmailQueue emailQueue = emailFactory.candidaturaReprovada(
+                saved.getCandidato().getEmail().getAddress(),
+                saved.getCandidato().getNome(),
+                saved.getVaga().getTitulo());
+        emailService.create(emailQueue);
     }
 
     @Transactional
@@ -111,6 +138,35 @@ public class CandidaturaService {
                 .orElseThrow(() -> new RuntimeException("Candidatura não encontrada"));
 
         candidatura.encerrar();
-        candidaturaRepository.save(candidatura);
+        Candidatura saved = candidaturaRepository.save(candidatura);
+        EmailQueue emailQueue = emailFactory.candidaturaReprovada(
+                saved.getCandidato().getEmail().getAddress(),
+                saved.getCandidato().getNome(),
+                saved.getVaga().getTitulo());
+        emailService.create(emailQueue);
+    }
+
+    private void enviarEmailEtapa(Candidatura candidatura){
+
+        EmailQueue email;
+
+        if(candidatura.getEtapaAtual() == Etapa.CONTRATADO){
+
+            email = emailFactory.candidaturaAprovada(
+                    candidatura.getCandidato().getEmail().getAddress(),
+                    candidatura.getCandidato().getNome(),
+                    candidatura.getVaga().getTitulo()
+            );
+
+        } else {
+
+            email = emailFactory.avancoEtapa(
+                    candidatura.getCandidato().getEmail().getAddress(),
+                    candidatura.getCandidato().getNome(),
+                    candidatura.getVaga().getTitulo()
+            );
+        }
+
+        emailService.create(email);
     }
 }
