@@ -9,4 +9,5 @@ import java.util.UUID;
 
 public interface EmailQueueRepository extends JpaRepository<EmailQueue, UUID> {
     List<EmailQueue> findTop15ByStatusOrderByCreatedAtAsc(EmailStatus emailStatus);
+    List<EmailQueue> findTop15ByStatusInOrderByCreatedAtAsc(List<EmailStatus> statuses);
 }

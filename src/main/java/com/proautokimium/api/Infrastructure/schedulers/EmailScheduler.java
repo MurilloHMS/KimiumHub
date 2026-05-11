@@ -28,7 +28,12 @@ public class EmailScheduler {
     public void processQueue() {
 
         List<EmailQueue> emails = repository
-                .findTop15ByStatusOrderByCreatedAtAsc(EmailStatus.PENDING);
+                .findTop15ByStatusInOrderByCreatedAtAsc(
+                        List.of(
+                                EmailStatus.PENDING,
+                                EmailStatus.SCHEDULED
+                        )
+                );
 
         if(emails == null || emails.isEmpty()){
             return;
