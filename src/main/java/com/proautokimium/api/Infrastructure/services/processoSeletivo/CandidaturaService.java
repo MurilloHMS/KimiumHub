@@ -2,6 +2,7 @@ package com.proautokimium.api.Infrastructure.services.processoSeletivo;
 
 import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.CreateCandidaturaDTO;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.ResponseCandidaturaDTO;
+import com.proautokimium.api.Infrastructure.converters.processoSeletivo.CandidaturaConverter;
 import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.CandidatoAlreadyExistsException;
 import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.CandidaturaAlreadyExistsException;
 import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.VagaNotFoundException;
@@ -35,14 +36,16 @@ public class CandidaturaService {
     private final StorageService storageService;
     private final EmailQueueService emailService;
     private final EmailFactory emailFactory;
+    private final CandidaturaConverter converter;
 
-    public CandidaturaService(CandidatoRepository candidatoRepository, CandidaturaRepository candidaturaRepository, VagaRepository vagaRepository, StorageService storageService, EmailQueueService emailService, EmailFactory emailFactory) {
+    public CandidaturaService(CandidatoRepository candidatoRepository, CandidaturaRepository candidaturaRepository, VagaRepository vagaRepository, StorageService storageService, EmailQueueService emailService, EmailFactory emailFactory, CandidaturaConverter converter) {
         this.candidatoRepository = candidatoRepository;
         this.candidaturaRepository = candidaturaRepository;
         this.vagaRepository = vagaRepository;
         this.storageService = storageService;
         this.emailService = emailService;
         this.emailFactory = emailFactory;
+        this.converter = converter;
     }
 
     public List<ResponseCandidaturaDTO> getCandidaturaByVagaId(UUID vagaId) {
@@ -50,7 +53,7 @@ public class CandidaturaService {
 
         return candidaturaRepository.findCandidaturasByVagaId(vagaId)
                 .stream()
-                .map(Candidatura::toDTO)
+                .map(converter::toDto)
                 .toList();
     }
 
