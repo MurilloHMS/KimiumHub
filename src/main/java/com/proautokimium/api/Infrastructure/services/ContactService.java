@@ -1,9 +1,10 @@
 package com.proautokimium.api.Infrastructure.services;
 
-import com.proautokimium.api.Application.DTOs.contact.ContactDTO;
+import com.proautokimium.api.Application.DTOs.contact.ContactResponseDTO;
+import com.proautokimium.api.Application.DTOs.contact.CreateContactDTO;
+import com.proautokimium.api.Infrastructure.converters.ContactConverter;
 import com.proautokimium.api.Infrastructure.repositories.ContactRepository;
 import com.proautokimium.api.domain.entities.Contact;
-import com.proautokimium.api.domain.valueObjects.Email;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -13,28 +14,21 @@ import java.util.List;
 public class ContactService {
 
     private final ContactRepository repository;
+    private final ContactConverter converter;
 
-    public ContactService(ContactRepository repository) {
+    public ContactService(ContactRepository repository, ContactConverter converter) {
         this.repository = repository;
+        this.converter = converter;
     }
 
-    public List<ContactDTO> getAllContact(){
+    public List<ContactResponseDTO> getAllContact(){
         var contacts = repository.findAll();
-        return contacts.stream().map(c -> new ContactDTO(
-                c.getName(),
-                c.getEmail().getAddress(),
-                c.getContactType(),
-                c.getOther(),
-                c.getMessage(),
-                c.getBusinessName(),
-                c.getContactStatus(),
-                c.getContactDate()
-        )).toList();
+        return contacts.stream().map(converter::toDto).toList();
     }
 
     @Transactional
-    public void createContact(ContactDTO dto){
-        Contact contact = new Contact(dto);
+    public void createContact(CreateContactDTO dto){
+        Contact contact = converter.fromCreateDto(dto);
         repository.save(contact);
     }
 }
