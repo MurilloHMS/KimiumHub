@@ -3,6 +3,7 @@ package com.proautokimium.api.Infrastructure.services.processoSeletivo;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.perguntas.CreatePerguntaDTO;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.perguntas.ResponsePerguntaPersonalizadaDTO;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.perguntas.UpdatePerguntaDTO;
+import com.proautokimium.api.Infrastructure.converters.processoSeletivo.PerguntaPersonalizadaConverter;
 import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.PerguntaNotFoundExeption;
 import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.VagaNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.PerguntaPersonalizadaRepository;
@@ -20,10 +21,12 @@ public class PerguntaPersonalizadaService {
 
     private final PerguntaPersonalizadaRepository perguntaPersonalizadaRepository;
     private final VagaRepository vagaRepository;
+    private final PerguntaPersonalizadaConverter converter;
 
-    public  PerguntaPersonalizadaService(PerguntaPersonalizadaRepository perguntaPersonalizadaRepository, VagaRepository vagaRepository) {
+    public  PerguntaPersonalizadaService(PerguntaPersonalizadaRepository perguntaPersonalizadaRepository, VagaRepository vagaRepository, PerguntaPersonalizadaConverter converter) {
         this.perguntaPersonalizadaRepository = perguntaPersonalizadaRepository;
         this.vagaRepository = vagaRepository;
+        this.converter = converter;
     }
 
     @Transactional
@@ -31,8 +34,7 @@ public class PerguntaPersonalizadaService {
         Vaga vaga = vagaRepository.findById(vagaID)
                 .orElseThrow(VagaNotFoundException::new);
 
-        PerguntaPersonalizada pp = new PerguntaPersonalizada();
-        pp.fromDTO(dto);
+        PerguntaPersonalizada pp = converter.fromCreateDto(dto);
         pp.setVaga(vaga);
         perguntaPersonalizadaRepository.save(pp);
     }
@@ -42,7 +44,7 @@ public class PerguntaPersonalizadaService {
         PerguntaPersonalizada pergunta = perguntaPersonalizadaRepository.findById(dto.id())
                 .orElseThrow(PerguntaNotFoundExeption::new);
 
-        pergunta.fromDTO(dto);
+        converter.updateFromDto(dto, pergunta);
         perguntaPersonalizadaRepository.save(pergunta);
     }
 
@@ -56,6 +58,6 @@ public class PerguntaPersonalizadaService {
                 .orElseThrow(VagaNotFoundException::new);
 
         return perguntaPersonalizadaRepository.findAllByVaga(vaga)
-                .stream().map(PerguntaPersonalizada::toDTO).toList();
+                .stream().map(converter::toDto).toList();
     }
 }
