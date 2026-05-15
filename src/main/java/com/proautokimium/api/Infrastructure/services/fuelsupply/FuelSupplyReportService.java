@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.fuelsupply;
 
 import com.proautokimium.api.Application.DTOs.fuelsupply.FuelSupplyReportFilterDTO;
+import com.proautokimium.api.Infrastructure.exceptions.fuelSupply.GenerateReportErrorException;
 import com.proautokimium.api.Infrastructure.repositories.FuelSupplyRepository;
 import com.proautokimium.api.domain.entities.FuelSupply;
 import com.proautokimium.api.domain.enums.Department;
@@ -84,18 +85,15 @@ public class FuelSupplyReportService {
                     .body(xlsx);
 
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
+            throw new GenerateReportErrorException(e.getMessage());
         }
     }
 
     private JasperPrint buildGeralPrint(List<FuelSupply> data, int month, int year) throws Exception {
         List<FuelSupply> sorted = data.stream()
                 .sorted(Comparator
-                        .comparing(FuelSupply::getUf)
-                        .thenComparing(FuelSupply::getDriverName)
+                        .comparing(FuelSupply::getDepartment)
                         .thenComparing(FuelSupply::getPlate)
-                        .thenComparing(FuelSupply::getFuelType)
                         .thenComparing(FuelSupply::getFuelSupplyDate))
                 .toList();
         return fill("fuel_supply", sorted, buildParams(data, month, year));
