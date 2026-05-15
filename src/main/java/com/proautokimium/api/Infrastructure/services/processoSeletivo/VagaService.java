@@ -3,6 +3,7 @@ package com.proautokimium.api.Infrastructure.services.processoSeletivo;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.vaga.CreateVagaDTO;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.vaga.ResponseVagaDTO;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.vaga.UpdateVagaDTO;
+import com.proautokimium.api.Infrastructure.converters.processoSeletivo.VagaConverter;
 import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.VagaNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.VagaRepository;
 import com.proautokimium.api.domain.entities.processoSeletivo.Vaga;
@@ -17,22 +18,23 @@ import java.util.UUID;
 public class VagaService {
 
     private final VagaRepository vagaRepository;
+    private final VagaConverter converter;
 
-    public VagaService(VagaRepository vagaRepository) {
+    public VagaService(VagaRepository vagaRepository, VagaConverter converter) {
         this.vagaRepository = vagaRepository;
+        this.converter = converter;
     }
 
     @Transactional
     public Vaga create(CreateVagaDTO dto) {
-        Vaga vaga = new Vaga();
-        vaga.fromDTO(dto);
+        Vaga vaga = converter.fromCreateDto(dto);
         return vagaRepository.save(vaga);
     }
 
     @Transactional
     public void update(UpdateVagaDTO dto){
         Vaga vaga = vagaRepository.findById(dto.id()).orElseThrow(VagaNotFoundException::new);
-        vaga.fromDTO(dto);
+        converter.updateFromDto(dto, vaga);
         vagaRepository.save(vaga);
     }
 
@@ -66,26 +68,26 @@ public class VagaService {
 
     public ResponseVagaDTO listarVaga(UUID id){
         Vaga vaga = vagaRepository.findById(id).orElseThrow(VagaNotFoundException::new);
-        return vaga.toDTO();
+        return converter.toDto(vaga);
     }
 
     public List<ResponseVagaDTO> listarVagasPublicadas() {
         List<Vaga> byStatus = this.vagaRepository.findByStatus(StatusVaga.PUBLICADA);
-        return byStatus.stream().map(Vaga::toDTO).toList();
+        return byStatus.stream().map(converter::toDto).toList();
     }
 
     public List<ResponseVagaDTO> listarVagasEncerrados() {
         List<Vaga> byStatus = this.vagaRepository.findByStatus(StatusVaga.ENCERRADA);
-        return byStatus.stream().map(Vaga::toDTO).toList();
+        return byStatus.stream().map(converter::toDto).toList();
     }
 
     public List<ResponseVagaDTO> listarVagasEmRascunho() {
         List<Vaga> byStatus = this.vagaRepository.findByStatus(StatusVaga.RASCUNHO);
-        return byStatus.stream().map(Vaga::toDTO).toList();
+        return byStatus.stream().map(converter::toDto).toList();
     }
 
     public List<ResponseVagaDTO> listarVagasArquivadas() {
         List<Vaga> byStatus = this.vagaRepository.findByStatus(StatusVaga.ARQUIVADA);
-        return byStatus.stream().map(Vaga::toDTO).toList();
+        return byStatus.stream().map(converter::toDto).toList();
     }
 }

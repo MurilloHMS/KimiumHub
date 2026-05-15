@@ -64,39 +64,4 @@ public class Vaga  extends com.proautokimium.api.domain.abstractions.Entity{
         }
         this.status = StatusVaga.RASCUNHO;
     }
-
-    // Converters
-
-    public ResponseVagaDTO toDTO(){
-        return new ResponseVagaDTO(
-                this.id,
-                this.titulo,
-                this.descricao,
-                this.requisitos,
-                this.beneficios,
-                this.area,
-                this.dataAbertura,
-                this.dataEncerramento
-        );
-    }
-
-    public void fromDTO(CreateVagaDTO dto){
-        this.titulo = dto.titulo();
-        this.descricao = dto.descricao();
-        this.requisitos = dto.requisitos();
-        this.beneficios = dto.beneficios();
-        this.area = dto.area();
-        this.dataAbertura = dto.dataAbertura() == null ? LocalDateTime.now() : dto.dataAbertura();
-        this.dataEncerramento = dto.dataEncerramento();
-        this.status = StatusVaga.RASCUNHO;
-    }
-
-    public void fromDTO(UpdateVagaDTO dto){
-        this.titulo = dto.titulo();
-        this.descricao = dto.descricao();
-        this.requisitos = dto.requisitos();
-        this.beneficios = dto.beneficios();
-        this.area = dto.area();
-        this.dataEncerramento = dto.dataEncerramento();
-    }
 }

@@ -1,6 +1,6 @@
 package com.proautokimium.api.controllers;
 
-import com.proautokimium.api.Application.DTOs.contact.ContactDTO;
+import com.proautokimium.api.Application.DTOs.contact.CreateContactDTO;
 import com.proautokimium.api.Infrastructure.services.ContactService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -27,7 +27,7 @@ public class ContactController {
     }
 
     @PostMapping
-    public ResponseEntity<Object> postContact(@RequestBody @NotNull @Valid ContactDTO dto){
+    public ResponseEntity<Object> create(@RequestBody @NotNull @Valid CreateContactDTO dto){
         service.createContact(dto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
