@@ -5,11 +5,12 @@ import com.proautokimium.api.Application.DTOs.product.ProductWebSitePublicRespon
 import com.proautokimium.api.Application.DTOs.product.ProductWebSiteResponseDTO;
 import com.proautokimium.api.Application.DTOs.product.ProductWebSiteUpdateDTO;
 import com.proautokimium.api.Infrastructure.interfaces.converters.DtoConverter;
+import com.proautokimium.api.Infrastructure.interfaces.converters.UpdateDtoConverter;
 import com.proautokimium.api.domain.entities.ProductWebsite;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ProductWebSiteConverter implements DtoConverter<ProductWebsite, ProductWebSiteResponseDTO, ProductWebSiteCreateDTO, ProductWebSiteUpdateDTO> {
+public class ProductWebSiteConverter implements DtoConverter<ProductWebsite, ProductWebSiteResponseDTO, ProductWebSiteCreateDTO>, UpdateDtoConverter<ProductWebsite, ProductWebSiteUpdateDTO> {
     @Override
     public ProductWebSiteResponseDTO toDto(ProductWebsite entity) {
         if(entity == null) return null;
