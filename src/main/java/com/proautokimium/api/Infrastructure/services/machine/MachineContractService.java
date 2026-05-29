@@ -1,18 +1,10 @@
 package com.proautokimium.api.Infrastructure.services.machine;
 
 import com.proautokimium.api.Infrastructure.abstractions.excel.ExcelReader;
-import com.proautokimium.api.Infrastructure.exceptions.machine.MachineContractErrorException;
-import com.proautokimium.api.Infrastructure.helpers.ExcelReaderHelper;
 import com.proautokimium.api.domain.models.MachineContract;
-import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 public class MachineContractService extends ExcelReader<MachineContract> {
