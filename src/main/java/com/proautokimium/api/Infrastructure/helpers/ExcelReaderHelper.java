@@ -46,7 +46,7 @@ public class ExcelReaderHelper {
                     .atZone(ZoneId.systemDefault())
                     .toLocalDate();
 
-        }else if (cell.getCellType() == CellType.STRING) {
+        }else if (cell != null && cell.getCellType() == CellType.STRING) {
             String value = cell.getStringCellValue().trim()
                     .replace("\u00A0", "")
                     .replace("\u202F", "")
@@ -58,7 +58,7 @@ public class ExcelReaderHelper {
                 if(value.matches("\\d{4}-\\d{2}-\\d{2}")) {
                     formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
                 }else if (value.matches("\\d{2}-\\d{2}-\\d{4}")) {
-                    formatter = DateTimeFormatter.ofPattern("dd/mm/yyyy");
+                    formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
                 }else {
                     formatter = DateTimeFormatter.ofPattern("d/M/yyyy");
                 }
