@@ -61,6 +61,34 @@ public class ReportFactory implements IReportFactory {
     }
 
     /**
+     * Gera um relatório em formato PDF.
+     *
+     * @param params parâmetros utilizados no preenchimento do relatório
+     * @param reportLocation caminho relativo do arquivo JRXML
+     *                       Exemplo: {@code assinaturas/relatorio.jrxml}
+     *
+     * @return relatório gerado em formato PDF como array de bytes
+     *
+     * @throws RuntimeException caso ocorra erro durante a geração do PDF
+     */
+    @Override
+    public byte[] generatePdf(Map<String, Object> params, JRDataSource dataSource, String reportLocation) {
+        try {
+
+            JasperPrint print = buildReport(params,dataSource, reportLocation);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            JasperExportManager.exportReportToPdfStream(print, outputStream);
+
+            return outputStream.toByteArray();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao gerar PDF", e);
+        }
+    }
+
+    /**
      * Gera um relatório em formato PNG.
      *
      * @param params parâmetros utilizados no preenchimento do relatório
@@ -131,6 +159,17 @@ public class ReportFactory implements IReportFactory {
                     params,
                     new JREmptyDataSource(1)
             );
+        }
+    }
+
+    private JasperPrint buildReport( Map<String, Object> params, JRDataSource dataSource, String reportLocation ) throws Exception {
+        try (InputStream jasperStream = getClass().getResourceAsStream(REPORT_PATH + reportLocation)) {
+            if (jasperStream == null) {
+                throw new FileNotFoundException( "Arquivo de relatório não encontrado: " + reportLocation );
+            }
+
+            JasperReport report = JasperCompileManager.compileReport(jasperStream);
+            return JasperFillManager.fillReport( report, params, dataSource );
         }
     }
 }
