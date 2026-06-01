@@ -1,0 +1,158 @@
+<!-- Created with Jaspersoft Studio version 7.0.3.final using JasperReports Library version 7.0.3-41034ca841d452f3305ba55b9042260aaa1ab5dd  -->
+<jasperReport name="machine-contract-v2" language="java" pageWidth="595" pageHeight="842" whenNoDataType="AllSectionsNoDetail" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="15" bottomMargin="15" uuid="c1a2b3d4-e5f6-7890-abcd-ef1234567891">
+	<parameter name="P_MES_REFERENCIA" class="java.lang.String"/>
+	<parameter name="P_VENCIMENTO" class="java.lang.String"/>
+	<parameter name="P_DATA_EMISSAO" class="java.lang.String"/>
+	<parameter name="P_NOME_MATRIZ" class="java.lang.String"/>
+	<parameter name="P_TOTAL_MATRIZ" class="java.lang.String"/>
+	<parameter name="P_TOTAL_GERAL" class="java.lang.String"/>
+	<parameter name="SUBREPORT_MAQUINAS" class="net.sf.jasperreports.engine.JasperReport"/>
+	<parameter name="BACKGROUND_IMAGE" class="java.io.InputStream"/>
+	<field name="numnota" class="java.lang.String"/>
+	<field name="nomeparc" class="java.lang.String"/>
+	<field name="cgcCpf" class="java.lang.String"/>
+	<field name="entrega" class="java.lang.String"/>
+	<field name="vlrDesdob" class="java.math.BigDecimal"/>
+	<field name="vlrFormatado" class="java.lang.String"/>
+	<field name="quantidadeMaquinas" class="java.lang.Integer"/>
+	<field name="maquinas" class="java.util.List"/>
+	<field name="textoIntro" class="java.lang.String"/>
+	<field name="textoInstalacao" class="java.lang.String"/>
+	<field name="textoValor" class="java.lang.String"/>
+	<pageHeader height="80" splitType="Stretch">
+		<element kind="image" uuid="cac249de-ea38-49e3-840d-274099ec4f33" x="0" y="0" width="190" height="45" scaleImage="RetainShape" hImageAlign="Left" vImageAlign="Middle">
+			<expression><![CDATA[$P{BACKGROUND_IMAGE}]]></expression>
+		</element>
+		<element kind="rectangle" uuid="1626d291-3d82-452b-9705-f76c5c5cfee6" x="0" y="50" width="555" height="16" forecolor="#232E61" backcolor="#232E61">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="rectangle" uuid="3d975512-ef40-475a-bc5d-9577e84f3d30" x="0" y="66" width="555" height="5" forecolor="#57C1AB" backcolor="#57C1AB">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="staticText" uuid="aa1ba247-de33-434b-bee8-30adfb9a6572" x="195" y="2" width="360" height="20" forecolor="#232E61" fontSize="15.0" italic="true" bold="true" hTextAlign="Center">
+			<text><![CDATA[RECIBO DE LOCAÇÃO]]></text>
+		</element>
+		<element kind="staticText" uuid="9cc41770-7f18-4123-bb9b-9f28120e0aa6" x="195" y="24" width="55" height="12" forecolor="#555555" fontSize="8.0" bold="true">
+			<text><![CDATA[Grupo:]]></text>
+		</element>
+		<element kind="textField" uuid="ac878f44-dd0f-4a52-99af-fad4b0752759" x="252" y="24" width="303" height="12" forecolor="#232E61" fontSize="8.0" bold="true">
+			<expression><![CDATA[$P{P_NOME_MATRIZ}]]></expression>
+		</element>
+		<element kind="staticText" uuid="423339f6-7762-45fd-afbc-0b5ee52c5893" x="195" y="37" width="55" height="11" forecolor="#555555" fontSize="8.0">
+			<text><![CDATA[Referência:]]></text>
+		</element>
+		<element kind="textField" uuid="9b67c2d6-fef0-491e-bb10-59823b63e813" x="252" y="37" width="100" height="11" fontSize="8.0">
+			<expression><![CDATA[$P{P_MES_REFERENCIA}]]></expression>
+		</element>
+		<element kind="staticText" uuid="153b3be0-bd53-455a-aa8e-77156bd7de9b" x="360" y="37" width="55" height="11" forecolor="#555555" fontSize="8.0">
+			<text><![CDATA[Vencimento:]]></text>
+		</element>
+		<element kind="textField" uuid="d9705b02-3b25-4b37-899b-97f99250a90d" x="415" y="37" width="140" height="11" fontSize="8.0">
+			<expression><![CDATA[$P{P_VENCIMENTO}]]></expression>
+		</element>
+		<element kind="staticText" uuid="4ef97e1a-4506-4f15-bf57-b585d65f1508" x="2" y="52" width="200" height="12" forecolor="#FFFFFF" fontSize="8.0">
+			<text><![CDATA[Proauto Indústria Química Eireli  |  CNPJ: 38.777.918/0001-14]]></text>
+		</element>
+		<element kind="staticText" uuid="fc63f30b-9a05-4b12-a544-8659f0d335bd" x="340" y="52" width="90" height="12" forecolor="#FFFFFF" fontSize="8.0" bold="true" hTextAlign="Right">
+			<text><![CDATA[Total do Grupo:]]></text>
+		</element>
+		<element kind="textField" uuid="878783b9-1fb1-4346-bf52-0bb4eba54b42" x="432" y="52" width="120" height="12" forecolor="#57C1AB" fontSize="8.0" bold="true" hTextAlign="Right">
+			<expression><![CDATA[$P{P_TOTAL_MATRIZ}]]></expression>
+		</element>
+	</pageHeader>
+	<detail>
+		<band height="320" splitType="Stretch">
+			<element kind="rectangle" uuid="a838437a-32a7-4bc3-80ff-db0606ca6f52" x="0" y="8" width="555" height="22" forecolor="#232E61" backcolor="#232E61">
+				<pen lineWidth="0.0"/>
+			</element>
+			<element kind="rectangle" uuid="dd05e072-28b9-4245-b18f-fc03774e9dcf" x="0" y="8" width="4" height="22" forecolor="#57C1AB" backcolor="#57C1AB">
+				<pen lineWidth="0.0"/>
+			</element>
+			<element kind="staticText" uuid="ba8ea171-ab5a-40a4-b94e-c6d305077e8f" x="8" y="11" width="55" height="14" forecolor="#57C1AB" fontSize="8.0" bold="true">
+				<text><![CDATA[Pedido nº:]]></text>
+			</element>
+			<element kind="textField" uuid="31695bec-a6c2-49a7-a670-470e5dfbe339" x="62" y="11" width="65" height="14" forecolor="#FFFFFF" fontSize="9.0" bold="true">
+				<expression><![CDATA[$F{numnota}]]></expression>
+			</element>
+			<element kind="rectangle" uuid="354927da-008a-43f9-a698-1c52c7b8b47b" x="130" y="13" width="1" height="14" forecolor="#57C1AB" backcolor="#57C1AB">
+				<pen lineWidth="0.0"/>
+			</element>
+			<element kind="textField" uuid="647ce876-d743-4222-85d2-6bf794f9f658" positionType="Float" x="136" y="11" width="340" height="14" forecolor="#FFFFFF" fontSize="8.0" textAdjust="StretchHeight">
+				<expression><![CDATA[$F{nomeparc}]]></expression>
+			</element>
+			<element kind="textField" uuid="c58eadf0-6262-485d-8712-326ebbd4b7ff" x="478" y="11" width="75" height="14" forecolor="#57C1AB" fontSize="8.0" bold="true" hTextAlign="Right">
+				<expression><![CDATA[$F{vlrFormatado}]]></expression>
+			</element>
+			<element kind="textField" uuid="8eaf3872-e26d-4e9d-b5a9-f3a86357d7e1" positionType="Float" x="0" y="38" width="555" height="50" forecolor="#333333" fontSize="9.0" textAdjust="StretchHeight">
+				<expression><![CDATA[$F{textoIntro}]]></expression>
+			</element>
+			<element kind="textField" uuid="cc69f960-08ab-4fc6-b7e4-b89d6fcd3aa7" positionType="Float" x="0" y="92" width="555" height="40" forecolor="#333333" fontSize="9.0" textAdjust="StretchHeight">
+				<expression><![CDATA[$F{textoInstalacao}]]></expression>
+			</element>
+			<element kind="textField" uuid="2518ff1b-ce5c-4113-8b25-f903672df459" positionType="Float" x="0" y="136" width="555" height="30" forecolor="#333333" fontSize="9.0" textAdjust="StretchHeight">
+				<expression><![CDATA[$F{textoValor}]]></expression>
+			</element>
+			<element kind="subreport" uuid="fed8fbb6-5b15-4bed-83f8-0418d05a5a06" positionType="Float" x="0" y="172" width="555" height="40">
+				<dataSourceExpression><![CDATA[new net.sf.jasperreports.engine.data.JRBeanCollectionDataSource(
+                        (java.util.List) $F{maquinas}
+                    )]]></dataSourceExpression>
+				<expression><![CDATA[$P{SUBREPORT_MAQUINAS}]]></expression>
+			</element>
+			<element kind="textField" uuid="06366b32-b8d2-4df5-b53a-b1d770561a2b" positionType="Float" x="0" y="220" width="555" height="12" forecolor="#333333" fontSize="9.0">
+				<expression><![CDATA["Pedido " + $F{numnota}]]></expression>
+			</element>
+			<element kind="textField" uuid="5e997e02-d112-4c8a-884b-0ae17ed2242f" positionType="Float" x="0" y="234" width="555" height="12" forecolor="#333333" fontSize="9.0">
+				<expression><![CDATA["Mês de referência: " + $P{P_MES_REFERENCIA}]]></expression>
+			</element>
+			<element kind="textField" uuid="9ccc689c-6d31-4fca-9c6c-77e99a98bc71" positionType="Float" x="0" y="248" width="555" height="12" forecolor="#333333" fontSize="9.0">
+				<expression><![CDATA["Vencimento " + $P{P_VENCIMENTO}]]></expression>
+			</element>
+			<element kind="textField" uuid="4e87d2fb-b38f-4117-8f28-b681c31e34c0" positionType="Float" x="0" y="262" width="555" height="12" forecolor="#666666" fontSize="8.0">
+				<expression><![CDATA["CNPJ do locatário: " + $F{cgcCpf}]]></expression>
+			</element>
+			<element kind="staticText" uuid="4b712a07-aabc-4c24-8047-5219f89d91f5" positionType="Float" x="350" y="286" width="205" height="12" forecolor="#333333" fontSize="9.0" hTextAlign="Right">
+				<text><![CDATA[Sem mais,]]></text>
+			</element>
+			<element kind="textField" uuid="1f05d630-375c-46a5-a2c9-b4a20fa7613f" positionType="Float" x="260" y="300" width="295" height="12" forecolor="#333333" fontSize="9.0" hTextAlign="Right">
+				<expression><![CDATA["Santo André, " + $P{P_DATA_EMISSAO} + "."]]></expression>
+			</element>
+			<element kind="rectangle" uuid="3c770981-348e-4617-b1aa-17213e59ea93" positionType="Float" x="0" y="316" width="555" height="2" forecolor="#57C1AB" backcolor="#57C1AB">
+				<pen lineWidth="0.0"/>
+			</element>
+		</band>
+	</detail>
+	<pageFooter height="36" splitType="Stretch">
+		<element kind="rectangle" uuid="45255a1b-52e6-4158-b8ac-ac23cbbf10ac" x="0" y="0" width="555" height="4" forecolor="#57C1AB" backcolor="#57C1AB">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="rectangle" uuid="1abd6910-cb5f-4fb5-9520-f3cf2cf30320" x="0" y="18" width="555" height="18" forecolor="#232E61" backcolor="#232E61">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="staticText" uuid="0262dd89-2c88-45c5-8143-23fdd98df6a1" x="2" y="6" width="400" height="10" forecolor="#555555" fontSize="6.0">
+			<text><![CDATA[Av. João do Prado, 300 – Capuava, Santo André – SP  |  CEP 09270-160  |  PABX: (11) 4577-0399 / (11) 4576-7181  |  www.proautokimium.com.br]]></text>
+		</element>
+		<element kind="staticText" uuid="0ca34459-e3f3-4ce5-b478-7484091c7eb2" x="2" y="20" width="200" height="13" forecolor="#FFFFFF" fontSize="7.0">
+			<text><![CDATA[Proauto Kimium | www.proautokimium.com.br]]></text>
+		</element>
+		<element kind="staticText" uuid="90c5edb2-f6f5-46c5-84d9-90619a6c0181" x="340" y="20" width="100" height="13" forecolor="#AAAAAA" fontSize="7.0" hTextAlign="Right">
+			<text><![CDATA[Relatório emitido em:]]></text>
+		</element>
+		<element kind="textField" uuid="ddebcf34-ec36-4c41-bf80-c2c134a4d6b3" x="442" y="20" width="110" height="13" forecolor="#FFFFFF" fontSize="7.0" pattern="dd/MM/yyyy HH:mm">
+			<expression><![CDATA[new java.util.Date()]]></expression>
+		</element>
+	</pageFooter>
+	<summary height="55" splitType="Prevent">
+		<element kind="rectangle" uuid="a70909a3-d0bb-48fa-b8fe-ca4fac6ac46c" x="0" y="0" width="555" height="3" forecolor="#232E61" backcolor="#232E61">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="rectangle" uuid="1170094d-26e7-4f65-95a7-58a9df8be161" x="0" y="5" width="555" height="2" forecolor="#57C1AB" backcolor="#57C1AB">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="staticText" uuid="6e3b5632-2670-4145-be8e-761e01584b41" x="0" y="14" width="330" height="14" forecolor="#232E61" fontSize="9.0" bold="true" hTextAlign="Right">
+			<text><![CDATA[Total de locações do grupo:]]></text>
+		</element>
+		<element kind="textField" uuid="a692b250-ce66-4146-9f61-d7e85cf136f1" x="332" y="14" width="140" height="14" forecolor="#57C1AB" fontSize="9.0" bold="true" hTextAlign="Right">
+			<expression><![CDATA[$P{P_TOTAL_MATRIZ}]]></expression>
+		</element>
+	</summary>
+</jasperReport>
