@@ -29,6 +29,9 @@ public class MachineContractReportService {
             List<MachineContract> contracts,
             LocalDate vencimento
     ) {
+
+        String dataVencimento = vencimento.format(DateTimeFormatter.ofPattern("dd 'de' MMMM 'de' yyyy", new Locale("pt", "BR")));
+
         Map<String, List<MachineContract>> matrizMap =
                 contracts.stream()
                         .collect(Collectors.groupingBy(
@@ -113,7 +116,7 @@ public class MachineContractReportService {
                                 " %s ",
                         vlrFormatado,
                         vlrExtenso,
-                        vencimento
+                        dataVencimento
                 );
 
                 // ── Monta DTO ─────────────────────────────────────────────
@@ -147,7 +150,7 @@ public class MachineContractReportService {
             matrizes.add(matriz);
         }
 
-        String mesReferencia = vencimento.getMonth().getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
+        String mesReferencia = vencimento.getMonth().minus(1).getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
 
         BigDecimal totalGeral =
                 matrizes.stream()
@@ -156,7 +159,7 @@ public class MachineContractReportService {
 
         ReciboLocacaoDTO dto = new ReciboLocacaoDTO();
         dto.setMesReferencia(mesReferencia);
-        dto.setVencimento(vencimento.format(DateTimeFormatter.ofPattern("dd 'de' MMMM 'de' yyyy", new Locale("pt", "BR"))));
+        dto.setVencimento(vencimento.format(DateTimeFormatter.ofPattern("dd/MM/yyyy", new Locale("pt", "BR"))));
         dto.setDataEmissao(
                 LocalDate.now().format(DateTimeFormatter.ofPattern("dd 'de' MMMM 'de' yyyy", new Locale("pt", "BR")))
         );
