@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.proautokimium.api.Infrastructure.factories.ReportFactory;
+import com.proautokimium.api.Infrastructure.services.machine.MachineContractExcelWriterService;
 import com.proautokimium.api.Infrastructure.services.machine.MachineContractService;
 import com.proautokimium.api.Infrastructure.services.reports.machine.MachineContractReportService;
 import com.proautokimium.api.Infrastructure.services.reports.machine.dtos.MatrizDTO;
@@ -43,6 +44,9 @@ public class MachineContractController {
 
     @Autowired
     private MachineContractReportService machineContractReportService;
+
+    @Autowired
+    private MachineContractExcelWriterService machineContractExcelWriterService;
 
     @Autowired
     private ReportFactory reportFactory;
@@ -94,6 +98,19 @@ public class MachineContractController {
                         "attachment; filename=\"recibos-locacao-" + dto.getMesReferencia() + ".zip\"")
                 .contentType(MediaType.parseMediaType("application/zip"))
                 .body(zipBuffer.toByteArray());
+    }
+
+    @GetMapping("/spreadsheet/model")
+    public ResponseEntity<byte[]> getSpreadSheetModel() throws Exception {
+        byte[] file = machineContractExcelWriterService.writeTemplate();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"planilha-modelo.xlsx\"")
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .contentLength(file.length)
+                .body(file);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
