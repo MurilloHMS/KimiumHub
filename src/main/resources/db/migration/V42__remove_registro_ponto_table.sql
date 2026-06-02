@@ -1,0 +1,1 @@
+drop table registros_ponto;
