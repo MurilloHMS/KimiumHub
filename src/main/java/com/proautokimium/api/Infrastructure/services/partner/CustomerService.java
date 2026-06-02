@@ -46,7 +46,7 @@ public class CustomerService {
 	@Transactional
 	public void includeCustomersByExcel(MultipartFile file){
 		try {
-			List<Customer> customers = reader.getCustomersByExcel(file.getInputStream());
+			List<Customer> customers = reader.getDataByExcel(file.getInputStream());
 			
 			if(customers.isEmpty()) {
                 throw new CustomerNotFoundException();
