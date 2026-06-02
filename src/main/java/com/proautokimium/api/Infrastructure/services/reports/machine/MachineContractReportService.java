@@ -135,7 +135,7 @@ public class MachineContractReportService {
                     "Refere-se à locação de %d (%s) %s – %s - " +
                             "locad%s pela empresa PROAUTO INDUSTRIA QUIMICA EIRELI.",
                     linhas.size(),
-                    plural ? String.valueOf(linhas.size()) : "Uma",
+                    plural ? ValorExtensoUtil.UNIDADES_ESPECIAL[linhas.size()] : "Uma",
                     plural ? "Máquinas" : "Máquina",
                     resumoMaquinas,
                     plural ? "as" : "a"
