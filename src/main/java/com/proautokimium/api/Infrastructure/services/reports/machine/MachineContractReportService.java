@@ -1,9 +1,9 @@
 package com.proautokimium.api.Infrastructure.services.reports.machine;
 
-import com.proautokimium.api.Infrastructure.services.reports.machine.dtos.MaquinaDTO;
-import com.proautokimium.api.Infrastructure.services.reports.machine.dtos.MatrizDTO;
-import com.proautokimium.api.Infrastructure.services.reports.machine.dtos.ReciboLocacaoDTO;
-import com.proautokimium.api.Infrastructure.services.reports.machine.dtos.UnidadeDTO;
+import com.proautokimium.api.Application.DTOs.machine.MaquinaDTO;
+import com.proautokimium.api.Application.DTOs.machine.MatrizDTO;
+import com.proautokimium.api.Application.DTOs.machine.ReciboLocacaoDTO;
+import com.proautokimium.api.Application.DTOs.machine.UnidadeDTO;
 import com.proautokimium.api.Infrastructure.utils.ValorExtensoUtil;
 import com.proautokimium.api.domain.models.MachineContract;
 import org.springframework.stereotype.Service;
@@ -12,7 +12,6 @@ import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.*;
