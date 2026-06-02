@@ -7,6 +7,10 @@ import java.util.List;
 
 import com.proautokimium.api.Infrastructure.exceptions.newsletter.NewsletterFileNotValidException;
 import com.proautokimium.api.Infrastructure.exceptions.newsletter.NewsletterNullException;
+import com.proautokimium.api.Infrastructure.services.email.newsletter.reader.NewsletterExchangedPartsReaderService;
+import com.proautokimium.api.Infrastructure.services.email.newsletter.reader.NewsletterInfoReaderService;
+import com.proautokimium.api.Infrastructure.services.email.newsletter.reader.NewsletterOneFileReaderService;
+import com.proautokimium.api.Infrastructure.services.email.newsletter.reader.NewsletterServiceOrderReaderService;
 import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.entities.Newsletter;
 import com.proautokimium.api.domain.enums.EmailStatus;
@@ -35,19 +39,31 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
 	private final NewsletterRepository repository;
     private final NewsletterBuilderService builder;
     private final NewsLetterReaderService reader;
+    private final NewsletterOneFileReaderService newsletterOneFileReaderService;
+    private final NewsletterInfoReaderService newsletterInfoReaderService;
+    private final NewsletterServiceOrderReaderService newsletterServiceOrderReaderService;
+    private final NewsletterExchangedPartsReaderService newsletterExchangedPartsReaderService;
     private final CustomerRepository customerRepository;
     private final NewsletterService service;
     private static final Logger LOGGER = LoggerFactory.getLogger(NewsletterOrchestratorService.class);
 
     public NewsletterOrchestratorService(NewsletterBuilderService builder,
-                                        NewsLetterReaderService reader,
-                                        CustomerRepository customerRepository,
-                                        NewsletterRepository repository,
-                                        NewsletterService service) {
+                                         NewsLetterReaderService reader,
+                                         NewsletterOneFileReaderService newsletterOneFileReaderService,
+                                         NewsletterInfoReaderService newsletterInfoReaderService,
+                                         NewsletterServiceOrderReaderService newsletterServiceOrderReaderService,
+                                         CustomerRepository customerRepository,
+                                         NewsletterRepository repository,
+                                         NewsletterExchangedPartsReaderService newsletterExchangedPartsReaderService,
+                                         NewsletterService service                                         ) {
         this.builder = builder;
         this.reader = reader;
+        this.newsletterOneFileReaderService = newsletterOneFileReaderService;
+        this.newsletterInfoReaderService = newsletterInfoReaderService;
+        this.newsletterServiceOrderReaderService = newsletterServiceOrderReaderService;
         this.customerRepository = customerRepository;
         this.repository = repository;
+        this.newsletterExchangedPartsReaderService = newsletterExchangedPartsReaderService;
         this.service = service;
     }
 	
@@ -72,10 +88,10 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
                     .filter(f -> f.getOriginalFilename().contains("Pecas"))
                     .findFirst().orElseThrow(() -> new FileNotFoundException("Arquivo Pecas não encontrado"));
 
-            List<NewsletterNFeInfo> nfeInfos = reader.getNfeInfoByExcel(nfeFile.getInputStream());
-            List<NewsletterServiceOrders> ordersInfos = reader.getServiceOrdersByExcel(osFile.getInputStream());
+            List<NewsletterNFeInfo> nfeInfos = newsletterInfoReaderService.getDataByExcel(nfeFile.getInputStream());
+            List<NewsletterServiceOrders> ordersInfos = newsletterServiceOrderReaderService.getDataByExcel(osFile.getInputStream());
             List<NewsletterTechnicalHours> hoursInfos = reader.getTechnicalHoursByExcel(horasFile.getInputStream());
-            List<NewsletterExchangedParts> parts = reader.getExchangedPartsByExcel(pecasFile.getInputStream());
+            List<NewsletterExchangedParts> parts = newsletterExchangedPartsReaderService.getDataByExcel(pecasFile.getInputStream());
 
             NewsletterData data = new NewsletterData(nfeInfos, ordersInfos, hoursInfos, parts);
 
@@ -101,13 +117,15 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
                 throw new NewsletterFileNotValidException("Arquivo não encontrado");
 
         try {
-            List<Newsletter> newsletters = reader.getNewsletterInfoByExcel(file.getInputStream());
+            List<Newsletter> newsletters = newsletterOneFileReaderService.getDataByExcel(file.getInputStream());
             if (newsletters == null || newsletters.isEmpty()) {
                 throw new NewsletterNullException("Nenhum dado válido encontrado na planilha.");
             }
             repository.saveAll(newsletters);
         } catch (IOException e) {
             throw new NewsletterFileNotValidException("Erro ao ler o arquivo enviado.");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -128,7 +146,7 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
                 success++;
 			}catch (Exception e) {
 				newsletter.setStatus(EmailStatus.ERROR);
-//				LOGGER.error("Erro ao enviar newsletter para " + newsletter.getCodigoCliente() + ": " + e.getMessage());
+				LOGGER.error("Erro ao enviar newsletter para " + newsletter.getCodigoCliente() + ": " + e.getMessage());
                 error++;
 			}finally {
 				repository.save(newsletter);
