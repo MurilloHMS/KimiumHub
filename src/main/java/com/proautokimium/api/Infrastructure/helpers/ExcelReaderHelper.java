@@ -14,7 +14,7 @@ public class ExcelReaderHelper {
         if(cell != null && cell.getCellType() == CellType.STRING){
             return cell.getStringCellValue();
         } else if (cell != null && cell.getCellType() == CellType.NUMERIC){
-            return String.valueOf(cell.getNumericCellValue());
+            return String.valueOf((int) cell.getNumericCellValue());
         }
         return null;
     }

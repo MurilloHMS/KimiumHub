@@ -1,4 +1,4 @@
-package com.proautokimium.api.Infrastructure.services.reports.machine.dtos;
+package com.proautokimium.api.Application.DTOs.machine;
 
 import lombok.*;
 
