@@ -1,8 +1,6 @@
 package com.proautokimium.api.domain.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -33,6 +31,19 @@ public class ProductWebsite extends ProductEntity{
     private String finalidade;
     @Column(name = "diluicao", length = 100)
     private String diluicao;
+    @Column(name = "concentracao", length = 100)
+    private String concentracao;
+    @Column(name = "local_de_uso", length = 100)
+    private String localUso;
     @Column(name = "descricao", length = 1000)
     private String descricao;
+    @Column
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "product_equipment",
+            joinColumns = @JoinColumn(name = "product_id"),
+            inverseJoinColumns = @JoinColumn(name = "equipment_id")
+    )
+    private List<EquipmentGuide> equipmentGuides;
 }
