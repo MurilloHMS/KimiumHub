@@ -1,9 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.reports.machine;
 
-import com.proautokimium.api.Application.DTOs.machine.MaquinaDTO;
-import com.proautokimium.api.Application.DTOs.machine.MatrizDTO;
-import com.proautokimium.api.Application.DTOs.machine.ReciboLocacaoDTO;
-import com.proautokimium.api.Application.DTOs.machine.UnidadeDTO;
+import com.proautokimium.api.Application.DTOs.machine.*;
 import com.proautokimium.api.Infrastructure.utils.ValorExtensoUtil;
 import com.proautokimium.api.domain.models.MachineContract;
 import org.springframework.stereotype.Service;
@@ -13,7 +10,6 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.format.TextStyle;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,148 +19,160 @@ public class MachineContractReportService {
     private static final DecimalFormat BRL_FORMAT = new DecimalFormat(
             "R$ #,##0.00", new DecimalFormatSymbols(new Locale("pt", "BR"))
     );
+    private static final DateTimeFormatter DATA_EMISSAO_FMT =
+            DateTimeFormatter.ofPattern("dd 'de' MMMM 'de' yyyy", new Locale("pt", "BR"));
+
+    public List<MatrizPreviewDTO> buildPreview(List<MachineContract> contracts) {
+        return agruparPorMatriz(contracts).entrySet().stream()
+                .map(entry -> {
+                    List<MachineContract> linhas = entry.getValue();
+
+                    long totalUnidades = linhas.stream()
+                            .map(MachineContract::getNumeroNota)
+                            .distinct().count();
+
+                    BigDecimal total = linhas.stream()
+                            .collect(Collectors.groupingBy(MachineContract::getNumeroNota))
+                            .values().stream()
+                            .map(u -> BigDecimal.valueOf(u.get(0).getVlrDesdobramento()))
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                    MatrizPreviewDTO p = new MatrizPreviewDTO();
+                    p.setCodMatriz(entry.getKey());
+                    p.setNomeMatriz(linhas.get(0).getNomeMatriz());
+                    p.setTotalUnidades((int) totalUnidades);
+                    p.setTotalMaquinas(linhas.size());
+                    p.setTotalMatriz(total);
+                    return p;
+                })
+                .collect(Collectors.toList());
+    }
 
     public ReciboLocacaoDTO build(
             List<MachineContract> contracts,
-            LocalDate vencimento
+            String mesReferencia,
+            Map<String, String> vencimentos
     ) {
-
-        String dataVencimento = vencimento.format(DateTimeFormatter.ofPattern("dd 'de' MMMM 'de' yyyy", new Locale("pt", "BR")));
-
-        Map<String, List<MachineContract>> matrizMap =
-                contracts.stream()
-                        .collect(Collectors.groupingBy(
-                                MachineContract::getCodigoMatriz,
-                                LinkedHashMap::new,
-                                Collectors.toList()
-                        ));
-
         List<MatrizDTO> matrizes = new ArrayList<>();
 
-        for (Map.Entry<String, List<MachineContract>> matrizEntry : matrizMap.entrySet()) {
+        for (Map.Entry<String, List<MachineContract>> entry : agruparPorMatriz(contracts).entrySet()) {
 
-            List<MachineContract> matrizContracts = matrizEntry.getValue();
-            MachineContract firstMatriz = matrizContracts.get(0);
+            String codMatriz = entry.getKey();
+            List<MachineContract> linhas = entry.getValue();
 
-            Map<String, List<MachineContract>> unidadeMap =
-                    matrizContracts.stream()
-                            .collect(Collectors.groupingBy(
-                                    MachineContract::getNumeroNota,
-                                    LinkedHashMap::new,
-                                    Collectors.toList()
-                            ));
+            String vencimento = vencimentos.getOrDefault(codMatriz, "Não informado");
+            List<UnidadeDTO> unidades = buildUnidades(linhas);
 
-            List<UnidadeDTO> unidades = new ArrayList<>();
-
-            for (Map.Entry<String, List<MachineContract>> unidadeEntry : unidadeMap.entrySet()) {
-
-                List<MachineContract> unidadeContracts = unidadeEntry.getValue();
-                MachineContract firstUnidade = unidadeContracts.get(0);
-
-                // ── Máquinas ──────────────────────────────────────────────
-                List<MaquinaDTO> maquinas =
-                        unidadeContracts.stream()
-                                .map(item -> {
-                                    MaquinaDTO m = new MaquinaDTO();
-                                    m.setCodProd(item.getCodigoProduto());
-                                    m.setDescrprod(item.getDescricaoProduto());
-                                    m.setVlrunit(BigDecimal.valueOf(item.getVlrUnitario()));
-                                    m.setObservacao(item.getObservacao());
-                                    return m;
-                                })
-                                .toList();
-
-                BigDecimal vlrDesdob = BigDecimal.valueOf(firstUnidade.getVlrDesdobramento());
-                int qtd = maquinas.size();
-
-                // ── Textos do recibo ──────────────────────────────────────
-                String resumoMaquinas = maquinas.stream()
-                        .map(MaquinaDTO::getDescrprod)
-                        .collect(Collectors.joining(", "));
-
-                boolean plural = qtd > 1;
-                String qtdExtenso = qtd == 1 ? "Uma" : String.valueOf(qtd);
-
-                String textoIntro = String.format(
-                        "Refere-se à locação de %d (%s) %s de Lavar Louça – %s - " +
-                                "locad%s pela empresa PROAUTO INDÚSTRIA QUÍMICA EIRELI."
-                                ,
-                        qtd,
-                        qtdExtenso,
-                        plural ? "Máquinas" : "Máquina",
-                        resumoMaquinas,
-                        plural ? "as" : "a"
-                );
-
-                String textoInstalacao = String.format(
-                        "%s máquin%s está%s instalad%s na empresa %s com " +
-                                "endereço de entrega: %s.",
-                        plural ? "As" : "A",
-                        plural ? "as" : "a",
-                        plural ? "o" : "",
-                        plural ? "as" : "a",
-                        firstUnidade.getNomeParceiro(),
-                        firstUnidade.getEnderecoEntrega()
-                );
-
-                String vlrFormatado  = BRL_FORMAT.format(vlrDesdob);
-                String vlrExtenso    = ValorExtensoUtil.converter(vlrDesdob);
-
-                String textoValor = String.format(
-                        "O valor da locação é de %s (%s) com vencimento em " +
-                                " %s ",
-                        vlrFormatado,
-                        vlrExtenso,
-                        dataVencimento
-                );
-
-                // ── Monta DTO ─────────────────────────────────────────────
-                UnidadeDTO unidade = new UnidadeDTO();
-                unidade.setNumnota(firstUnidade.getNumeroNota());
-                unidade.setNomeparc(firstUnidade.getNomeParceiro());
-                unidade.setCgcCpf(firstUnidade.getDocumento());
-                unidade.setEntrega(firstUnidade.getEnderecoEntrega());
-                unidade.setVlrDesdob(vlrDesdob);
-                unidade.setMaquinas(maquinas);
-                unidade.setQuantidadeMaquinas(qtd);
-                unidade.setVlrFormatado(vlrFormatado);
-                unidade.setTextoIntro(textoIntro);
-                unidade.setTextoInstalacao(textoInstalacao);
-                unidade.setTextoValor(textoValor);
-
-                unidades.add(unidade);
-            }
-
-            BigDecimal totalMatriz =
-                    unidades.stream()
-                            .map(UnidadeDTO::getVlrDesdob)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal totalMatriz = unidades.stream()
+                    .map(UnidadeDTO::getVlrDesdob)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             MatrizDTO matriz = new MatrizDTO();
-            matriz.setCodMatriz(firstMatriz.getCodigoMatriz());
-            matriz.setNomeMatriz(firstMatriz.getNomeMatriz());
+            matriz.setCodMatriz(codMatriz);
+            matriz.setNomeMatriz(linhas.get(0).getNomeMatriz());
             matriz.setTotalMatriz(totalMatriz);
+            matriz.setVencimento(vencimento);
             matriz.setUnidades(unidades);
 
             matrizes.add(matriz);
         }
 
-        String mesReferencia = vencimento.getMonth().minus(1).getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
-
-        BigDecimal totalGeral =
-                matrizes.stream()
-                        .map(MatrizDTO::getTotalMatriz)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalGeral = matrizes.stream()
+                .map(MatrizDTO::getTotalMatriz)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         ReciboLocacaoDTO dto = new ReciboLocacaoDTO();
         dto.setMesReferencia(mesReferencia);
-        dto.setVencimento(vencimento.format(DateTimeFormatter.ofPattern("dd/MM/yyyy", new Locale("pt", "BR"))));
-        dto.setDataEmissao(
-                LocalDate.now().format(DateTimeFormatter.ofPattern("dd 'de' MMMM 'de' yyyy", new Locale("pt", "BR")))
-        );
+        dto.setDataEmissao(LocalDate.now().format(DATA_EMISSAO_FMT));
         dto.setTotalGeral(totalGeral);
         dto.setMatrizes(matrizes);
-
         return dto;
+    }
+
+    private LinkedHashMap<String, List<MachineContract>> agruparPorMatriz(List<MachineContract> contracts) {
+        return contracts.stream()
+                .collect(Collectors.groupingBy(
+                        MachineContract::getCodigoMatriz,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+    }
+
+    private List<UnidadeDTO> buildUnidades(List<MachineContract> matrizContracts) {
+
+        Map<String, List<MachineContract>> porNota = matrizContracts.stream()
+                .collect(Collectors.groupingBy(
+                        MachineContract::getNumeroNota,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        List<UnidadeDTO> unidades = new ArrayList<>();
+
+        for (List<MachineContract> linhas : porNota.values()) {
+
+            MachineContract first = linhas.get(0);
+            boolean plural = linhas.size() > 1;
+
+            List<MaquinaDTO> maquinas = linhas.stream()
+                    .map(c -> {
+                        MaquinaDTO m = new MaquinaDTO();
+                        m.setCodProd(c.getCodigoProduto());
+                        m.setDescrprod(c.getDescricaoProduto());
+                        m.setVlrunit(BigDecimal.valueOf(c.getVlrUnitario()));
+                        m.setObservacao(c.getObservacao());
+                        return m;
+                    })
+                    .toList();
+
+            BigDecimal vlrDesdob  = BigDecimal.valueOf(first.getVlrDesdobramento());
+            String vlrFormatado   = BRL_FORMAT.format(vlrDesdob);
+            String resumoMaquinas = maquinas.stream()
+                    .map(MaquinaDTO::getDescrprod)
+                    .collect(Collectors.joining(", "));
+
+            String textoIntro = String.format(
+                    "Refere-se à locação de %d (%s) %s – %s - " +
+                            "locad%s pela empresa PROAUTO INDUSTRIA QUIMICA EIRELI.",
+                    linhas.size(),
+                    plural ? String.valueOf(linhas.size()) : "Uma",
+                    plural ? "Máquinas" : "Máquina",
+                    resumoMaquinas,
+                    plural ? "as" : "a"
+            );
+
+            String textoInstalacao = String.format(
+                    "%s máquin%s está%s instalad%s na empresa %s com " +
+                            "endereço de entrega: %s.",
+                    plural ? "As" : "A",
+                    plural ? "as" : "a",
+                    plural ? "o" : "",
+                    plural ? "as" : "a",
+                    first.getNomeParceiro(),
+                    first.getEnderecoEntrega()
+            );
+
+            String textoValor = String.format(
+                    "O valor da locação é de %s (%s) " +
+                            " ",
+                    vlrFormatado, ValorExtensoUtil.converter(vlrDesdob)
+            );
+
+            UnidadeDTO u = new UnidadeDTO();
+            u.setNumnota(first.getNumeroNota());
+            u.setNomeparc(first.getNomeParceiro());
+            u.setCgcCpf(first.getDocumento());
+            u.setEntrega(first.getEnderecoEntrega());
+            u.setVlrDesdob(vlrDesdob);
+            u.setVlrFormatado(vlrFormatado);
+            u.setMaquinas(maquinas);
+            u.setQuantidadeMaquinas(linhas.size());
+            u.setTextoIntro(textoIntro);
+            u.setTextoInstalacao(textoInstalacao);
+            u.setTextoValor(textoValor);
+            unidades.add(u);
+        }
+
+        return unidades;
     }
 }
