@@ -13,6 +13,7 @@ public class MatrizDTO {
     private String codMatriz;
     private String nomeMatriz;
     private BigDecimal totalMatriz;
+    private String vencimento;
 
     private List<UnidadeDTO> unidades;
 }
