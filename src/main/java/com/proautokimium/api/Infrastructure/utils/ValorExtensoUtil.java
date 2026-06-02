@@ -18,6 +18,13 @@ public final class ValorExtensoUtil {
             "Dezesseis", "Dezessete", "Dezoito", "Dezenove"
     };
 
+    public static final String[] UNIDADES_ESPECIAL = {
+            "", "Uma", "Duas", "Três", "Quatro", "Cinco",
+            "Seis", "Sete", "Oito", "Nove", "Dez",
+            "Onze", "Doze", "Treze", "Quatorze", "Quinze",
+            "Dezesseis", "Dezessete", "Dezoito", "Dezenove"
+    };
+
     private static final String[] DEZENAS = {
             "", "", "Vinte", "Trinta", "Quarenta", "Cinquenta",
             "Sessenta", "Setenta", "Oitenta", "Noventa"
