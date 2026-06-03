@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports
+              http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="guia_utilizacao"
+              pageWidth="841"
+              pageHeight="595"
+              orientation="Landscape"
+              columnWidth="801"
+              leftMargin="20"
+              rightMargin="20"
+              topMargin="10"
+              bottomMargin="10"
+             >
+
+    <!-- ══════════════════════════════════════════════════════
+         1. ESTILOS  — obrigatoriamente ANTES de parameter/field
+         ══════════════════════════════════════════════════════ -->
+    <style name="styleDefault"   fontName="Montserrat" fontSize="7"  forecolor="#000000"/>
+    <style name="styleHeader"    fontName="Montserrat" fontSize="8"  isBold="true" forecolor="#FFFFFF"/>
+    <style name="styleCellValue" fontName="Montserrat" fontSize="7"  forecolor="#1A1A2E"/>
+    <style name="styleProdNome"  fontName="Montserrat" fontSize="6"  isBold="true" forecolor="#1A1A2E"/>
+    <style name="styleFooter"    fontName="Montserrat" fontSize="6"  isBold="true" forecolor="#FFFFFF"/>
+
+    <!-- ══════════════════════════════════════════════════════
+         2. PARÂMETROS
+         ══════════════════════════════════════════════════════ -->
+    <parameter name="TITULO_GUIA"   class="java.lang.String"/>
+    <parameter name="LOGO_CLIENTE"  class="java.io.InputStream"/>
+    <parameter name="LOGO_EMPRESA"  class="java.io.InputStream"/>
+
+    <!-- ══════════════════════════════════════════════════════
+         3. CAMPOS  (JRBeanCollectionDataSource — 1 registro por produto)
+         ══════════════════════════════════════════════════════ -->
+    <field name="nome"         class="java.lang.String"/>
+    <field name="systemCode"   class="java.lang.String"/>
+    <field name="imagemUrl"    class="java.io.InputStream"/>
+    <field name="coresHex"     class="java.lang.String"/>
+    <field name="finalidade"   class="java.lang.String"/>
+    <field name="diluicao"     class="java.lang.String"/>
+    <field name="concentracao" class="java.lang.String"/>
+    <field name="localUso"     class="java.lang.String"/>
+    <field name="equipamentos" class="java.lang.String"/>
+    <field name="equipImagens" class="java.util.List"/>
+
+    <!-- ══════════════════════════════════════════════════════
+         4. CABEÇALHO DA PÁGINA
+         ══════════════════════════════════════════════════════ -->
+    <pageHeader>
+        <band height="60" splitType="Stretch">
+
+            <!-- Fundo azul-escuro -->
+            <rectangle>
+                <reportElement x="0" y="0" width="801" height="60"
+                               backcolor="#1A3A5C" forecolor="#1A3A5C"
+                              />
+                <graphicElement><pen lineWidth="0"/></graphicElement>
+            </rectangle>
+
+            <!-- Logo empresa (esquerda) -->
+            <image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" isLazy="false">
+                <reportElement x="5" y="5" width="90" height="50">
+                    <printWhenExpression><![CDATA[$P{LOGO_EMPRESA} != null]]></printWhenExpression>
+                </reportElement>
+                <imageExpression><![CDATA[$P{LOGO_EMPRESA}]]></imageExpression>
+            </image>
+
+            <!-- "GUIA DE UTILIZAÇÃO:" branco -->
+            <staticText>
+                <reportElement x="105" y="8" width="280" height="22"
+                               forecolor="#FFFFFF"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Montserrat" size="15" isBold="true"/>
+                </textElement>
+                <text><![CDATA[GUIA DE UTILIZAÇÃO:]]></text>
+            </staticText>
+
+            <!-- Título dinâmico (cor destaque) -->
+            <textField>
+                <reportElement x="390" y="8" width="240" height="22"
+                               forecolor="#00C8B4"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Montserrat" size="15" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$P{TITULO_GUIA} != null ? $P{TITULO_GUIA}.toUpperCase() : "GERAL"]]></textFieldExpression>
+            </textField>
+
+            <!-- Aviso EPI -->
+            <staticText>
+                <reportElement x="105" y="35" width="450" height="16"
+                               forecolor="#AAAAAA"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Montserrat" size="6"/>
+                </textElement>
+                <text><![CDATA[EVITE O CONTATO COM OS OLHOS E O CONTATO PROLONGADO COM A PELE]]></text>
+            </staticText>
+
+            <!-- Logo cliente (direita) -->
+            <image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" isLazy="false">
+                <reportElement x="696" y="5" width="100" height="50">
+                    <printWhenExpression><![CDATA[$P{LOGO_CLIENTE} != null]]></printWhenExpression>
+                </reportElement>
+                <imageExpression><![CDATA[$P{LOGO_CLIENTE}]]></imageExpression>
+            </image>
+
+        </band>
+    </pageHeader>
+
+    <!-- ══════════════════════════════════════════════════════
+         5. CABEÇALHO DAS COLUNAS
+         ══════════════════════════════════════════════════════ -->
+    <columnHeader>
+        <band height="20" splitType="Stretch">
+
+            <rectangle>
+                <reportElement x="0" y="0" width="801" height="20"
+                               backcolor="#1A3A5C" forecolor="#1A3A5C"/>
+                <graphicElement><pen lineWidth="0"/></graphicElement>
+            </rectangle>
+
+            <staticText>
+                <reportElement x="2"   y="0" width="80"  height="20" style="styleHeader"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <text><![CDATA[PRODUTO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="82"  y="0" width="50"  height="20" style="styleHeader"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <text><![CDATA[CÓDIGO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="132" y="0" width="45"  height="20" style="styleHeader"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <text><![CDATA[COR]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="177" y="0" width="200" height="20" style="styleHeader"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <text><![CDATA[FINALIDADE]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="377" y="0" width="70"  height="20" style="styleHeader"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <text><![CDATA[DILUIÇÃO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="447" y="0" width="80"  height="20" style="styleHeader"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <text><![CDATA[CONCENTRAÇÃO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="527" y="0" width="90"  height="20" style="styleHeader"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <text><![CDATA[LOCAL DE USO]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="617" y="0" width="184" height="20" style="styleHeader"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <text><![CDATA[EQUIPAMENTOS]]></text>
+            </staticText>
+
+        </band>
+    </columnHeader>
+
+    <!-- ══════════════════════════════════════════════════════
+         6. DETALHE  (1 banda por produto, 55px)
+             8 produtos × 55px = 440px
+             Disponível = 595 - 60 - 20 - 30 = 485px  ✓
+         ══════════════════════════════════════════════════════ -->
+    <detail>
+        <band height="55" splitType="Prevent">
+
+            <!-- Fundo zebra — linhas pares -->
+            <rectangle>
+                <reportElement x="0" y="0" width="801" height="55"
+                               backcolor="#F0F4F8" forecolor="#CCCCCC">
+                    <printWhenExpression><![CDATA[$V{REPORT_COUNT} % 2 == 0]]></printWhenExpression>
+                </reportElement>
+                <graphicElement><pen lineWidth="0.3"/></graphicElement>
+            </rectangle>
+            <!-- Fundo zebra — linhas ímpares -->
+            <rectangle>
+                <reportElement x="0" y="0" width="801" height="55"
+                               backcolor="#FFFFFF" forecolor="#CCCCCC">
+                    <printWhenExpression><![CDATA[$V{REPORT_COUNT} % 2 != 0]]></printWhenExpression>
+                </reportElement>
+                <graphicElement><pen lineWidth="0.3"/></graphicElement>
+            </rectangle>
+
+            <!-- ── Imagem do produto ─────────────────────────── -->
+            <image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" isLazy="false">
+                <reportElement x="2" y="3" width="38" height="46">
+                    <printWhenExpression><![CDATA[$F{imagemUrl} != null]]></printWhenExpression>
+                </reportElement>
+                <imageExpression><![CDATA[$F{imagemUrl}]]></imageExpression>
+            </image>
+
+            <!-- ── Nome do produto ───────────────────────────── -->
+            <textField isStretchWithOverflow="true">
+                <reportElement x="42" y="3" width="38" height="49" style="styleProdNome"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"/>
+                <textFieldExpression><![CDATA[$F{nome}]]></textFieldExpression>
+            </textField>
+
+            <!-- ── Código ────────────────────────────────────── -->
+            <textField>
+                <reportElement x="82" y="0" width="50" height="55" style="styleCellValue"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{systemCode}]]></textFieldExpression>
+            </textField>
+
+            <!-- ── Cores: círculos SVG gerados inline (sem classe externa) ── -->
+            <image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" isLazy="false">
+                <reportElement x="132" y="3" width="45" height="46">
+                    <printWhenExpression><![CDATA[$F{coresHex} != null && !$F{coresHex}.isEmpty()]]></printWhenExpression>
+                </reportElement>
+                <imageExpression><![CDATA[
+                    (java.io.InputStream)(new java.util.function.Supplier<java.io.InputStream>() {
+                        public java.io.InputStream get() {
+                            String raw = $F{coresHex};
+                            if (raw == null || raw.trim().isEmpty()) return null;
+                            String[] parts = raw.split(",");
+                            int count = Math.min(parts.length, 4);
+                            int r = 9, pad = 2, diam = r * 2;
+                            int cols = count == 1 ? 1 : 2;
+                            int rows = (int) Math.ceil((double) count / cols);
+                            int totalW = cols * diam + (cols - 1) * pad;
+                            int totalH = rows * diam + (rows - 1) * pad;
+                            int sx = (44 - totalW) / 2;
+                            int sy = (44 - totalH) / 2;
+                            StringBuilder svg = new StringBuilder();
+                            svg.append("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"44\" height=\"44\">");
+                            svg.append("<rect width=\"100%\" height=\"100%\" fill=\"none\"/>");
+                            for (int i = 0; i < count; i++) {
+                                String hex = parts[i].trim();
+                                if (!hex.startsWith("#")) continue;
+                                int col = i % cols;
+                                int row = i / cols;
+                                int cx = sx + col * (diam + pad) + r;
+                                int cy = sy + row * (diam + pad) + r;
+                                boolean light = false;
+                                try {
+                                    String c = hex.replace("#","");
+                                    if (c.length() >= 6) {
+                                        int rv = Integer.parseInt(c.substring(0,2),16);
+                                        int gv = Integer.parseInt(c.substring(2,4),16);
+                                        int bv = Integer.parseInt(c.substring(4,6),16);
+                                        light = (0.299*rv + 0.587*gv + 0.114*bv)/255.0 > 0.85;
+                                    }
+                                } catch (Exception ignored) {}
+                                svg.append("<circle cx=\"").append(cx)
+                                   .append("\" cy=\"").append(cy)
+                                   .append("\" r=\"").append(r)
+                                   .append("\" fill=\"").append(hex).append("\"");
+                                if (light) svg.append(" stroke=\"#AAAAAA\" stroke-width=\"0.8\"");
+                                svg.append("/>");
+                            }
+                            svg.append("</svg>");
+                            byte[] bytes = svg.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                            return new java.io.ByteArrayInputStream(bytes);
+                        }
+                    }).get()
+                ]]></imageExpression>
+            </image>
+
+            <!-- ── Finalidade ────────────────────────────────── -->
+            <textField isStretchWithOverflow="true">
+                <reportElement x="177" y="3" width="198" height="49" style="styleCellValue"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font size="6"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{finalidade} != null ? $F{finalidade} : "—"]]></textFieldExpression>
+            </textField>
+
+            <!-- ── Diluição ───────────────────────────────────── -->
+            <textField>
+                <reportElement x="377" y="0" width="70" height="55" style="styleCellValue"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{diluicao} != null ? $F{diluicao} : "—"]]></textFieldExpression>
+            </textField>
+
+            <!-- ── Concentração ──────────────────────────────── -->
+            <textField>
+                <reportElement x="447" y="0" width="80" height="55" style="styleCellValue"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{concentracao} != null ? $F{concentracao} : "—"]]></textFieldExpression>
+            </textField>
+
+            <!-- ── Local de uso ──────────────────────────────── -->
+            <textField isStretchWithOverflow="true">
+                <reportElement x="527" y="3" width="88" height="49" style="styleCellValue"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font size="6" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{localUso} != null ? $F{localUso} : "—"]]></textFieldExpression>
+            </textField>
+
+            <!-- ── Imagem do 1º equipamento ──────────────────── -->
+            <image scaleImage="RetainShape" hAlign="Center" vAlign="Middle" isLazy="false">
+                <reportElement x="617" y="3" width="38" height="46">
+                    <printWhenExpression><![CDATA[$F{equipImagens} != null && !$F{equipImagens}.isEmpty()]]></printWhenExpression>
+                </reportElement>
+                <imageExpression><![CDATA[(java.io.InputStream) $F{equipImagens}.get(0)]]></imageExpression>
+            </image>
+
+            <!-- ── Nome(s) do(s) equipamento(s) ─────────────── -->
+            <textField isStretchWithOverflow="true">
+                <reportElement x="657" y="3" width="141" height="49" style="styleCellValue"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font size="6"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{equipamentos} != null ? $F{equipamentos} : "—"]]></textFieldExpression>
+            </textField>
+
+            <!-- Linha separadora inferior -->
+            <line>
+                <reportElement x="0" y="54" width="801" height="1" forecolor="#CCDDEE"/>
+                <graphicElement><pen lineWidth="0.5"/></graphicElement>
+            </line>
+
+        </band>
+    </detail>
+
+    <!-- ══════════════════════════════════════════════════════
+         7. RODAPÉ DA PÁGINA
+         ══════════════════════════════════════════════════════ -->
+    <pageFooter>
+        <band height="25" splitType="Stretch">
+
+            <rectangle>
+                <reportElement x="0" y="0" width="801" height="25"
+                               backcolor="#1A3A5C" forecolor="#1A3A5C"/>
+                <graphicElement><pen lineWidth="0"/></graphicElement>
+            </rectangle>
+
+            <staticText>
+                <reportElement x="5" y="0" width="600" height="25" style="styleFooter"/>
+                <textElement verticalAlignment="Middle"/>
+                <text><![CDATA[Mascara  |  Oculos  |  Avental  |  Touca  |  Luva  |  Bota]]></text>
+            </staticText>
+
+            <textField>
+                <reportElement x="680" y="0" width="116" height="25" style="styleFooter"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle"/>
+                <textFieldExpression><![CDATA["Página " + $V{PAGE_NUMBER} + " de " + $V{PAGE_COUNT}]]></textFieldExpression>
+            </textField>
+
+        </band>
+    </pageFooter>
+
+</jasperReport>
