@@ -1,36 +1,31 @@
 package com.proautokimium.api.Application.DTOs.guide;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.io.InputStream;
 import java.util.List;
 
 /**
- * DTO de linha para o relatório "Guia de Utilização".
+ * DTO utilizado pelo relatório "Guia de Utilização".
  *
- * <p>
- * Cada instância representa um produto e seus dados
- * para preencher uma linha da tabela no relatório JasperReports.
- * </p>
- *
- * @param nome          Nome comercial do produto
- * @param systemCode    Código do sistema (ex: "75033")
- * @param imagemUrl     Stream da imagem do produto (null = sem imagem)
- * @param coresHex      Hexadecimais das cores separados por vírgula (ex: "#1E90FF,#FF8C00")
- * @param finalidade    Descrição da finalidade do produto
- * @param diluicao      Modo/tipo de diluição (ex: "AUTOMÁTICA")
- * @param concentracao  Concentração de uso (ex: "10%")
- * @param localUso      Local(is) de uso (ex: "AÇOUGUE / PADARIA")
- * @param equipamentos  Nomes dos equipamentos separados por vírgula
- * @param equipImagens  Lista de streams das imagens dos equipamentos
+ * <p>Representa um produto e todas as informações necessárias para
+ * preencher uma linha da tabela do relatório, incluindo imagens,
+ * cores, finalidade, diluição, concentração, locais de uso e
+ * equipamentos recomendados.</p>
  */
-public record GuideReportRowDTO(
-        String nome,
-        String systemCode,
-        InputStream imagemUrl,
-        String coresHex,
-        String finalidade,
-        String diluicao,
-        String concentracao,
-        String localUso,
-        String equipamentos,
-        List<InputStream> equipImagens
-) {}
+@Getter
+@AllArgsConstructor
+public class GuideReportRowDTO {
+
+    private final String nome;
+    private final String systemCode;
+    private final InputStream imagemUrl;
+    private final String coresHex;
+    private final String finalidade;
+    private final String diluicao;
+    private final String concentracao;
+    private final String localUso;
+    private final String equipamentos;
+    private final List<InputStream> equipImagens;
+}
