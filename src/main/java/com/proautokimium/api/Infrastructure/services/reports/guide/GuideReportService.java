@@ -80,10 +80,23 @@ public class GuideReportService {
 
         JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(rows);
 
+        InputStream aventalImage = getClass().getResourceAsStream("/templates/images/icones-guia/avental.png");
+        InputStream botaImage = getClass().getResourceAsStream("/templates/images/icones-guia/bota.png");
+        InputStream luvaImage = getClass().getResourceAsStream("/templates/images/icones-guia/luva.png");
+        InputStream mascaraImage = getClass().getResourceAsStream("/templates/images/icones-guia/mascara.png");
+        InputStream oculosImage = getClass().getResourceAsStream("/templates/images/icones-guia/oculos.png");
+        InputStream toucaImage = getClass().getResourceAsStream("/templates/images/icones-guia/touca.png");
+
         Map<String, Object> params = new HashMap<>();
         params.put("TITULO_GUIA",  request.tituloGuia().toUpperCase());
         params.put("LOGO_CLIENTE", logoCliente);
         params.put("LOGO_EMPRESA", resolveLogoEmpresa());
+        params.put("LOGO_AVENTAL", aventalImage);
+        params.put("LOGO_LUVA", luvaImage);
+        params.put("LOGO_BOTA", botaImage);
+        params.put("LOGO_MASCARA", mascaraImage);
+        params.put("LOGO_OCULOS", oculosImage);
+        params.put("LOGO_TOUCA", toucaImage);
 
         return reportFactory.generatePdf(params, dataSource, REPORT_LOCATION);
     }
@@ -97,6 +110,7 @@ public class GuideReportService {
                 resolveProductImage(p.getImagem()),
                 buildCoresHex(p.getCores()),
                 p.getFinalidade(),
+                p.getDescricao(),
                 p.getDiluicao(),
                 p.getConcentracao(),
                 p.getLocalUso(),

@@ -23,6 +23,7 @@ public class GuideReportRowDTO {
     private final InputStream imagemUrl;
     private final String coresHex;
     private final String finalidade;
+    private final String descricao;
     private final String diluicao;
     private final String concentracao;
     private final String localUso;
