@@ -6,6 +6,7 @@ import com.proautokimium.api.Application.DTOs.authentication.ResetPasswordDTO;
 import com.proautokimium.api.Application.DTOs.partners.EmployeeDTO;
 import com.proautokimium.api.Application.DTOs.smtp.SmtpMail;
 import com.proautokimium.api.Application.DTOs.user.*;
+import com.proautokimium.api.Infrastructure.exceptions.auth.CredentialsIncorrectException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.Infrastructure.security.TokenService;
@@ -19,10 +20,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.cert.CertificateRevokedException;
 import java.util.List;
 
 @RestController
@@ -51,9 +55,14 @@ public class AuthenticationController {
     @PostMapping("/login")
     public ResponseEntity<Object> Login(@RequestBody @Valid AuthenticationDTO data){
         var usernamepassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());
-        var auth = this.authenticationManager.authenticate(usernamepassword);
+        Authentication authenticate = null;
+        try{
+            authenticate = this.authenticationManager.authenticate(usernamepassword);
+        }catch (BadCredentialsException e){
+            throw new CredentialsIncorrectException(e.getMessage());
+        }
 
-        var token = tokenService.generateToken((User) auth.getPrincipal());
+        var token = tokenService.generateToken((User) authenticate.getPrincipal());
         return ResponseEntity.ok(new LoginResponseDTO(token));
     }
 
