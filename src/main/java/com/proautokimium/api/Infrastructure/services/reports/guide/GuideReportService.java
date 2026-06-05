@@ -10,6 +10,8 @@ import com.proautokimium.api.Infrastructure.services.storage.ProductImageStorage
 import com.proautokimium.api.domain.entities.EquipmentGuide;
 import com.proautokimium.api.domain.entities.ProductWebsite;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -40,6 +42,7 @@ import java.util.Map;
  */
 @Service
 public class GuideReportService {
+    private final Logger logger = LoggerFactory.getLogger(GuideReportService.class);
 
     private static final String REPORT_LOCATION = "guide/guia_utilizacao.jrxml";
 
@@ -126,7 +129,9 @@ public class GuideReportService {
         try {
             Path path = productImageStorage.searchImage(extractFilename(filename));
             if (Files.exists(path)) return Files.newInputStream(path);
-        } catch (IOException ignored) {}
+        } catch (IOException ex) {
+            logger.error("Ocorreu um erro ao obter a imagem do produto: {}", ex.getMessage(), ex);
+        }
         return null;
     }
 
@@ -138,7 +143,9 @@ public class GuideReportService {
             try {
                 Path path = equipmentImageStorage.searchImage(extractFilename(eq.getImagem()));
                 if (Files.exists(path)) streams.add(Files.newInputStream(path));
-            } catch (IOException ignored) {}
+            } catch (IOException ex) {
+                logger.error("Ocorreu um erro ao obter a imagem do equipamento: {}", ex.getMessage(), ex);
+            }
         }
         return streams;
     }
@@ -172,7 +179,9 @@ public class GuideReportService {
             }
             Path path = Path.of(logoEmpresaPath);
             if (Files.exists(path)) return Files.newInputStream(path);
-        } catch (IOException ignored) {}
+        } catch (IOException ex) {
+            logger.error("Ocorreu um erro obter a logo da empresa: {}", ex.getMessage(), ex);
+        }
         return null;
     }
 }
