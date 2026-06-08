@@ -1,0 +1,21 @@
+CREATE TABLE faq(
+    id UUID PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    body VARCHAR(500) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE OR REPLACE FUNCTION faq_set_updated_at()
+    RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER faq_updated_at_trigger
+    BEFORE UPDATE ON faq
+    FOR EACH ROW
+EXECUTE FUNCTION faq_set_updated_at();
