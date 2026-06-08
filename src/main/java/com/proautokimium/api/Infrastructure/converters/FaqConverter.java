@@ -7,7 +7,9 @@ import com.proautokimium.api.Application.DTOs.faq.FaqUpdateDTO;
 import com.proautokimium.api.Infrastructure.interfaces.converters.DtoConverter;
 import com.proautokimium.api.Infrastructure.interfaces.converters.UpdateDtoConverter;
 import com.proautokimium.api.domain.entities.Faq;
+import org.springframework.stereotype.Component;
 
+@Component
 public class FaqConverter implements DtoConverter<Faq, FaqResponseDTO, FaqCreateDTO>, UpdateDtoConverter<Faq, FaqUpdateDTO> {
     @Override
     public FaqResponseDTO toDto(Faq entity) {
