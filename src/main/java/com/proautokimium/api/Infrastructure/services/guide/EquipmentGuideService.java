@@ -1,5 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.guide;
 
+import com.proautokimium.api.Application.DTOs.product.equipment.ProductEquipmentCreateDTO;
+import com.proautokimium.api.Application.DTOs.product.equipment.ProductEquipmentUpdateDTO;
 import com.proautokimium.api.Infrastructure.repositories.EquipmentGuideRepository;
 import com.proautokimium.api.Infrastructure.services.storage.EquipmentImageStorageService;
 import com.proautokimium.api.domain.entities.EquipmentGuide;
@@ -54,17 +56,17 @@ public class EquipmentGuideService {
     /**
      * Cria um novo equipamento com imagem opcional.
      *
-     * @param nome   Nome do equipamento
+     * @param dto   DTO do objeto
      * @param imagem Arquivo de imagem (pode ser null)
      * @return Entidade persistida
      */
     @Transactional
-    public EquipmentGuide create(String nome, MultipartFile imagem) throws IOException {
+    public EquipmentGuide create(ProductEquipmentCreateDTO dto, MultipartFile imagem) throws IOException {
         EquipmentGuide entity = new EquipmentGuide();
-        entity.setNome(nome);
+        entity.setNome(dto.nome());
 
         if (imagem != null && !imagem.isEmpty()) {
-            String filename = storage.saveImage(imagem, nome);
+            String filename = storage.saveImage(imagem, dto.nome());
             entity.setImagem(filename);
         }
 
@@ -75,16 +77,16 @@ public class EquipmentGuideService {
      * Atualiza nome e/ou imagem de um equipamento existente.
      *
      * @param id     ID do equipamento
-     * @param nome   Novo nome (null = mantém o atual)
+     * @param dto    DTO com novos atributos (null = mantém o atual)
      * @param imagem Novo arquivo de imagem (null = mantém a atual)
      * @return Entidade atualizada
      */
     @Transactional
-    public EquipmentGuide update(UUID id, String nome, MultipartFile imagem) throws IOException {
+    public EquipmentGuide update(UUID id, ProductEquipmentUpdateDTO dto, MultipartFile imagem) throws IOException {
         EquipmentGuide entity = getById(id);
 
-        if (nome != null && !nome.isBlank()) {
-            entity.setNome(nome);
+        if (dto.nome() != null && !dto.nome().isBlank()) {
+            entity.setNome(dto.nome());
         }
 
         if (imagem != null && !imagem.isEmpty()) {
