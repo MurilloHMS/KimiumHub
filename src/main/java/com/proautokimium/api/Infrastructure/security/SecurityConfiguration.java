@@ -48,6 +48,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/public-secrets/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/product/website/active").permitAll()
                         .requestMatchers(HttpMethod.GET, "/upload/images/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/faq/public").permitAll()
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
