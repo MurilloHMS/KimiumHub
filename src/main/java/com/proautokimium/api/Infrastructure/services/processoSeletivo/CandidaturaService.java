@@ -71,7 +71,7 @@ public class CandidaturaService {
                 });
 
         if (curriculo != null && !curriculo.isEmpty()) {
-            String nomeArquivo = storageService.salvarCurriculo(curriculo, candidato.getId());
+            String nomeArquivo = storageService.save(curriculo, candidato.getId().toString());
             candidato.setPathCurriculo(nomeArquivo);
             candidatoRepository.save(candidato);
         }

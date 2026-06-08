@@ -1,41 +1,23 @@
 package com.proautokimium.api.Infrastructure.services.storage;
 
+import com.proautokimium.api.Infrastructure.abstractions.storage.FileStorage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.UUID;
 
 @Service
-public class ProductImageStorageService {
+public class ProductImageStorageService extends FileStorage {
 
     @Value("${storage.image.path}")
     private String storagePath;
 
-    public String saveImage(MultipartFile file, String productCode) throws IOException {
-        String originalName = file.getOriginalFilename();
-        String extension = StringUtils.getFilenameExtension(originalName);
 
-        if (extension == null || extension.isBlank()) {
-            extension = "png";
-        }
-
-        String filename = productCode + "-" + UUID.randomUUID() + "." + extension;
-
-        Path destination = Paths.get(storagePath).resolve(filename);
-        Files.createDirectories(destination.getParent());
-        Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-
-        return "/upload/images/" + filename;
+    @Override
+    protected String getStoragePath() {
+        return storagePath;
     }
 
-    public Path searchImage(String filename) {
-        return Paths.get(storagePath).resolve(filename);
+    @Override
+    protected String getReturnPath() {
+        return "/upload/images/";
     }
 }

@@ -3,28 +3,28 @@ package com.proautokimium.api.Infrastructure.services.storage;
 import com.proautokimium.api.Infrastructure.abstractions.storage.FileStorage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
-public class StorageService extends FileStorage {
-    @Value("${storage.curriculos.path}")
+public class EquipmentImageStorageService extends FileStorage {
+
+    @Value("${storage.equipment.image.path}")
     private String storagePath;
 
     @Override
-    protected String getStoragePath() {
+    public String getStoragePath() {
         return storagePath;
     }
 
     @Override
     protected String getReturnPath() {
-        return "";
+        return "/upload/equipment/images/";
     }
 
     @Override
-    protected String buildFileName(MultipartFile file, String prefix) {
-        String extension = StringUtils.getFilenameExtension(file.getOriginalFilename());
+    protected String buildFileName(MultipartFile file, String equipmentName) {
+        String safeName = equipmentName.replaceAll("[^a-zA-Z0-9_-]", "_");
 
-        return prefix + "." + extension;
+        return super.buildFileName(file, safeName);
     }
 }

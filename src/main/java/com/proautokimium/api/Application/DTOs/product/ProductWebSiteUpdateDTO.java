@@ -8,6 +8,8 @@ public record ProductWebSiteUpdateDTO(
         List<String> cores,
         String finalidade,
         String diluicao,
+        String concentracao,
+        String localUso,
         String descricao
 ) {
 }
