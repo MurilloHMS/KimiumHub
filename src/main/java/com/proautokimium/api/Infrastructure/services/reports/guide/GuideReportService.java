@@ -127,7 +127,7 @@ public class GuideReportService {
     private InputStream resolveProductImage(String filename) {
         if (filename == null || filename.isBlank()) return null;
         try {
-            Path path = productImageStorage.searchImage(extractFilename(filename));
+            Path path = productImageStorage.searchFile(extractFilename(filename));
             if (Files.exists(path)) return Files.newInputStream(path);
         } catch (IOException ex) {
             logger.error("Ocorreu um erro ao obter a imagem do produto: {}", ex.getMessage(), ex);
@@ -141,7 +141,7 @@ public class GuideReportService {
         for (EquipmentGuide eq : equipamentos) {
             if (eq.getImagem() == null || eq.getImagem().isBlank()) continue;
             try {
-                Path path = equipmentImageStorage.searchImage(extractFilename(eq.getImagem()));
+                Path path = equipmentImageStorage.searchFile(extractFilename(eq.getImagem()));
                 if (Files.exists(path)) streams.add(Files.newInputStream(path));
             } catch (IOException ex) {
                 logger.error("Ocorreu um erro ao obter a imagem do equipamento: {}", ex.getMessage(), ex);

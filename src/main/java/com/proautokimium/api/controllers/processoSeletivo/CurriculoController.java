@@ -27,7 +27,7 @@ public class CurriculoController {
 
     @GetMapping("/{fileName}")
     public ResponseEntity<Resource> getCurriculo(@PathVariable String fileName) throws IOException {
-        Path path = storageService.buscarCurriculo(fileName);
+        Path path = storageService.searchFile(fileName);
 
         if(!Files.exists(path))
             return ResponseEntity.notFound().build();

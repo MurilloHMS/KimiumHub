@@ -66,7 +66,7 @@ public class EquipmentGuideService {
         entity.setNome(dto.nome());
 
         if (imagem != null && !imagem.isEmpty()) {
-            String filename = storage.saveImage(imagem, dto.nome());
+            String filename = storage.save(imagem, dto.nome());
             entity.setImagem(filename);
         }
 
@@ -90,7 +90,7 @@ public class EquipmentGuideService {
         }
 
         if (imagem != null && !imagem.isEmpty()) {
-            String filename = storage.saveImage(imagem, entity.getNome());
+            String filename = storage.save(imagem, entity.getNome());
             entity.setImagem(filename);
         }
 
