@@ -108,7 +108,7 @@ public class MachineContractController {
         // Compila o sub-relatório uma vez, reutilizado em todos os PDFs
         JasperReport subreportCompilado;
         try (InputStream is = getClass().getResourceAsStream(
-                REPORT_BASE + "subreport-maquinas.jrxml")) {
+                REPORT_BASE + "subreport-maquinas.jasper")) {
             subreportCompilado = JasperCompileManager.compileReport(is);
         }
 
@@ -120,7 +120,7 @@ public class MachineContractController {
                 byte[] pdf = reportFactory.generatePdf(
                         buildParams(dto, matriz, subreportCompilado),
                         new JRBeanCollectionDataSource(matriz.getUnidades()),
-                        "machine-contract/machine-contract-v2.jrxml"
+                        "machine-contract/machine-contract-v2.jasper"
                 );
 
                 zip.putNextEntry(new ZipEntry(sanitizeFileName(matriz.getNomeMatriz()) + ".pdf"));
