@@ -35,7 +35,7 @@ public class ProductWebsiteService {
         ProductWebsite entity = converter.fromCreateDto(dto);
 
         if(imagem != null && !imagem.isEmpty()){
-            String filename = storage.saveImage(imagem, dto.systemCode());
+            String filename = storage.save(imagem, dto.systemCode());
             entity.setImagem(filename);
         }
         repository.save(entity);
@@ -47,7 +47,7 @@ public class ProductWebsiteService {
         converter.updateFromDto(dto, entity);
 
         if(imagem != null && !imagem.isEmpty()){
-            String filename = storage.saveImage(imagem, entity.getSystemCode());
+            String filename = storage.save(imagem, entity.getSystemCode());
             entity.setImagem(filename);
         }
         repository.save(entity);
