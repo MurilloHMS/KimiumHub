@@ -34,26 +34,9 @@ public class SecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/auth/login/android").permitAll()
-                        .requestMatchers(HttpMethod.POST ,"/api/contact").permitAll()
-                        .requestMatchers(HttpMethod.POST ,"/api/certificate").permitAll()
-                        .requestMatchers(HttpMethod.POST ,"/api/certificate/no-validation").permitAll()
-                        .requestMatchers(HttpMethod.POST ,"/api/auth/forgot-password").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/vaga/publicadas").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/candidatura").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/curriculos").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/public-secrets/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/product/website/active").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/upload/images/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/faq/public").permitAll()
-                        .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html"
-                        ).permitAll()
+                        .requestMatchers(HttpMethod.POST, SecurityPaths.PUBLIC_POST).permitAll()
+                        .requestMatchers(HttpMethod.GET, SecurityPaths.PUBLIC_GET).permitAll()
+                        .requestMatchers(SecurityPaths.SWAGGER).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
@@ -71,15 +54,9 @@ public class SecurityConfiguration {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(
-                        "https://proautokimium.com",
-                        "https://proautokimium.com.br",
-                        "https://www.proautokimium.com",
-                        "https://www.proautokimium.com.br",
-                        "http://proautokimium.com",
-                        "http://proautokimium.com.br",
-                        "http://www.proautokimium.com",
-                        "http://www.proautokimium.com.br")
+        configuration.setAllowedOriginPatterns(List.of(
+                        "https://*.proautokimium.com",
+                        "https://*.proautokimium.com.br")
                 );
         
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
