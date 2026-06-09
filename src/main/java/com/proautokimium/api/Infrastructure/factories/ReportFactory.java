@@ -2,6 +2,7 @@ package com.proautokimium.api.Infrastructure.factories;
 
 import com.proautokimium.api.Infrastructure.interfaces.reports.IReportFactory;
 import net.sf.jasperreports.engine.*;
+import net.sf.jasperreports.engine.util.JRLoader;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
@@ -151,8 +152,7 @@ public class ReportFactory implements IReportFactory {
                 );
             }
 
-            JasperReport report =
-                    JasperCompileManager.compileReport(jasperStream);
+            JasperReport report = loadReport(reportLocation);
 
             return JasperFillManager.fillReport(
                     report,
@@ -168,8 +168,24 @@ public class ReportFactory implements IReportFactory {
                 throw new FileNotFoundException( "Arquivo de relatório não encontrado: " + reportLocation );
             }
 
-            JasperReport report = JasperCompileManager.compileReport(jasperStream);
+            JasperReport report = loadReport(reportLocation);
             return JasperFillManager.fillReport( report, params, dataSource );
+        }
+    }
+
+    private JasperReport loadReport(String reportLocation) throws Exception {
+        try(InputStream stream = getClass().getResourceAsStream(REPORT_PATH + reportLocation)){
+
+            if(stream == null)
+                throw new FileNotFoundException("Arquivo de relatório não encontrado: " + reportLocation);
+
+            if(reportLocation.endsWith(".jasper"))
+                return (JasperReport) JRLoader.loadObject(stream);
+
+            if (reportLocation.endsWith(".jrxml"))
+                return JasperCompileManager.compileReport(stream);
+
+            throw new IllegalArgumentException("Formato de relatório não suportado: " + reportLocation);
         }
     }
 }
