@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 public class NewsletterOneFileReaderService extends ExcelReader<Newsletter> {
 
     @Override
-    protected int getFirstDataRow(){ return 3;}
+    protected int getFirstDataRow(){ return 1;}
 
     @Override
     protected Newsletter mapRow(Row row){
