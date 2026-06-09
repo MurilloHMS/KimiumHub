@@ -56,7 +56,9 @@ public class SecurityConfiguration {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(List.of(
                         "https://*.proautokimium.com",
-                        "https://*.proautokimium.com.br")
+                        "https://*.proautokimium.com.br",
+                        "https://proautokimium.com",
+                        "https://proautokimium.com.br")
                 );
         
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
