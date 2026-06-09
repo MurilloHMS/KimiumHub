@@ -7,6 +7,7 @@ import com.proautokimium.api.Application.DTOs.faq.FaqUpdateDTO;
 import com.proautokimium.api.Infrastructure.converters.FaqConverter;
 import com.proautokimium.api.Infrastructure.repositories.FaqRepository;
 import com.proautokimium.api.domain.entities.Faq;
+import com.proautokimium.api.domain.enums.StatusPostagem;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,7 +30,7 @@ public class FaqService {
     }
 
     public List<FaqPublicResponseDTO> getAllPublic(){
-        return repository.findAll().stream().map(converter::toPublicDto).toList();
+        return repository.findAllByStatus(StatusPostagem.PUBLICADO).stream().map(converter::toPublicDto).toList();
     }
 
     @Transactional

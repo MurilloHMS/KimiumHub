@@ -34,25 +34,25 @@ public class FaqController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Object> update(@RequestBody FaqUpdateDTO dto, @RequestParam("id")UUID id){
+    public ResponseEntity<Object> update(@RequestBody FaqUpdateDTO dto, @PathVariable("id") UUID id){
         service.update(id, dto);
         return ResponseEntity.status(HttpStatus.OK).body("Faq atualizado com sucesso!");
     }
 
     @PutMapping("/{id}/arquivar")
-    public ResponseEntity<Object> arquivar(@RequestParam("id")UUID id){
+    public ResponseEntity<Object> arquivar(@PathVariable("id") UUID id){
         service.setArchived(id);
         return ResponseEntity.status(HttpStatus.OK).body("Faq arquivado com sucesso!");
     }
 
     @PutMapping("/{id}/rascunho")
-    public ResponseEntity<Object> rascunho(@RequestParam("id")UUID id){
+    public ResponseEntity<Object> rascunho(@PathVariable("id") UUID id){
         service.setDraft(id);
         return ResponseEntity.status(HttpStatus.OK).body("Faq marcado como rascunho com sucesso!");
     }
 
     @PutMapping("/{id}/publicar")
-    public ResponseEntity<Object> publicar(@RequestParam("id")UUID id){
+    public ResponseEntity<Object> publicar(@PathVariable("id") UUID id){
         service.setPublished(id);
         return ResponseEntity.status(HttpStatus.OK).body("Faq publicado com sucesso!");
     }
