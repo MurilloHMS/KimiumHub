@@ -189,7 +189,7 @@ public class ProductInventoryService {
         	if(dayStock.isEmpty())
         		return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Não foram encontrados movimentos na data solicitada.");
         	
-        	byte[] writerResponse = writer.save(dayStock);
+        	byte[] writerResponse = writer.write(dayStock);
         	
         	return ResponseEntity.status(HttpStatus.OK)
         			.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=movements.xlsx")

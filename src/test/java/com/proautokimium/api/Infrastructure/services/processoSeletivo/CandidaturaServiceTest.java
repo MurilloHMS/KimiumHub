@@ -11,6 +11,7 @@ import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.Candid
 import com.proautokimium.api.Infrastructure.repositories.processoSeletivo.VagaRepository;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
 import com.proautokimium.api.Infrastructure.services.storage.StorageService;
+import com.proautokimium.api.domain.abstractions.Entity;
 import com.proautokimium.api.domain.entities.email.EmailQueue;
 import com.proautokimium.api.domain.entities.processoSeletivo.Candidato;
 import com.proautokimium.api.domain.entities.processoSeletivo.Candidatura;
@@ -27,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -126,10 +128,19 @@ class CandidaturaServiceTest {
     void deveCriarCandidaturaParaNovoCandidatoComCurriculo() throws IOException {
         MultipartFile curriculo = mock(MultipartFile.class);
         when(curriculo.isEmpty()).thenReturn(false);
-        when(storageService.salvarCurriculo(any(), any())).thenReturn("curriculo.pdf");
+        when(storageService.save(any(), any())).thenReturn("curriculo.pdf");
 
         when(candidatoRepository.findByEmail(any(Email.class))).thenReturn(Optional.empty());
-        when(candidatoRepository.save(any(Candidato.class))).thenReturn(candidato);
+        when(candidatoRepository.save(any(Candidato.class)))
+                .thenAnswer(invocation -> {
+                    Candidato c = invocation.getArgument(0);
+
+                    Field field = Entity.class.getDeclaredField("id");
+                    field.setAccessible(true);
+                    field.set(c, UUID.randomUUID());
+
+                    return c;
+                });
         when(vagaRepository.findById(vagaId)).thenReturn(Optional.of(vaga));
         when(candidaturaRepository.existsByCandidatoAndVaga(any(), any())).thenReturn(false);
         when(candidaturaRepository.save(any(Candidatura.class))).thenReturn(candidatura);
@@ -138,7 +149,7 @@ class CandidaturaServiceTest {
 
         candidaturaService.create(createDto, curriculo);
 
-        verify(storageService).salvarCurriculo(any(), any());
+        verify(storageService).save(any(), any());
         verify(candidaturaRepository).save(any(Candidatura.class));
     }
 
@@ -168,14 +179,26 @@ class CandidaturaServiceTest {
     // ─── avancarEtapa ────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("Deve avançar etapa e enviar e-mail de avanço")
-    void deveAvancarEtapa() {
-        when(candidaturaRepository.findById(candidaturaId)).thenReturn(Optional.of(candidatura));
-        when(candidaturaRepository.save(candidatura)).thenReturn(candidatura);
-        when(emailFactory.avancoEtapa(anyString(), anyString(), anyString()))
+    @DisplayName("Deve avançar etapa para CONTRATADO e enviar e-mail de aprovação")
+    void deveAvancarEtapaParaContratado() {
+        when(candidaturaRepository.findById(candidaturaId))
+                .thenReturn(Optional.of(candidatura));
+
+        when(candidaturaRepository.save(any(Candidatura.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(emailFactory.candidaturaAprovada(
+                anyString(),
+                anyString(),
+                anyString()))
                 .thenReturn(mock(EmailQueue.class));
 
         candidaturaService.avancarEtapa(candidaturaId);
+
+        verify(emailFactory).candidaturaAprovada(
+                anyString(),
+                anyString(),
+                anyString());
 
         verify(emailService).create(any(EmailQueue.class));
     }
