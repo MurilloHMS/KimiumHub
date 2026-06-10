@@ -84,21 +84,41 @@ public class VCardService implements IVCardService {
         // URL do cartão digital
         vcf.append("URL:")
                 .append(frontendUrl)
-                .append("/card/")
+                .append("/profile/")
                 .append(profile.getSlug())
                 .append("\n");
 
         // Descrição
-        if (hasText(profile.getDescricao())) {
+        StringBuilder note = new StringBuilder();
 
+        if (hasText(profile.getDescricao())) {
+            note.append(profile.getDescricao().trim());
+        }
+
+        if (profile.getRegioesAtendimento() != null && !profile.getRegioesAtendimento().isEmpty()) {
+
+            if (!note.isEmpty()) note.append("\n\n");
+
+            note.append("Regiões de atendimento: ")
+                    .append(String.join(", ", profile.getRegioesAtendimento()));
+        }
+
+        if (profile.getSegmentosAtendimento() != null && !profile.getSegmentosAtendimento().isEmpty()) {
+
+            if (!note.isEmpty()) note.append("\n\n");
+
+            note.append("Segmentos de atendimento: ")
+                    .append(String.join(", ", profile.getSegmentosAtendimento()));
+        }
+
+        if (!note.isEmpty()) {
             vcf.append("NOTE:")
-                    .append(sanitize(profile.getDescricao()))
-                    .append("\n");
+                    .append(sanitize(note.toString()))
+                    .append("\r\n");
         }
 
         // Redes sociais
         if (profile.getRedesSociais() != null) {
-
             for (RedeSocial rede : profile.getRedesSociais()) {
 
                 if (rede == null ||
@@ -111,34 +131,8 @@ public class VCardService implements IVCardService {
                         .append(rede.getTipo().toLowerCase())
                         .append(":")
                         .append(rede.getUrl())
-                        .append("\n");
+                        .append("\r\n");
             }
-        }
-
-        // Regiões de atendimento
-        if (profile.getRegioesAtendimento() != null &&
-                !profile.getRegioesAtendimento().isEmpty()) {
-
-            vcf.append("X-REGIOES:")
-                    .append(profile.getRegioesAtendimento()
-                            .stream()
-                            .map(this::sanitize)
-                            .reduce((a, b) -> a + "," + b)
-                            .orElse(""))
-                    .append("\n");
-        }
-
-        // Segmentos de atendimento
-        if (profile.getSegmentosAtendimento() != null &&
-                !profile.getSegmentosAtendimento().isEmpty()) {
-
-            vcf.append("X-SEGMENTOS:")
-                    .append(profile.getSegmentosAtendimento()
-                            .stream()
-                            .map(this::sanitize)
-                            .reduce((a, b) -> a + "," + b)
-                            .orElse(""))
-                    .append("\n");
         }
 
         vcf.append("END:VCARD");
