@@ -41,15 +41,6 @@ public class Profile extends com.proautokimium.api.domain.abstractions.Entity {
     @Column(length = 255)
     private String imagem;
 
-    @Column(length = 255)
-    private String banner;
-
-    @Column(length = 255)
-    private String site;
-
-    @Column(length = 255)
-    private String endereco;
-
     @Column(length = 1000)
     private String descricao;
 
