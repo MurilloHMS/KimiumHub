@@ -1,5 +1,9 @@
 package com.proautokimium.api.controllers;
 
+import com.proautokimium.api.Application.DTOs.profile.ProfileCreateDto;
+import com.proautokimium.api.Application.DTOs.profile.ProfileResponseDto;
+import com.proautokimium.api.Application.DTOs.profile.ProfileUpdateDto;
+import com.proautokimium.api.Infrastructure.converters.ProfileConverter;
 import com.proautokimium.api.Infrastructure.services.vcard.ProfileService;
 import com.proautokimium.api.Infrastructure.services.vcard.VCardService;
 import com.proautokimium.api.domain.entities.Profile;
@@ -20,24 +24,44 @@ public class VCardController {
 
     private final VCardService vCardService;
     private final ProfileService service;
+    private final ProfileConverter converter;
 
     @GetMapping
-    public ResponseEntity<?> getAll() {
+    public ResponseEntity<List<ProfileResponseDto>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ProfileResponseDto> getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(service.getById(id));
+    }
+
     @PostMapping
-    public ResponseEntity<Profile> create(@RequestBody Profile profile) {
-        return ResponseEntity.ok(service.create(profile));
+    public ResponseEntity<ProfileResponseDto> create(@RequestBody ProfileCreateDto dto) {
+        return ResponseEntity.ok(service.create(dto));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Profile> update(@PathVariable UUID id, @RequestBody Profile profile) {
-        return ResponseEntity.ok(service.update(id, profile));
+    public ResponseEntity<ProfileResponseDto> update(
+            @PathVariable UUID id,
+            @RequestBody ProfileUpdateDto dto) {
+        return ResponseEntity.ok(service.update(id, dto));
     }
 
-    @GetMapping("/{slug}/vcard")
-    public ResponseEntity<byte[]> download(@PathVariable String slug) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        service.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/public/{slug}")
+    public ResponseEntity<ProfileResponseDto> getBySlug(@PathVariable String slug) {
+        Optional<ProfileResponseDto> profile = service.findBySlug(slug).map(converter::toDto);
+        return ResponseEntity.ok(profile.get());
+    }
+
+    @GetMapping("/public/{slug}/vcard")
+    public ResponseEntity<byte[]> downloadVCard(@PathVariable String slug) {
         Optional<Profile> profile = service.findBySlug(slug);
 
         if (profile.isEmpty()) {

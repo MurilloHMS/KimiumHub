@@ -1,9 +1,13 @@
 package com.proautokimium.api.Infrastructure.services.vcard;
 
+import com.proautokimium.api.Application.DTOs.profile.ProfileCreateDto;
 import com.proautokimium.api.Application.DTOs.profile.ProfileResponseDto;
+import com.proautokimium.api.Application.DTOs.profile.ProfileUpdateDto;
 import com.proautokimium.api.Infrastructure.converters.ProfileConverter;
 import com.proautokimium.api.Infrastructure.repositories.ProfileRepository;
 import com.proautokimium.api.domain.entities.Profile;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,42 +23,49 @@ public class ProfileService {
     private final ProfileConverter converter;
 
     public List<ProfileResponseDto> getAll() {
-        return repository.findAll().stream().map(converter::toDto).toList();
+        return repository.findAll()
+                .stream()
+                .map(converter::toDto)
+                .toList();
+    }
+
+    public ProfileResponseDto getById(UUID id) {
+        Profile profile = repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Profile não encontrado: " + id));
+        return converter.toDto(profile);
     }
 
     public Optional<Profile> findBySlug(String slug) {
-        return repository.findBySlug(slug);
+        return repository.findBySlugAndAtivoTrue(slug);
     }
 
-    public Profile create(Profile profile) {
-        if (repository.existsBySlug(profile.getSlug())) {
-            throw new IllegalArgumentException("Já existe um profile com esse slug.");
+    @Transactional
+    public ProfileResponseDto create(ProfileCreateDto dto) {
+        if (repository.existsBySlug(dto.slug())) {
+            throw new IllegalArgumentException("Slug já em uso: " + dto.slug());
         }
-
-        return repository.save(profile);
+        Profile profile = converter.fromCreateDto(dto);
+        return converter.toDto(repository.save(profile));
     }
 
-    public Profile update(UUID id, Profile profileUpdated) {
+    @Transactional
+    public ProfileResponseDto update(UUID id, ProfileUpdateDto dto) {
         Profile profile = repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Profile não encontrado."));
+                .orElseThrow(() -> new EntityNotFoundException("Profile não encontrado: " + id));
 
-        Optional<Profile> existingBySlug = repository.findBySlug(profileUpdated.getSlug());
-        if (existingBySlug.isPresent() && !existingBySlug.get().getId().equals(id)) {
-            throw new IllegalArgumentException("Já existe um profile com esse slug.");
+        if (!profile.getSlug().equals(dto.slug()) && repository.existsBySlug(dto.slug())) {
+            throw new IllegalArgumentException("Slug já em uso: " + dto.slug());
         }
 
-        profile.setNome(profileUpdated.getNome());
-        profile.setSlug(profileUpdated.getSlug());
-        profile.setCargo(profileUpdated.getCargo());
-        profile.setEmail(profileUpdated.getEmail());
-        profile.setImagem(profileUpdated.getImagem());
-        profile.setDescricao(profileUpdated.getDescricao());
-        profile.setTelefones(profileUpdated.getTelefones());
-        profile.setRedesSociais(profileUpdated.getRedesSociais());
-        profile.setRegioesAtendimento(profileUpdated.getRegioesAtendimento());
-        profile.setSegmentosAtendimento(profileUpdated.getSegmentosAtendimento());
-        profile.setAtivo(profileUpdated.isAtivo());
+        converter.updateFromDto(dto, profile);
+        return converter.toDto(repository.save(profile));
+    }
 
-        return repository.save(profile);
+    @Transactional
+    public void delete(UUID id) {
+        Profile profile = repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Profile não encontrado: " + id));
+        profile.setAtivo(false);
+        repository.save(profile);
     }
 }
