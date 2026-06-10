@@ -14,7 +14,8 @@ public final class SecurityPaths {
             "/api/public-secrets/**",
             "/api/product/website/active",
             "/upload/images/**",
-            "/api/faq/public"
+            "/api/faq/public",
+            "/api/profile/public/**"
     };
 
     public static final String[] PUBLIC_POST ={
