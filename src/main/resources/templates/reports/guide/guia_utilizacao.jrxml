@@ -175,46 +175,46 @@
 		<element kind="rectangle" uuid="4764bea5-7026-488a-b739-734295604805" x="0" y="0" width="801" height="38" forecolor="#232E61" backcolor="#232E61">
 			<pen lineWidth="0.0"/>
 		</element>
-		<element kind="staticText" uuid="bba2fba6-1e38-4f21-aa7f-f960c5a8716f" x="10" y="2" width="220" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" vTextAlign="Middle">
+		<element kind="staticText" uuid="bba2fba6-1e38-4f21-aa7f-f960c5a8716f" x="10" y="2" width="220" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[EVITE O CONTATO COM OS OLHOS]]></text>
 		</element>
-		<element kind="staticText" uuid="6a23229c-bd39-419f-b7f1-9b11d071a915" x="10" y="18" width="220" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" vTextAlign="Middle">
+		<element kind="staticText" uuid="6a23229c-bd39-419f-b7f1-9b11d071a915" x="10" y="18" width="220" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[E O CONTATO PROLONGADO COM A PELE]]></text>
 		</element>
 		<element kind="image" uuid="d3db1257-9ec7-43a0-99fc-aa90ec34c2f9" x="390" y="2" width="32" height="32" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
 			<expression><![CDATA[$P{LOGO_MASCARA}]]></expression>
 		</element>
-		<element kind="staticText" uuid="bb87bbdb-08e4-42a4-9de5-c522ae4dd8cc" x="386" y="34" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="staticText" uuid="bb87bbdb-08e4-42a4-9de5-c522ae4dd8cc" x="386" y="25" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[Máscara]]></text>
 		</element>
 		<element kind="image" uuid="7e9022ad-13e8-4768-9e47-355d4aeef632" x="440" y="2" width="32" height="32" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
 			<expression><![CDATA[$P{LOGO_OCULOS}]]></expression>
 		</element>
-		<element kind="staticText" uuid="ac2e1957-c04a-4eac-aebc-ab1544b9736c" x="436" y="34" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="staticText" uuid="ac2e1957-c04a-4eac-aebc-ab1544b9736c" x="436" y="25" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[Óculos]]></text>
 		</element>
 		<element kind="image" uuid="538dfc4a-260a-4fbc-943d-42d388b03fc3" x="490" y="2" width="32" height="32" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
 			<expression><![CDATA[$P{LOGO_AVENTAL}]]></expression>
 		</element>
-		<element kind="staticText" uuid="125455a8-ec02-4f51-99f8-ba68b8de781a" x="486" y="34" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="staticText" uuid="125455a8-ec02-4f51-99f8-ba68b8de781a" x="486" y="25" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[Avental]]></text>
 		</element>
 		<element kind="image" uuid="e9f06f32-50c9-4b4b-bad9-83422d1ef17b" x="540" y="2" width="32" height="32" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
 			<expression><![CDATA[$P{LOGO_TOUCA}]]></expression>
 		</element>
-		<element kind="staticText" uuid="32e9a900-74f0-4e4a-990c-2808e4297d07" x="536" y="34" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="staticText" uuid="32e9a900-74f0-4e4a-990c-2808e4297d07" x="536" y="25" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[Touca]]></text>
 		</element>
 		<element kind="image" uuid="a2f0c27e-2775-4b0f-8981-2f3be16c9625" x="590" y="2" width="32" height="32" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
 			<expression><![CDATA[$P{LOGO_LUVA}]]></expression>
 		</element>
-		<element kind="staticText" uuid="d50bc420-5b64-4972-83f1-4ceb6821b474" x="586" y="34" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="staticText" uuid="d50bc420-5b64-4972-83f1-4ceb6821b474" x="586" y="25" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[Luva]]></text>
 		</element>
 		<element kind="image" uuid="99411786-ecb1-4fab-b38a-e843ca3efe3f" x="640" y="2" width="32" height="32" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
 			<expression><![CDATA[$P{LOGO_BOTA}]]></expression>
 		</element>
-		<element kind="staticText" uuid="65f1905e-f74c-46ae-a34d-dd25d68e1378" x="636" y="34" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="staticText" uuid="65f1905e-f74c-46ae-a34d-dd25d68e1378" x="636" y="25" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[Bota]]></text>
 		</element>
 	</pageFooter>
