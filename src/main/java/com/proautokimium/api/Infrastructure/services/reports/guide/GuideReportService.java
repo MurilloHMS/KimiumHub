@@ -15,6 +15,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -107,6 +112,9 @@ public class GuideReportService {
     // ── Conversão produto → DTO ─────────────────────────────────────────────
 
     private GuideReportRowDTO toRow(ProductWebsite p) {
+        String primeiraCorHex = (p.getCores() != null && !p.getCores().isEmpty())
+                ? p.getCores().get(0)
+                : null;
         return new GuideReportRowDTO(
                 p.getName(),
                 p.getSystemCode(),
@@ -118,7 +126,8 @@ public class GuideReportService {
                 p.getConcentracao(),
                 p.getLocalUso(),
                 buildEquipNomes(p.getEquipmentGuides()),
-                resolveEquipImagens(p.getEquipmentGuides())
+                resolveEquipImagens(p.getEquipmentGuides()),
+                gerarCirculoCor(primeiraCorHex)
         );
     }
 
@@ -183,5 +192,30 @@ public class GuideReportService {
             logger.error("Ocorreu um erro obter a logo da empresa: {}", ex.getMessage(), ex);
         }
         return null;
+    }
+
+    public static InputStream gerarCirculoCor(String hexColor) {
+        try {
+            int r = 200, g = 200, b = 200;
+            if (hexColor != null && hexColor.startsWith("#") && hexColor.length() >= 7) {
+                r = Integer.parseInt(hexColor.substring(1, 3), 16);
+                g = Integer.parseInt(hexColor.substring(3, 5), 16);
+                b = Integer.parseInt(hexColor.substring(5, 7), 16);
+            }
+            BufferedImage img = new BufferedImage(28, 28, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = img.createGraphics();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setColor(new Color(r, g, b));
+            g2d.fillOval(0, 0, 28, 28);
+            g2d.setColor(new Color(150, 150, 150));
+            g2d.setStroke(new BasicStroke(1.0f));
+            g2d.drawOval(0, 0, 27, 27);
+            g2d.dispose();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(img, "png", baos);
+            return new ByteArrayInputStream(baos.toByteArray());
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
