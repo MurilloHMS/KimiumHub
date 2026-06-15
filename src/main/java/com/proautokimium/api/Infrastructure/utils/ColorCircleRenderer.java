@@ -1,5 +1,7 @@
 package com.proautokimium.api.Infrastructure.utils;
 
+import org.springframework.stereotype.Component;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -23,8 +25,8 @@ import java.util.List;
  */
 public class ColorCircleRenderer {
 
-    private static final int SVG_WIDTH  = 44;
-    private static final int SVG_HEIGHT = 44;
+    private static final int SVG_WIDTH  = 25;
+    private static final int SVG_HEIGHT = 25;
     private static final int CIRCLE_R   = 9;
     private static final int PADDING    = 2;
 
