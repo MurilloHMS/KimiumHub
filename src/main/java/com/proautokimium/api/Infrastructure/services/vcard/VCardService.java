@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 
 @Service
 public class VCardService implements IVCardService {
@@ -20,75 +21,71 @@ public class VCardService implements IVCardService {
 
         StringBuilder vcf = new StringBuilder();
 
-        vcf.append("BEGIN:VCARD\n");
-        vcf.append("VERSION:3.0\n");
+        vcf.append("BEGIN:VCARD\r\n");
+        vcf.append("VERSION:3.0\r\n");
+        vcf.append("PRODID:-//Proauto Kimium//vCard 1.0//BR\r\n");
+        vcf.append("UID:").append(profile.getSlug()).append("\r\n");
 
-        // Nome completo
         vcf.append("FN:")
                 .append(sanitize(profile.getNome()))
-                .append("\n");
+                .append("\r\n");
 
-        // Nome estruturado
-        vcf.append("N:;")
+        vcf.append("N:")
                 .append(sanitize(profile.getNome()))
-                .append(";;;\n");
+                .append(";;;;\r\n");
 
-        // Empresa
-        vcf.append("ORG:Proauto Kimium\n");
+        vcf.append("ORG:")
+                .append(hasText(profile.getEmpresa()) ? sanitize(profile.getEmpresa()) : "Proauto Kimium")
+                .append("\r\n");
 
-        // Cargo
         if (hasText(profile.getCargo())) {
             vcf.append("TITLE:")
                     .append(sanitize(profile.getCargo()))
-                    .append("\n");
+                    .append("\r\n");
         }
 
-        // E-mail
-        if (profile.getEmail() != null &&
-                hasText(profile.getEmail().getAddress())) {
-
+        if (profile.getEmail() != null && hasText(profile.getEmail().getAddress())) {
             vcf.append("EMAIL;TYPE=WORK:")
                     .append(profile.getEmail().getAddress())
-                    .append("\n");
+                    .append("\r\n");
         }
 
-        // Telefones
         if (profile.getTelefones() != null) {
 
-            for (TelefoneContato telefone : profile.getTelefones()) {
+            for (TelefoneContato t : profile.getTelefones()) {
 
-                if (telefone == null || !hasText(telefone.getNumero())) {
-                    continue;
-                }
+                if (t == null || !hasText(t.getNumero())) continue;
 
-                String tipo = hasText(telefone.getTipo())
-                        ? telefone.getTipo().toUpperCase()
-                        : "CELL";
+                String raw = t.getNumero();
+                String phone = normalizePhone(raw);
 
                 vcf.append("TEL;TYPE=")
-                        .append(tipo)
+                        .append(mapPhoneType(t.getTipo()))
                         .append(":")
-                        .append(telefone.getNumero())
-                        .append("\n");
+                        .append(phone)
+                        .append("\r\n");
+
+                if (isWhatsApp(t.getTipo())) {
+
+                    vcf.append("URL;TYPE=WHATSAPP:")
+                            .append(buildWhatsAppLink(raw))
+                            .append("\r\n");
+                }
             }
         }
 
-        // Foto
         if (hasText(profile.getImagem())) {
-
             vcf.append("PHOTO;VALUE=URI:")
                     .append(profile.getImagem())
-                    .append("\n");
+                    .append("\r\n");
         }
 
-        // URL do cartão digital
         vcf.append("URL:")
                 .append(frontendUrl)
                 .append("/profile/")
                 .append(profile.getSlug())
-                .append("\n");
+                .append("\r\n");
 
-        // Descrição
         StringBuilder note = new StringBuilder();
 
         if (hasText(profile.getDescricao())) {
@@ -96,17 +93,13 @@ public class VCardService implements IVCardService {
         }
 
         if (profile.getRegioesAtendimento() != null && !profile.getRegioesAtendimento().isEmpty()) {
-
             if (!note.isEmpty()) note.append("\n\n");
-
             note.append("Regiões de atendimento: ")
                     .append(String.join(", ", profile.getRegioesAtendimento()));
         }
 
         if (profile.getSegmentosAtendimento() != null && !profile.getSegmentosAtendimento().isEmpty()) {
-
             if (!note.isEmpty()) note.append("\n\n");
-
             note.append("Segmentos de atendimento: ")
                     .append(String.join(", ", profile.getSegmentosAtendimento()));
         }
@@ -117,34 +110,69 @@ public class VCardService implements IVCardService {
                     .append("\r\n");
         }
 
-        // Redes sociais
         if (profile.getRedesSociais() != null) {
+
             for (RedeSocial rede : profile.getRedesSociais()) {
 
-                if (rede == null ||
-                        !hasText(rede.getTipo()) ||
-                        !hasText(rede.getUrl())) {
-                    continue;
-                }
+                if (rede == null || !hasText(rede.getUrl())) continue;
 
-                vcf.append("X-SOCIALPROFILE;TYPE=")
-                        .append(rede.getTipo().toLowerCase())
-                        .append(":")
+                vcf.append("URL:")
                         .append(rede.getUrl())
                         .append("\r\n");
             }
         }
 
-        vcf.append("END:VCARD");
+        vcf.append("REV:")
+                .append(Instant.now().toString())
+                .append("\r\n");
+
+        vcf.append("END:VCARD\r\n");
 
         return vcf.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-    private String sanitize(String value) {
+    private String mapPhoneType(String tipo) {
+        if (tipo == null) return "CELL";
 
-        if (value == null) {
-            return "";
+        return switch (tipo.toUpperCase()) {
+            case "CELULAR" -> "CELL";
+            case "TELEFONE" -> "WORK";
+            case "FIXO" -> "HOME";
+            case "WHATSAPP" -> "CELL";
+            default -> "CELL";
+        };
+    }
+
+    private boolean isWhatsApp(String tipo) {
+        return "WHATSAPP".equalsIgnoreCase(tipo);
+    }
+
+    private String normalizePhone(String phone) {
+        if (phone == null) return "";
+
+        String digits = phone.replaceAll("\\D", "");
+        digits = digits.replaceFirst("^0+", "");
+
+        if (!digits.startsWith("55")) {
+            digits = "55" + digits;
         }
+
+        return "+" + digits;
+    }
+
+    private String buildWhatsAppLink(String phone) {
+        String digits = phone.replaceAll("\\D", "");
+        digits = digits.replaceFirst("^0+", "");
+
+        if (!digits.startsWith("55")) {
+            digits = "55" + digits;
+        }
+
+        return "https://wa.me/" + digits;
+    }
+
+    private String sanitize(String value) {
+        if (value == null) return "";
 
         return value
                 .replace("\\", "\\\\")
