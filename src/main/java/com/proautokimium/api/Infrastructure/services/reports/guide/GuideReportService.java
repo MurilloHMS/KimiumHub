@@ -7,6 +7,7 @@ import com.proautokimium.api.Infrastructure.factories.ReportFactory;
 import com.proautokimium.api.Infrastructure.repositories.ProductWebSiteRepository;
 import com.proautokimium.api.Infrastructure.services.storage.EquipmentImageStorageService;
 import com.proautokimium.api.Infrastructure.services.storage.ProductImageStorageService;
+import com.proautokimium.api.Infrastructure.utils.ColorCircleRenderer;
 import com.proautokimium.api.domain.entities.EquipmentGuide;
 import com.proautokimium.api.domain.entities.ProductWebsite;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
@@ -15,6 +16,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -107,6 +113,9 @@ public class GuideReportService {
     // ── Conversão produto → DTO ─────────────────────────────────────────────
 
     private GuideReportRowDTO toRow(ProductWebsite p) {
+        String primeiraCorHex = (p.getCores() != null && !p.getCores().isEmpty())
+                ? p.getCores().get(0)
+                : null;
         return new GuideReportRowDTO(
                 p.getName(),
                 p.getSystemCode(),
@@ -118,7 +127,8 @@ public class GuideReportService {
                 p.getConcentracao(),
                 p.getLocalUso(),
                 buildEquipNomes(p.getEquipmentGuides()),
-                resolveEquipImagens(p.getEquipmentGuides())
+                resolveEquipImagens(p.getEquipmentGuides()),
+                ColorCircleRenderer.render(primeiraCorHex)
         );
     }
 

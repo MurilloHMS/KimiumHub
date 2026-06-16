@@ -20,159 +20,201 @@
 	<field name="equipamentos" class="java.lang.String"/>
 	<field name="equipImagens" class="java.util.List"/>
 	<field name="descricao" class="java.lang.String"/>
-	<pageHeader height="60" splitType="Stretch">
-		<element kind="rectangle" uuid="d4e9193b-440d-4a7e-84a1-893f8e19940f" x="0" y="0" width="801" height="60" forecolor="#1A3A5C" backcolor="#FFFFFF">
+	<field name="circuloCorImagem" class="java.io.InputStream"/>
+	<pageHeader height="65" splitType="Stretch">
+		<element kind="rectangle" uuid="283ff82b-8bb0-4dc2-8251-c6ce7da5807d" x="0" y="0" width="801" height="65" forecolor="#FFFFFF" backcolor="#FFFFFF">
 			<pen lineWidth="0.0"/>
 		</element>
-		<element kind="image" uuid="d28255e6-18c1-4dd9-8526-6eb451d786a6" x="5" y="5" width="90" height="50" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
+		<element kind="rectangle" uuid="88c74190-13e1-4ba9-97f2-d6a5a1c032b9" x="0" y="62" width="801" height="3" forecolor="#1A3A5C" backcolor="#1A3A5C">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="image" uuid="b5c7ead4-7845-4fc4-9882-1480c0358183" x="5" y="5" width="80" height="52" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
 			<printWhenExpression><![CDATA[$P{LOGO_EMPRESA} != null]]></printWhenExpression>
 			<expression><![CDATA[$P{LOGO_EMPRESA}]]></expression>
 		</element>
-		<element kind="staticText" uuid="b708b786-af05-4e72-867b-074914fa57e0" x="104" y="10" width="204" height="40" forecolor="#1A3A5C" fontSize="18.0" bold="true" vTextAlign="Middle">
+		<element kind="line" uuid="76d44066-25a9-4037-9e1d-9417e2f0cfd4" x="90" y="8" width="1" height="46" forecolor="#CCCCCC">
+			<pen lineWidth="0.8"/>
+		</element>
+		<element kind="staticText" uuid="894d35d5-351a-4f8f-9a1f-55c4b8076fcc" x="97" y="10" width="188" height="40" forecolor="#1A3A5C" fontSize="16.0" bold="true" vTextAlign="Middle">
 			<text><![CDATA[GUIA DE UTILIZAÇÃO:]]></text>
 		</element>
-		<element kind="textField" uuid="8acbd186-a56b-4aaa-8a62-859c3ea90d54" x="303" y="10" width="240" height="38" forecolor="#00C8B4" fontSize="18.0" bold="true" vTextAlign="Middle">
+		<element kind="textField" uuid="66e2e0e5-9cce-4364-beca-34fdd22ee75f" x="288" y="10" width="240" height="40" forecolor="#00B4A0" fontSize="16.0" bold="true" vTextAlign="Middle">
 			<expression><![CDATA[$P{TITULO_GUIA} != null ? $P{TITULO_GUIA}.toUpperCase() : "GERAL"]]></expression>
 		</element>
-		<element kind="image" uuid="a6a83bf2-a4bc-4e8d-8ac7-020693f3f30c" x="670" y="5" width="125" height="50" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
+		<element kind="image" uuid="32ee0cb7-ef01-4e80-9b8c-f430dccf3bfc" x="668" y="4" width="128" height="54" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
 			<printWhenExpression><![CDATA[$P{LOGO_CLIENTE} != null]]></printWhenExpression>
 			<expression><![CDATA[$P{LOGO_CLIENTE}]]></expression>
 		</element>
 	</pageHeader>
-	<columnHeader height="20" splitType="Stretch">
-		<element kind="rectangle" uuid="a3b7ecef-d41f-46b8-855a-77c0314b51be" x="0" y="0" width="801" height="20" forecolor="#1A3A5C" backcolor="#232E61">
+	<columnHeader height="22" splitType="Stretch">
+		<element kind="rectangle" uuid="43b19a43-b21c-4f56-b34b-d491b74152e7" x="0" y="0" width="801" height="22" forecolor="#232E61" backcolor="#232E61">
 			<pen lineWidth="0.0"/>
 		</element>
-		<element kind="staticText" uuid="40a6d97f-a86d-4a4e-96b8-011ca52a8ac4" x="2" y="0" width="80" height="20" forecolor="#FFFFFF" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="staticText" uuid="91da2e65-881d-45e0-bbf2-55f911a19ba2" x="0" y="0" width="80" height="22" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[PRODUTO]]></text>
 		</element>
-		<element kind="staticText" uuid="9ea729ab-f083-4a00-a139-f287878d9092" x="82" y="0" width="50" height="20" forecolor="#FFFFFF" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="line" uuid="991fae39-7a21-41a0-a3b1-4f1095b22218" x="80" y="3" width="1" height="16" forecolor="#FFFFFF">
+			<pen lineWidth="0.5"/>
+		</element>
+		<element kind="staticText" uuid="2064cadc-ea3d-466a-b9cc-86dcd0dddef3" x="81" y="0" width="52" height="22" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[CÓDIGO]]></text>
 		</element>
-		<element kind="staticText" uuid="423d71c2-68dd-4b58-9822-97c22c8dc4f6" x="132" y="0" width="45" height="20" forecolor="#FFFFFF" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="line" uuid="a1c09d11-4444-481d-8e5a-f3933f7fcdc0" x="133" y="3" width="1" height="16" forecolor="#FFFFFF">
+			<pen lineWidth="0.5"/>
+		</element>
+		<element kind="staticText" uuid="cc7a7491-fa6c-4d03-b4e9-9774b028ddd1" x="134" y="0" width="46" height="22" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[COR]]></text>
 		</element>
-		<element kind="staticText" uuid="11edd144-a5d8-41fd-9a09-76d2a5053ee8" x="177" y="0" width="200" height="20" forecolor="#FFFFFF" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="line" uuid="1f614064-62b3-466d-ab3f-02ae8cefd2d6" x="180" y="3" width="1" height="16" forecolor="#FFFFFF">
+			<pen lineWidth="0.5"/>
+		</element>
+		<element kind="staticText" uuid="77d6decf-8706-49ab-8206-5ccdcc53fa58" x="181" y="0" width="196" height="22" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[FINALIDADE]]></text>
 		</element>
-		<element kind="staticText" uuid="9bc4e08b-6b78-4338-968a-836b40240ab4" x="377" y="0" width="70" height="20" forecolor="#FFFFFF" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="line" uuid="6f0e56d0-161f-4dca-bf41-cb013b8bd4cc" x="377" y="3" width="1" height="16" forecolor="#FFFFFF">
+			<pen lineWidth="0.5"/>
+		</element>
+		<element kind="staticText" uuid="c38bdfec-5ced-4fb3-9b8a-c21cd8f3847b" x="378" y="0" width="70" height="22" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[DILUIÇÃO]]></text>
 		</element>
-		<element kind="staticText" uuid="290ac818-22ca-4e86-86eb-21a57520db59" x="447" y="0" width="80" height="20" forecolor="#FFFFFF" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="line" uuid="cf6a5ccf-60f5-4fab-9a2c-184cf133f42c" x="448" y="3" width="1" height="16" forecolor="#FFFFFF">
+			<pen lineWidth="0.5"/>
+		</element>
+		<element kind="staticText" uuid="a3c498b7-ba62-4a12-b8a6-d2184e007c92" x="449" y="0" width="80" height="22" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[CONCENTRAÇÃO]]></text>
 		</element>
-		<element kind="staticText" uuid="d6d52ddd-5e6c-4666-a2ea-d380399d5c9b" x="527" y="0" width="90" height="20" forecolor="#FFFFFF" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="line" uuid="e9b1488c-006b-4f2f-9743-93c54fba5575" x="529" y="3" width="1" height="16" forecolor="#FFFFFF">
+			<pen lineWidth="0.5"/>
+		</element>
+		<element kind="staticText" uuid="1d6b6be1-8f6e-4407-a1dd-64531ecac69c" x="530" y="0" width="90" height="22" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[LOCAL DE USO]]></text>
 		</element>
-		<element kind="staticText" uuid="327a372b-5a2f-4f76-b729-ade461cd30ed" x="617" y="0" width="184" height="20" forecolor="#FFFFFF" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="line" uuid="c0e41ff1-6484-437e-963e-ea82f6c9a185" x="620" y="3" width="1" height="16" forecolor="#FFFFFF">
+			<pen lineWidth="0.5"/>
+		</element>
+		<element kind="staticText" uuid="e32c9ee0-dca1-458e-b91e-90f86cd36a8f" x="621" y="0" width="180" height="22" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[EQUIPAMENTOS]]></text>
 		</element>
 	</columnHeader>
 	<detail>
-		<band height="60" splitType="Prevent">
-			<element kind="rectangle" uuid="3088c491-c082-45c0-b8a7-8f788a67b31a" x="0" y="0" width="801" height="59" forecolor="#CCCCCC" backcolor="#F0F4F8">
+		<band height="65" splitType="Prevent">
+			<element kind="rectangle" uuid="d002221b-d366-4a33-9ee4-ab94baae2241" x="0" y="0" width="801" height="64" forecolor="#E8EEF4" backcolor="#EEF3F8">
 				<printWhenExpression><![CDATA[$V{REPORT_COUNT} % 2 == 0]]></printWhenExpression>
-				<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				<pen lineWidth="0.3"/>
+				<pen lineWidth="0.0"/>
 			</element>
-			<element kind="rectangle" uuid="77668c38-23c7-4a59-af0e-65f7faba412a" x="0" y="0" width="801" height="59" forecolor="#CCCCCC" backcolor="#FFFFFF">
+			<element kind="rectangle" uuid="38374c87-06e2-4acd-a6cf-aa3b0eff89e7" x="0" y="0" width="801" height="64" forecolor="#FFFFFF" backcolor="#FFFFFF">
 				<printWhenExpression><![CDATA[$V{REPORT_COUNT} % 2 != 0]]></printWhenExpression>
-				<pen lineWidth="0.3"/>
+				<pen lineWidth="0.0"/>
 			</element>
-			<element kind="image" uuid="a03e558c-8533-4a30-8c8a-7b25411451c0" x="23" y="17" width="35" height="35" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
+			<element kind="textField" uuid="4b94c097-41b5-4860-b54a-6034c854c967" x="2" y="3" width="76" height="13" fontSize="7.0" textAdjust="StretchHeight" bold="true" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$F{nome} != null ? $F{nome}.toUpperCase() : ""]]></expression>
+			</element>
+			<element kind="image" uuid="beb0dc75-1654-4b1c-8b6a-0a5d6a62dba6" x="18" y="17" width="44" height="40" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
 				<printWhenExpression><![CDATA[$F{imagemUrl} != null]]></printWhenExpression>
 				<expression><![CDATA[$F{imagemUrl}]]></expression>
-				<property name="com.jaspersoft.studio.unit.width" value="px"/>
-				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 			</element>
-			<element kind="textField" uuid="32cb625b-f9fb-4b29-8098-6920ce40b42c" x="23" y="3" width="38" height="11" fontSize="6.0" textAdjust="StretchHeight" hTextAlign="Center" vTextAlign="Middle">
-				<expression><![CDATA[$F{nome}]]></expression>
+			<element kind="line" uuid="94b99220-6d1a-4723-8ea1-0e2de554eb39" x="80" y="2" width="1" height="60" forecolor="#DDDDDD">
+				<pen lineWidth="0.5"/>
 			</element>
-			<element kind="textField" uuid="655337eb-9013-4f0e-b3ad-1805e99a6d45" x="82" y="0" width="50" height="55" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
-				<expression><![CDATA[$F{systemCode}]]></expression>
+			<element kind="textField" uuid="ce238751-5441-4b85-ab9d-406a310006f8" x="81" y="0" width="52" height="64" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$F{systemCode} != null ? $F{systemCode} : "—"]]></expression>
 			</element>
-			<element kind="textField" uuid="48da1941-ae95-41d4-a05e-61d13eabcbcf" x="177" y="3" width="198" height="17" fontSize="8.0" textAdjust="StretchHeight" bold="true" hTextAlign="Center" vTextAlign="Middle">
-				<expression><![CDATA[$F{finalidade} != null ? $F{finalidade} : "—"]]></expression>
+			<element kind="line" uuid="38619f6e-0dab-4f86-8e0f-ac71b67dfac1" x="133" y="2" width="1" height="60" forecolor="#DDDDDD">
+				<pen lineWidth="0.5"/>
 			</element>
-			<element kind="textField" uuid="2155bbf4-f15f-4c9b-9b2a-1c508f10951b" x="377" y="0" width="70" height="55" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<element kind="textField" uuid="dfec793c-c45b-4e33-b566-94086997bc28" x="134" y="4" width="46" height="12" fontSize="6.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$F{coresHex} != null ? $F{coresHex}.toUpperCase() : ""]]></expression>
+			</element>
+			<element kind="image" uuid="1fe1f048-ad74-49e3-962b-31b063b37c2d" x="143" y="18" width="28" height="28" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
+				<printWhenExpression><![CDATA[$F{circuloCorImagem} != null]]></printWhenExpression>
+				<expression><![CDATA[$F{circuloCorImagem}]]></expression>
+			</element>
+			<element kind="line" uuid="aeb80c61-0f72-4cb5-840f-de70ea5a8eb9" x="180" y="2" width="1" height="60" forecolor="#DDDDDD">
+				<pen lineWidth="0.5"/>
+			</element>
+			<element kind="textField" uuid="d98244ec-9e3f-47ce-9c7c-d361d37a0f4f" x="181" y="4" width="195" height="20" fontSize="8.0" textAdjust="StretchHeight" bold="true" hTextAlign="Center" vTextAlign="Middle">
+				<expression><![CDATA[$F{finalidade} != null ? $F{finalidade}.toUpperCase() : "—"]]></expression>
+			</element>
+			<element kind="textField" uuid="7b7f802e-35b9-4be5-8730-826078457bcf" x="181" y="26" width="195" height="34" fontSize="6.5" textAdjust="StretchHeight" hTextAlign="Center" vTextAlign="Top">
+				<expression><![CDATA[$F{descricao} != null ? $F{descricao} : ""]]></expression>
+			</element>
+			<element kind="line" uuid="1de89656-9d00-4b52-a2b8-44e7e14d9c6c" x="377" y="2" width="1" height="60" forecolor="#DDDDDD">
+				<pen lineWidth="0.5"/>
+			</element>
+			<element kind="textField" uuid="151226a4-3a27-4f81-94db-a3431f4c04b2" x="378" y="0" width="70" height="64" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
 				<expression><![CDATA[$F{diluicao} != null ? $F{diluicao} : "—"]]></expression>
 			</element>
-			<element kind="textField" uuid="acf0b2fa-5c77-4040-8790-0adf3f966a64" x="447" y="0" width="80" height="55" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<element kind="line" uuid="5b89d1c7-0aa1-44ea-b8d7-4abddc6fc216" x="448" y="2" width="1" height="60" forecolor="#DDDDDD">
+				<pen lineWidth="0.5"/>
+			</element>
+			<element kind="textField" uuid="b28707ec-d3d2-41bc-a3de-77bdaf88f663" x="449" y="0" width="80" height="64" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
 				<expression><![CDATA[$F{concentracao} != null ? $F{concentracao} : "—"]]></expression>
 			</element>
-			<element kind="textField" uuid="bd22a9a1-b206-4529-8595-4fbec182d8ef" x="527" y="3" width="88" height="49" fontSize="7.0" textAdjust="StretchHeight" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<element kind="line" uuid="c55713a4-02dd-4302-a71c-65ac4b044248" x="529" y="2" width="1" height="60" forecolor="#DDDDDD">
+				<pen lineWidth="0.5"/>
+			</element>
+			<element kind="textField" uuid="7f716e96-5cca-4dce-8693-a5683dda2aa0" x="530" y="3" width="89" height="58" fontSize="7.0" textAdjust="StretchHeight" bold="true" hTextAlign="Center" vTextAlign="Middle">
 				<expression><![CDATA[$F{localUso} != null ? $F{localUso} : "—"]]></expression>
 			</element>
-			<element kind="image" uuid="1ea17036-c423-4c01-97a2-73cccf9d32e3" x="700" y="2" width="38" height="46" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
+			<element kind="line" uuid="8308d9dc-0d26-46e2-a581-fa1efcac24c4" x="620" y="2" width="1" height="60" forecolor="#DDDDDD">
+				<pen lineWidth="0.5"/>
+			</element>
+			<element kind="image" uuid="86f4adc6-f0f5-49b3-8117-eaf17811455c" x="680" y="2" width="42" height="44" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
 				<printWhenExpression><![CDATA[$F{equipImagens} != null && !$F{equipImagens}.isEmpty()]]></printWhenExpression>
 				<expression><![CDATA[(java.io.InputStream) $F{equipImagens}.get(0)]]></expression>
 			</element>
-			<element kind="textField" uuid="0d38c791-bb19-4ca2-b69b-b08f30318dc0" x="657" y="39" width="141" height="14" fontSize="6.0" textAdjust="StretchHeight" hTextAlign="Center" vTextAlign="Middle">
+			<element kind="textField" uuid="009e8ef2-4c9a-4639-9436-a710df665b4a" x="621" y="48" width="179" height="14" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
 				<expression><![CDATA[$F{equipamentos} != null ? $F{equipamentos} : "—"]]></expression>
 			</element>
-			<element kind="line" uuid="15f96436-2f5c-4ac1-9697-b1f02ae1f11b" x="0" y="58" width="801" height="1" forecolor="#CCDDEE">
+			<element kind="line" uuid="e9f2e73a-4660-4c4d-abbc-1212c446d160" x="0" y="63" width="801" height="1" forecolor="#CCDDEE">
 				<pen lineWidth="0.5"/>
-			</element>
-			<element kind="textField" uuid="6e27c2b8-e664-4bf0-b06a-57ac4dc3700e" x="177" y="25" width="198" height="30" fontSize="6.0" textAdjust="StretchHeight" hTextAlign="Center" vTextAlign="Top">
-				<expression><![CDATA[$F{descricao} != null ? $F{descricao} : "—"]]></expression>
-				<property name="com.jaspersoft.studio.unit.x" value="pixel"/>
-				<property name="com.jaspersoft.studio.unit.y" value="px"/>
-				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 			</element>
 		</band>
 	</detail>
-	<pageFooter height="60" splitType="Stretch">
-		<element kind="rectangle" uuid="60aca969-a004-43b0-a0cf-2e3a61ee17a0" x="0" y="0" width="801" height="39" forecolor="#1A3A5C" backcolor="#232E61">
+	<pageFooter height="55" splitType="Stretch">
+		<element kind="rectangle" uuid="4764bea5-7026-488a-b739-734295604805" x="0" y="0" width="801" height="38" forecolor="#232E61" backcolor="#232E61">
 			<pen lineWidth="0.0"/>
 		</element>
-		<element kind="frame" uuid="9fd907b7-403c-4231-b451-7ffd3efd5775" x="99" y="2" width="190" height="31">
-			<element kind="staticText" uuid="6a1c24be-d309-4356-8356-0ca70efeb6d8" x="0" y="0" width="190" height="20" forecolor="#FFFFFF" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
-				<text><![CDATA[EVITE O CONTATO COM OS OLHOS]]></text>
-			</element>
-			<element kind="staticText" uuid="d8e0ebd0-4aa1-47fb-be78-c01a5487b4af" x="0" y="11" width="190" height="20" forecolor="#FFFFFF" fontSize="8.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
-				<text><![CDATA[E O CONTATO PROLONGADO COM A PELE]]></text>
-			</element>
+		<element kind="staticText" uuid="bba2fba6-1e38-4f21-aa7f-f960c5a8716f" x="10" y="2" width="220" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<text><![CDATA[EVITE O CONTATO COM OS OLHOS]]></text>
 		</element>
-		<element kind="image" uuid="c133172c-bd55-4895-9efe-528af1aed646" x="450" y="1" width="32" height="32">
+		<element kind="staticText" uuid="6a23229c-bd39-419f-b7f1-9b11d071a915" x="10" y="18" width="220" height="16" forecolor="#FFFFFF" fontSize="7.5" bold="true" hTextAlign="Center" vTextAlign="Middle">
+			<text><![CDATA[E O CONTATO PROLONGADO COM A PELE]]></text>
+		</element>
+		<element kind="image" uuid="d3db1257-9ec7-43a0-99fc-aa90ec34c2f9" x="390" y="2" width="32" height="32" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
 			<expression><![CDATA[$P{LOGO_MASCARA}]]></expression>
-			<property name="com.jaspersoft.studio.unit.width" value="px"/>
 		</element>
-		<element kind="image" uuid="6baf641c-8632-4c6f-ac74-8e0bb72cd88b" x="526" y="1" width="32" height="32">
-			<expression><![CDATA[$P{LOGO_AVENTAL}]]></expression>
-			<property name="com.jaspersoft.studio.unit.width" value="px"/>
+		<element kind="staticText" uuid="bb87bbdb-08e4-42a4-9de5-c522ae4dd8cc" x="386" y="25" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
+			<text><![CDATA[Máscara]]></text>
 		</element>
-		<element kind="image" uuid="ef39bc73-a709-4483-8dee-77144d8d8e12" x="602" y="1" width="32" height="32">
-			<expression><![CDATA[$P{LOGO_LUVA}]]></expression>
-			<property name="com.jaspersoft.studio.unit.width" value="px"/>
-		</element>
-		<element kind="image" uuid="01561607-7fad-4c2c-8e67-23aa2b221694" x="488" y="1" width="32" height="32">
+		<element kind="image" uuid="7e9022ad-13e8-4768-9e47-355d4aeef632" x="440" y="2" width="32" height="32" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
 			<expression><![CDATA[$P{LOGO_OCULOS}]]></expression>
-			<property name="com.jaspersoft.studio.unit.width" value="px"/>
 		</element>
-		<element kind="image" uuid="dab42422-bdbc-4075-ab0d-a931fcfd98ac" x="564" y="1" width="32" height="32">
-			<expression><![CDATA[$P{LOGO_TOUCA}]]></expression>
-			<property name="com.jaspersoft.studio.unit.width" value="px"/>
-		</element>
-		<element kind="image" uuid="fc04d308-df69-4050-bfcc-5f188edddbf6" x="640" y="1" width="32" height="32">
-			<expression><![CDATA[$P{LOGO_BOTA}]]></expression>
-			<property name="com.jaspersoft.studio.unit.width" value="px"/>
-		</element>
-		<element kind="staticText" uuid="345dbf7b-176f-4468-af1f-4c9830062e1d" x="443" y="22" width="47" height="16" forecolor="#CDCDCD" fontSize="9.0" hTextAlign="Center" vTextAlign="Middle">
-			<text><![CDATA[Mascara]]></text>
-		</element>
-		<element kind="staticText" uuid="cc0107e6-8a5f-429c-a147-c803e31da76a" x="481" y="22" width="47" height="16" forecolor="#CDCDCD" fontSize="9.0" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="staticText" uuid="ac2e1957-c04a-4eac-aebc-ab1544b9736c" x="436" y="25" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[Óculos]]></text>
 		</element>
-		<element kind="staticText" uuid="14868ac7-f34d-44a5-a9cc-52f26268c38b" x="519" y="23" width="47" height="16" forecolor="#CDCDCD" fontSize="9.0" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="image" uuid="538dfc4a-260a-4fbc-943d-42d388b03fc3" x="490" y="2" width="32" height="32" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
+			<expression><![CDATA[$P{LOGO_AVENTAL}]]></expression>
+		</element>
+		<element kind="staticText" uuid="125455a8-ec02-4f51-99f8-ba68b8de781a" x="486" y="25" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[Avental]]></text>
 		</element>
-		<element kind="staticText" uuid="b0bc2e60-5075-4b6c-b075-cd3b3c9c0214" x="557" y="22" width="47" height="16" forecolor="#CDCDCD" fontSize="9.0" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="image" uuid="e9f06f32-50c9-4b4b-bad9-83422d1ef17b" x="540" y="2" width="32" height="32" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
+			<expression><![CDATA[$P{LOGO_TOUCA}]]></expression>
+		</element>
+		<element kind="staticText" uuid="32e9a900-74f0-4e4a-990c-2808e4297d07" x="536" y="25" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[Touca]]></text>
 		</element>
-		<element kind="staticText" uuid="6a4f29dd-dd57-48f4-a731-077ecbfcc998" x="595" y="23" width="47" height="16" forecolor="#CDCDCD" fontSize="9.0" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="image" uuid="a2f0c27e-2775-4b0f-8981-2f3be16c9625" x="590" y="2" width="32" height="32" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
+			<expression><![CDATA[$P{LOGO_LUVA}]]></expression>
+		</element>
+		<element kind="staticText" uuid="d50bc420-5b64-4972-83f1-4ceb6821b474" x="586" y="25" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[Luva]]></text>
 		</element>
-		<element kind="staticText" uuid="c4cb659f-6655-435f-9501-bce51bd0776c" x="633" y="23" width="47" height="16" forecolor="#CDCDCD" fontSize="9.0" hTextAlign="Center" vTextAlign="Middle">
+		<element kind="image" uuid="99411786-ecb1-4fab-b38a-e843ca3efe3f" x="640" y="2" width="32" height="32" scaleImage="RetainShape" hImageAlign="Center" vImageAlign="Middle">
+			<expression><![CDATA[$P{LOGO_BOTA}]]></expression>
+		</element>
+		<element kind="staticText" uuid="65f1905e-f74c-46ae-a34d-dd25d68e1378" x="636" y="25" width="40" height="14" forecolor="#AAAAAA" fontSize="6.5" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[Bota]]></text>
 		</element>
 	</pageFooter>

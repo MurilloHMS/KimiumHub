@@ -29,4 +29,5 @@ public class GuideReportRowDTO {
     private final String localUso;
     private final String equipamentos;
     private final List<InputStream> equipImagens;
+    private InputStream circuloCorImagem;
 }
