@@ -4,5 +4,6 @@ import com.proautokimium.api.domain.enums.UserRole;
 
 import java.util.Collection;
 
-public record UserResponseDTO(String login, Collection<UserRole> roles) {
+/** codParceiro é o código do funcionário vinculado a este usuário, ou null se não houver vínculo. */
+public record UserResponseDTO(String login, Collection<UserRole> roles, String codParceiro) {
 }

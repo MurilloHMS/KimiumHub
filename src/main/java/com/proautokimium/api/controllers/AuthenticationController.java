@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.cert.CertificateRevokedException;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("api/auth")
@@ -74,7 +75,14 @@ public class AuthenticationController {
 
             var token = tokenService.generateToken((User) auth.getPrincipal());
 
-            Employee employee = employeeRepository.findByUsername(data.login()).orElse(null);
+            // Resolve o funcionário pelo vínculo explícito (FK); cai na convenção (username == login)
+            // apenas como retrocompatibilidade para usuários ainda não migrados.
+            Employee employee = repository.findByLoginWithEmployee(data.login())
+                    .map(User::getEmployee)
+                    .orElse(null);
+            if (employee == null) {
+                employee = employeeRepository.findByUsername(data.login()).orElse(null);
+            }
 
             if (employee == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -107,8 +115,44 @@ public class AuthenticationController {
         String encryptedPassword = new BCryptPasswordEncoder().encode(data.password());
         User newUser = new User(data.login(), data.login(), encryptedPassword, data.roles());
 
+        // Vincula automaticamente ao funcionário cujo username corresponde ao login,
+        // gravando o vínculo explícito (FK) já na criação da conta.
+        employeeRepository.findByUsername(data.login()).ifPresent(newUser::setEmployee);
+
         this.repository.save(newUser);
         return ResponseEntity.status(HttpStatus.OK).body("Usuário criado com sucesso!");
+    }
+
+    /** Vincula explicitamente um usuário a um funcionário (parceiro) pelo código do parceiro. */
+    @PutMapping("/users/{login}/employee")
+    public ResponseEntity<Object> linkEmployee(@PathVariable("login") String login,
+                                               @RequestBody @Valid LinkEmployeeRequest body) {
+        User user = (User) repository.findByLogin(login);
+        if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado");
+
+        Employee employee = employeeRepository.findByCodParceiro(body.codParceiro()).orElse(null);
+        if (employee == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Funcionário não encontrado");
+
+        Optional<User> jaVinculado = repository.findByEmployee_Id(employee.getId());
+        if (jaVinculado.isPresent() && !jaVinculado.get().getId().equals(user.getId())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Este funcionário já está vinculado ao usuário '" + jaVinculado.get().getLogin() + "'");
+        }
+
+        user.setEmployee(employee);
+        repository.save(user);
+        return ResponseEntity.ok("Usuário vinculado ao funcionário com sucesso!");
+    }
+
+    /** Remove o vínculo de um usuário com o funcionário. */
+    @DeleteMapping("/users/{login}/employee")
+    public ResponseEntity<Object> unlinkEmployee(@PathVariable("login") String login) {
+        User user = (User) repository.findByLogin(login);
+        if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado");
+
+        user.setEmployee(null);
+        repository.save(user);
+        return ResponseEntity.ok("Vínculo removido com sucesso!");
     }
 
     @PostMapping("/app-token")
@@ -119,13 +163,14 @@ public class AuthenticationController {
 
     @GetMapping("/users")
     public ResponseEntity<Object> getUsers(){
-        var users = repository.findAll();
-        
+        var users = repository.findAllWithEmployee();
+
         if(users == null || users.isEmpty())
         	return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Não foi encontrado Usuários válidos");
 
         return ResponseEntity.ok().body(users.stream().map(m -> new UserResponseDTO(
-        		m.getLogin(), m.getRoles())));
+        		m.getLogin(), m.getRoles(),
+        		m.getEmployee() != null ? m.getEmployee().getCodParceiro() : null)));
     }
 
     @PostMapping("/forgot-password")
