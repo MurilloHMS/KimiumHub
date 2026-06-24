@@ -4,6 +4,7 @@ import com.proautokimium.api.Application.DTOs.holerite.HoleriteResponseDTO;
 import com.proautokimium.api.Application.DTOs.holerite.VincularHoleriteResultDTO;
 import com.proautokimium.api.Infrastructure.services.holerite.HoleriteService;
 import com.proautokimium.api.domain.entities.HoleriteDocumento;
+import com.proautokimium.api.domain.enums.HoleriteTipo;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,10 +29,14 @@ public class HoleriteController {
         this.service = service;
     }
 
-    /** RH: separa o PDF e vincula cada holerite ao funcionário (por CPF). competencia no formato "yyyy-MM". */
+    /**
+     * RH: separa o PDF e vincula cada holerite ao funcionário (por CPF).
+     * competencia no formato "yyyy-MM"; tipo é ADIANTAMENTO (dia 20) ou SALARIO (dia 05).
+     */
     @PostMapping(value = "/vincular", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> vincular(@RequestParam("file") MultipartFile file,
-                                      @RequestParam("competencia") String competencia) {
+                                      @RequestParam("competencia") String competencia,
+                                      @RequestParam("tipo") String tipo) {
         if (file == null || file.isEmpty()) {
             return ResponseEntity.badRequest().body("Arquivo inválido");
         }
@@ -43,8 +48,15 @@ public class HoleriteController {
             return ResponseEntity.badRequest().body("Competência inválida. Use o formato AAAA-MM.");
         }
 
+        final HoleriteTipo tipoEnum;
         try {
-            VincularHoleriteResultDTO result = service.vincular(file, comp);
+            tipoEnum = HoleriteTipo.valueOf(tipo.trim().toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return ResponseEntity.badRequest().body("Tipo inválido. Use ADIANTAMENTO ou SALARIO.");
+        }
+
+        try {
+            VincularHoleriteResultDTO result = service.vincular(file, comp, tipoEnum);
             return ResponseEntity.ok(result);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body("Erro ao processar o PDF: " + e.getMessage());
