@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.storage;
 
+import com.proautokimium.api.domain.enums.HoleriteTipo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -18,9 +19,9 @@ public class HoleriteStorageService {
     private String storagePath;
 
     /** Salva o PDF do holerite em /funcionario/holerite/{codParceiro}/ e retorna o caminho relativo. */
-    public String save(byte[] content, String codParceiro, LocalDate competencia) throws IOException {
+    public String save(byte[] content, String codParceiro, LocalDate competencia, HoleriteTipo tipo) throws IOException {
         String comp = competencia.format(DateTimeFormatter.ofPattern("yyyy-MM"));
-        String filename = comp + "-" + UUID.randomUUID() + ".pdf";
+        String filename = comp + "-" + tipo.name().toLowerCase() + "-" + UUID.randomUUID() + ".pdf";
 
         Path dir = Paths.get(storagePath, codParceiro);
         Files.createDirectories(dir);

@@ -10,6 +10,7 @@ import com.proautokimium.api.Infrastructure.services.pdf.holerith.HolerithExtrac
 import com.proautokimium.api.Infrastructure.services.storage.HoleriteStorageService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.HoleriteDocumento;
+import com.proautokimium.api.domain.enums.HoleriteTipo;
 import jakarta.transaction.Transactional;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -62,7 +63,7 @@ public class HoleriteService {
 
     /** Separa o PDF por página, casa cada holerite ao funcionário (por CPF) e armazena o vínculo. */
     @Transactional
-    public VincularHoleriteResultDTO vincular(MultipartFile file, LocalDate competencia) throws IOException {
+    public VincularHoleriteResultDTO vincular(MultipartFile file, LocalDate competencia, HoleriteTipo tipo) throws IOException {
         File temp = File.createTempFile("holerite_", ".pdf");
         file.transferTo(temp);
 
@@ -90,8 +91,8 @@ public class HoleriteService {
                     }
 
                     byte[] pageBytes = extractPage(doc, i);
-                    String storedPath = storage.save(pageBytes, emp.getCodParceiro(), competencia);
-                    repository.save(new HoleriteDocumento(emp, competencia, file.getOriginalFilename(), storedPath));
+                    String storedPath = storage.save(pageBytes, emp.getCodParceiro(), competencia, tipo);
+                    repository.save(new HoleriteDocumento(emp, competencia, tipo, file.getOriginalFilename(), storedPath));
                     vinculados++;
                 }
 
@@ -117,7 +118,7 @@ public class HoleriteService {
         if (emp == null) return List.of();
 
         return repository.findByEmployeeOrderByCompetenciaDesc(emp).stream()
-                .map(h -> new HoleriteResponseDTO(h.getId(), h.getCompetencia(), h.getOriginalFilename(), h.getCreatedAt()))
+                .map(h -> new HoleriteResponseDTO(h.getId(), h.getCompetencia(), h.getTipo(), h.getOriginalFilename(), h.getCreatedAt()))
                 .toList();
     }
 

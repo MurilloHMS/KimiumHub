@@ -1,5 +1,6 @@
 package com.proautokimium.api.domain.entities;
 
+import com.proautokimium.api.domain.enums.HoleriteTipo;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,6 +25,10 @@ public class HoleriteDocumento extends com.proautokimium.api.domain.abstractions
     @Column(nullable = false)
     private LocalDate competencia;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo", length = 20, nullable = false)
+    private HoleriteTipo tipo;
+
     @Column(name = "original_filename", length = 255)
     private String originalFilename;
 
@@ -33,9 +38,11 @@ public class HoleriteDocumento extends com.proautokimium.api.domain.abstractions
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    public HoleriteDocumento(Employee employee, LocalDate competencia, String originalFilename, String storagePath) {
+    public HoleriteDocumento(Employee employee, LocalDate competencia, HoleriteTipo tipo,
+                             String originalFilename, String storagePath) {
         this.employee = employee;
         this.competencia = competencia;
+        this.tipo = tipo;
         this.originalFilename = originalFilename;
         this.storagePath = storagePath;
         this.createdAt = LocalDateTime.now();
