@@ -130,7 +130,7 @@ public class AuthenticationController {
         User user = (User) repository.findByLogin(login);
         if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado");
 
-        Employee employee = employeeRepository.findByCodParceiro(body.codParceiro()).orElse(null);
+        Employee employee = employeeRepository.findByCodParceiro(body.codParceiro());
         if (employee == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Funcionário não encontrado");
 
         Optional<User> jaVinculado = repository.findByEmployee_Id(employee.getId());
