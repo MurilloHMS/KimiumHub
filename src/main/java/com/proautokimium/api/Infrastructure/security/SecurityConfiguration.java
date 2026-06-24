@@ -58,7 +58,9 @@ public class SecurityConfiguration {
                         "https://*.proautokimium.com",
                         "https://*.proautokimium.com.br",
                         "https://proautokimium.com",
-                        "https://proautokimium.com.br")
+                        "https://proautokimium.com.br",
+                        "http://localhost:4200",
+                        "http://10.0.0.126:4200")
                 );
         
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));

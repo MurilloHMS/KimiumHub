@@ -1,5 +1,6 @@
 package com.proautokimium.api.domain.entities.auth;
 
+import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
@@ -36,6 +37,11 @@ public class User implements UserDetails {
     @Enumerated(EnumType.ORDINAL)
     @Column(name = "role", nullable = false)
     private List<UserRole> roles = new ArrayList<>();
+
+    /** Funcionário (parceiro) vinculado a este usuário. Nulo para contas que não são de funcionários. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_id")
+    private Employee employee;
 
     public User(String login, String email, String password, List<UserRole> roles){
         this.login = login;
