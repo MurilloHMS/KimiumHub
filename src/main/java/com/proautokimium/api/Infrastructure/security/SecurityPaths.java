@@ -15,7 +15,8 @@ public final class SecurityPaths {
             "/api/product/website/active",
             "/upload/images/**",
             "/api/faq/public",
-            "/api/profile/public/**"
+            "/api/profile/public/**",
+            "/ws/**"   // handshake do WebSocket (a auth real é no CONNECT do STOMP)
     };
 
     public static final String[] PUBLIC_POST ={

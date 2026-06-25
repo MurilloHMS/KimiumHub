@@ -6,10 +6,13 @@ import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfoExtractorDTO;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.HoleriteDocumentoRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
+import com.proautokimium.api.Infrastructure.services.notification.NotificationService;
 import com.proautokimium.api.Infrastructure.services.pdf.holerith.HolerithExtractorService;
 import com.proautokimium.api.Infrastructure.services.storage.HoleriteStorageService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.HoleriteDocumento;
+import com.proautokimium.api.domain.enums.HoleriteTipo;
+import com.proautokimium.api.domain.enums.NotificationType;
 import jakarta.transaction.Transactional;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -21,9 +24,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -34,17 +40,20 @@ public class HoleriteService {
     private final EmployeeRepository employeeRepository;
     private final HoleriteDocumentoRepository repository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public HoleriteService(HolerithExtractorService extractor,
                            HoleriteStorageService storage,
                            EmployeeRepository employeeRepository,
                            HoleriteDocumentoRepository repository,
-                           UserRepository userRepository) {
+                           UserRepository userRepository,
+                           NotificationService notificationService) {
         this.extractor = extractor;
         this.storage = storage;
         this.employeeRepository = employeeRepository;
         this.repository = repository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -62,7 +71,7 @@ public class HoleriteService {
 
     /** Separa o PDF por página, casa cada holerite ao funcionário (por CPF) e armazena o vínculo. */
     @Transactional
-    public VincularHoleriteResultDTO vincular(MultipartFile file, LocalDate competencia) throws IOException {
+    public VincularHoleriteResultDTO vincular(MultipartFile file, LocalDate competencia, HoleriteTipo tipo) throws IOException {
         File temp = File.createTempFile("holerite_", ".pdf");
         file.transferTo(temp);
 
@@ -70,6 +79,7 @@ public class HoleriteService {
             List<PdfPageInfoExtractorDTO> infos = extractor.extract(temp.getAbsolutePath());
             int vinculados = 0;
             List<String> naoEncontrados = new ArrayList<>();
+            Set<Employee> afetados = new LinkedHashSet<>();   // dedupe por id (Entity.equals)
 
             try (PDDocument doc = Loader.loadPDF(temp)) {
                 int total = doc.getNumberOfPages();
@@ -90,15 +100,33 @@ public class HoleriteService {
                     }
 
                     byte[] pageBytes = extractPage(doc, i);
-                    String storedPath = storage.save(pageBytes, emp.getCodParceiro(), competencia);
-                    repository.save(new HoleriteDocumento(emp, competencia, file.getOriginalFilename(), storedPath));
+                    String storedPath = storage.save(pageBytes, emp.getCodParceiro(), competencia, tipo);
+                    repository.save(new HoleriteDocumento(emp, competencia, tipo, file.getOriginalFilename(), storedPath));
+                    afetados.add(emp);
                     vinculados++;
                 }
 
+                notificarFuncionarios(afetados, competencia, tipo);
                 return new VincularHoleriteResultDTO(total, vinculados, naoEncontrados);
             }
         } finally {
             temp.delete();
+        }
+    }
+
+    /** Notifica (uma vez por funcionário) os usuários cujos holerites foram disponibilizados. */
+    private void notificarFuncionarios(Set<Employee> afetados, LocalDate competencia, HoleriteTipo tipo) {
+        if (afetados.isEmpty()) return;
+
+        String compLabel = competencia.format(DateTimeFormatter.ofPattern("MM/yyyy"));
+        String tipoLabel = tipo == HoleriteTipo.ADIANTAMENTO ? "adiantamento" : "salário";
+        String title = "Novo holerite disponível";
+        String message = "Seu " + tipoLabel + " de " + compLabel + " já está disponível para download.";
+
+        for (Employee emp : afetados) {
+            userRepository.findByEmployee_Id(emp.getId()).ifPresent(user ->
+                    notificationService.notify(user.getLogin(), NotificationType.HOLERITE,
+                            title, message, "/documentos/holerites"));
         }
     }
 
@@ -117,7 +145,7 @@ public class HoleriteService {
         if (emp == null) return List.of();
 
         return repository.findByEmployeeOrderByCompetenciaDesc(emp).stream()
-                .map(h -> new HoleriteResponseDTO(h.getId(), h.getCompetencia(), h.getOriginalFilename(), h.getCreatedAt()))
+                .map(h -> new HoleriteResponseDTO(h.getId(), h.getCompetencia(), h.getTipo(), h.getOriginalFilename(), h.getCreatedAt()))
                 .toList();
     }
 
