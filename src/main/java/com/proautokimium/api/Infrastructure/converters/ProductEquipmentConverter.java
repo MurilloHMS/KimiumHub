@@ -10,7 +10,11 @@ import org.springframework.stereotype.Component;
 public class ProductEquipmentConverter implements DtoConverter<EquipmentGuide, ProductEquipmentResponseDTO, ProductEquipmentCreateDTO> {
     @Override
     public ProductEquipmentResponseDTO toDto(EquipmentGuide entity) {
-        return new ProductEquipmentResponseDTO(entity.getNome());
+        return new ProductEquipmentResponseDTO(
+                entity.getId(),
+                entity.getNome(),
+                entity.getImagem()
+        );
     }
 
     @Override

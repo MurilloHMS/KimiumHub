@@ -1,6 +1,7 @@
 package com.proautokimium.api.Application.DTOs.product;
 
 import java.util.List;
+import java.util.UUID;
 
 public record ProductWebSiteUpdateDTO(
         String name,
@@ -10,6 +11,7 @@ public record ProductWebSiteUpdateDTO(
         String diluicao,
         String concentracao,
         String localUso,
-        String descricao
+        String descricao,
+        UUID equipmentId
 ) {
 }
