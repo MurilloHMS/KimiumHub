@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.guide;
 
 import com.proautokimium.api.Application.DTOs.product.equipment.ProductEquipmentCreateDTO;
+import com.proautokimium.api.Application.DTOs.product.equipment.ProductEquipmentResponseDTO;
 import com.proautokimium.api.Application.DTOs.product.equipment.ProductEquipmentUpdateDTO;
 import com.proautokimium.api.Infrastructure.repositories.EquipmentGuideRepository;
 import com.proautokimium.api.Infrastructure.services.storage.EquipmentImageStorageService;
@@ -36,10 +37,12 @@ public class EquipmentGuideService {
     }
 
     /**
-     * Lista todos os equipamentos cadastrados.
+     * Lista todos os equipamentos cadastrados (id, nome e caminho da imagem).
      */
-    public List<EquipmentGuide> getAll() {
-        return repository.findAll();
+    public List<ProductEquipmentResponseDTO> getAll() {
+        return repository.findAll().stream()
+                .map(e -> new ProductEquipmentResponseDTO(e.getId(), e.getNome(), e.getImagem()))
+                .toList();
     }
 
     /**
@@ -104,6 +107,9 @@ public class EquipmentGuideService {
      */
     @Transactional
     public void delete(UUID id) {
-        if (repository.existsById(id)) repository.deleteById(id);
+        if (!repository.existsById(id)) return;
+        // remove as associações em product_equipment para a FK não bloquear o delete
+        repository.deleteProductLinks(id);
+        repository.deleteById(id);
     }
 }

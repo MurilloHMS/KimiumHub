@@ -14,6 +14,7 @@ public final class SecurityPaths {
             "/api/public-secrets/**",
             "/api/product/website/active",
             "/upload/images/**",
+            "/upload/equipment/images/**",
             "/api/faq/public",
             "/api/profile/public/**",
             "/ws/**"   // handshake do WebSocket (a auth real é no CONNECT do STOMP)

@@ -1,6 +1,7 @@
 package com.proautokimium.api.Application.DTOs.product;
 
 import java.util.List;
+import java.util.UUID;
 
 public record ProductWebSiteCreateDTO(
         String systemCode,
@@ -11,6 +12,7 @@ public record ProductWebSiteCreateDTO(
         String diluicao,
         String concentracao,
         String localUso,
-        String descricao
+        String descricao,
+        UUID equipmentId
 ) {
 }

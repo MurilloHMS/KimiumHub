@@ -30,4 +30,8 @@ public class GuideReportRowDTO {
     private final String equipamentos;
     private final List<InputStream> equipImagens;
     private InputStream circuloCorImagem;
+    /** Nome(s) básico(s) da cor derivado(s) do hex (ex.: "Azul", "Verde / Branco"). */
+    private final String corNome;
+    /** Nomes dos equipamentos, na MESMA ordem das imagens em {@link #equipImagens}. */
+    private final List<String> equipNomes;
 }

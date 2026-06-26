@@ -1,4 +1,6 @@
 package com.proautokimium.api.Application.DTOs.product.equipment;
 
-public record ProductEquipmentResponseDTO(String nome) {
+import java.util.UUID;
+
+public record ProductEquipmentResponseDTO(UUID id, String nome, String imagem) {
 }

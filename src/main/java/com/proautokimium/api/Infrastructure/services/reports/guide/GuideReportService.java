@@ -8,6 +8,7 @@ import com.proautokimium.api.Infrastructure.repositories.ProductWebSiteRepositor
 import com.proautokimium.api.Infrastructure.services.storage.EquipmentImageStorageService;
 import com.proautokimium.api.Infrastructure.services.storage.ProductImageStorageService;
 import com.proautokimium.api.Infrastructure.utils.ColorCircleRenderer;
+import com.proautokimium.api.Infrastructure.utils.ColorNameUtil;
 import com.proautokimium.api.domain.entities.EquipmentGuide;
 import com.proautokimium.api.domain.entities.ProductWebsite;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
@@ -50,7 +51,7 @@ import java.util.Map;
 public class GuideReportService {
     private final Logger logger = LoggerFactory.getLogger(GuideReportService.class);
 
-    private static final String REPORT_LOCATION = "guide/guia_utilizacao.jasper";
+    private static final String REPORT_LOCATION = "guide/guia_utilizacao.jrxml";
 
     private final ProductWebSiteRepository productRepository;
     private final ProductImageStorageService productImageStorage;
@@ -113,22 +114,39 @@ public class GuideReportService {
     // ── Conversão produto → DTO ─────────────────────────────────────────────
 
     private GuideReportRowDTO toRow(ProductWebsite p) {
-        String primeiraCorHex = (p.getCores() != null && !p.getCores().isEmpty())
-                ? p.getCores().get(0)
-                : null;
+        String coresHex = buildCoresHex(p.getCores());
+
+        // Equipamentos: imagens e nomes em paralelo (apenas os que têm imagem),
+        // para o template exibir cada ícone com o nome logo abaixo.
+        List<InputStream> equipImagens = new ArrayList<>();
+        List<String> equipNomes = new ArrayList<>();
+        List<EquipmentGuide> equipamentos = p.getEquipmentGuides();
+        if (equipamentos != null) {
+            for (EquipmentGuide eq : equipamentos) {
+                if (eq.getImagem() == null || eq.getImagem().isBlank()) continue;
+                InputStream is = openEquipImage(eq.getImagem());
+                if (is != null) {
+                    equipImagens.add(is);
+                    equipNomes.add(eq.getNome());
+                }
+            }
+        }
+
         return new GuideReportRowDTO(
                 p.getName(),
                 p.getSystemCode(),
                 resolveProductImage(p.getImagem()),
-                buildCoresHex(p.getCores()),
+                coresHex,
                 p.getFinalidade(),
                 p.getDescricao(),
                 p.getDiluicao(),
                 p.getConcentracao(),
                 p.getLocalUso(),
-                buildEquipNomes(p.getEquipmentGuides()),
-                resolveEquipImagens(p.getEquipmentGuides()),
-                ColorCircleRenderer.render(primeiraCorHex)
+                buildEquipNomes(equipamentos),
+                equipImagens,
+                ColorCircleRenderer.render(coresHex),   // renderiza todas as cores
+                ColorNameUtil.toNames(coresHex),         // nome(s) básico(s) da cor
+                equipNomes
         );
     }
 
@@ -145,19 +163,14 @@ public class GuideReportService {
         return null;
     }
 
-    private List<InputStream> resolveEquipImagens(List<EquipmentGuide> equipamentos) {
-        if (equipamentos == null || equipamentos.isEmpty()) return List.of();
-        List<InputStream> streams = new ArrayList<>();
-        for (EquipmentGuide eq : equipamentos) {
-            if (eq.getImagem() == null || eq.getImagem().isBlank()) continue;
-            try {
-                Path path = equipmentImageStorage.searchFile(extractFilename(eq.getImagem()));
-                if (Files.exists(path)) streams.add(Files.newInputStream(path));
-            } catch (IOException ex) {
-                logger.error("Ocorreu um erro ao obter a imagem do equipamento: {}", ex.getMessage(), ex);
-            }
+    private InputStream openEquipImage(String imagemPath) {
+        try {
+            Path path = equipmentImageStorage.searchFile(extractFilename(imagemPath));
+            if (Files.exists(path)) return Files.newInputStream(path);
+        } catch (IOException ex) {
+            logger.error("Ocorreu um erro ao obter a imagem do equipamento: {}", ex.getMessage(), ex);
         }
-        return streams;
+        return null;
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

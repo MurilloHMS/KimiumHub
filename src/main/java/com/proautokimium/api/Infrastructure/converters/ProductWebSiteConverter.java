@@ -9,6 +9,8 @@ import com.proautokimium.api.Infrastructure.interfaces.converters.UpdateDtoConve
 import com.proautokimium.api.domain.entities.ProductWebsite;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 public class ProductWebSiteConverter implements DtoConverter<ProductWebsite, ProductWebSiteResponseDTO, ProductWebSiteCreateDTO>, UpdateDtoConverter<ProductWebsite, ProductWebSiteUpdateDTO> {
     @Override
@@ -26,8 +28,15 @@ public class ProductWebSiteConverter implements DtoConverter<ProductWebsite, Pro
                 entity.getConcentracao(),
                 entity.getLocalUso(),
                 entity.getDescricao(),
-                entity.getImagem()
+                entity.getImagem(),
+                firstEquipmentId(entity)
         );
+    }
+
+    /** Id do (único) equipamento vinculado ao produto, ou null. */
+    private static UUID firstEquipmentId(ProductWebsite entity) {
+        var eqs = entity.getEquipmentGuides();
+        return (eqs != null && !eqs.isEmpty()) ? eqs.get(0).getId() : null;
     }
 
     @Override
