@@ -53,4 +53,10 @@ public class ProductEquipmentController {
         }
         return ResponseEntity.ok().body("Equipamento atualizado com sucesso!");
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Object> delete(@PathVariable("id") UUID uuid) {
+        service.delete(uuid);
+        return ResponseEntity.ok().body("Equipamento excluído com sucesso!");
+    }
 }
