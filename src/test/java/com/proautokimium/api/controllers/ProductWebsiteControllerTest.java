@@ -81,7 +81,7 @@ class ProductWebsiteControllerTest {
 
         MockMultipartFile dados = new MockMultipartFile(
                 "dados", "", MediaType.APPLICATION_JSON_VALUE,
-                objectMapper.writeValueAsBytes(new ProductWebSiteCreateDTO("SYS001", "Produto", true, List.of(), "Limpeza", "1:10", "100%", "Cozinha", "Descrição")));
+                objectMapper.writeValueAsBytes(new ProductWebSiteCreateDTO("SYS001", "Produto", true, List.of(), "Limpeza", "1:10", "100%", "Cozinha", "Descrição", null)));
 
         mockMvc.perform(multipart("/api/product/website")
                         .file(dados)
@@ -95,7 +95,7 @@ class ProductWebsiteControllerTest {
     void deveRetornar403AoCriarSemAutenticacao() throws Exception {
         MockMultipartFile dados = new MockMultipartFile(
                 "dados", "", MediaType.APPLICATION_JSON_VALUE,
-                objectMapper.writeValueAsBytes(new ProductWebSiteCreateDTO("SYS001", "Produto", true, List.of(), "Limpeza", "1:10", "100%", "Cozinha", "Descrição")));
+                objectMapper.writeValueAsBytes(new ProductWebSiteCreateDTO("SYS001", "Produto", true, List.of(), "Limpeza", "1:10", "100%", "Cozinha", "Descrição", null)));
 
         mockMvc.perform(multipart("/api/product/website")
                         .file(dados)
