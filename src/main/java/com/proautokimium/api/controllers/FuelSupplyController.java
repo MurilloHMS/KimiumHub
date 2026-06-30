@@ -6,9 +6,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.proautokimium.api.Application.DTOs.fuelsupply.FuelSupplyReportFilterDTO;
+import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyReaderService;
 import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyReportService;
 import com.proautokimium.api.domain.enums.Department;
 import com.proautokimium.api.domain.enums.ReportFormat;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,13 +22,13 @@ import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyServic
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.FuelSupply;
 
-
+@Slf4j
 @RestController
 @RequestMapping("api/fuelsupply")
 public class FuelSupplyController {
-	
+
 	@Autowired
-	IFuelSupplyReader reader;
+	FuelSupplyReaderService reader;
 	
 	@Autowired
 	FuelSupplyService service;
@@ -42,7 +44,7 @@ public class FuelSupplyController {
 
 		try (InputStream is = file.getInputStream()) {
 
-			List<FuelSupply> fuelSupplies = reader.getFuelSuppliesByExcel(is);
+			List<FuelSupply> fuelSupplies = reader.getDataByExcel(is);
 			List<Employee> employees = employeeRepository.findAll();
 
 			Map<String, Employee> employeeMap = employees.stream()
@@ -73,7 +75,7 @@ public class FuelSupplyController {
 			return ResponseEntity.ok("Importação concluída com sucesso!");
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.error("Ocorreu um erro ao importar o combustível: {}", e.getMessage());
 
 			return ResponseEntity.internalServerError()
 					.body("Erro ao importar arquivo: " + e.getMessage());
