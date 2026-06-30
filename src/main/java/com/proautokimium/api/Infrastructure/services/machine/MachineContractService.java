@@ -11,7 +11,7 @@ public class MachineContractService extends ExcelReader<MachineContract> {
 
     @Override
     protected int getFirstDataRow(){
-        return 4;
+        return 2;
     }
 
     @Override
