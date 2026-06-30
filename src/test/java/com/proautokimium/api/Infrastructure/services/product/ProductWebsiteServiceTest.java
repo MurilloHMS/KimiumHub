@@ -51,8 +51,8 @@ class ProductWebsiteServiceTest {
     void setUp() {
         productId = UUID.randomUUID();
         entity = mock(ProductWebsite.class);
-        createDto = new ProductWebSiteCreateDTO("SYS001", "Produto Teste", true, List.of("Azul"), "Limpeza", "1:10", "100%", "Cozinha", "Descrição");
-        updateDto = new ProductWebSiteUpdateDTO("Produto Atualizado", true, List.of("Verde"), "Industrial", "1:20", "50%", "Geral", "Nova descrição");
+        createDto = new ProductWebSiteCreateDTO("SYS001", "Produto Teste", true, List.of("Azul"), "Limpeza", "1:10", "100%", "Cozinha", "Descrição", null);
+        updateDto = new ProductWebSiteUpdateDTO("Produto Atualizado", true, List.of("Verde"), "Industrial", "1:20", "50%", "Geral", "Nova descrição", null);
     }
 
     @Test
@@ -154,7 +154,7 @@ class ProductWebsiteServiceTest {
     @Test
     @DisplayName("Deve retornar lista de todos os produtos")
     void deveRetornarTodosOsProdutos() {
-        ProductWebSiteResponseDTO responseDto = new ProductWebSiteResponseDTO(productId, "SYS001", "Produto", true, List.of(), null, null, null, null, null, null);
+        ProductWebSiteResponseDTO responseDto = new ProductWebSiteResponseDTO(productId, "SYS001", "Produto", true, List.of(), null, null, null, null, null, null, null);
         when(repository.findAll()).thenReturn(List.of(entity));
         when(converter.toDto(entity)).thenReturn(responseDto);
 
