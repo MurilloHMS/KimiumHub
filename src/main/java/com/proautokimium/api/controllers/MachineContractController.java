@@ -10,6 +10,7 @@ import com.proautokimium.api.domain.models.MachineContract;
 import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.util.JRLoader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -109,7 +110,7 @@ public class MachineContractController {
         JasperReport subreportCompilado;
         try (InputStream is = getClass().getResourceAsStream(
                 REPORT_BASE + "subreport-maquinas.jasper")) {
-            subreportCompilado = JasperCompileManager.compileReport(is);
+            subreportCompilado = (JasperReport) JRLoader.loadObject(is);// compilar -> JasperCompileManager.compileReport(is)
         }
 
         ByteArrayOutputStream zipBuffer = new ByteArrayOutputStream();
