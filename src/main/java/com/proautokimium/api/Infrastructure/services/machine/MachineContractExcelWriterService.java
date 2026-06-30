@@ -16,7 +16,7 @@ public class MachineContractExcelWriterService extends ExcelWriter<MachineContra
 
     @Override
     protected int getHeaderRowIndex() {
-        return 3;
+        return 1;
     }
 
     @Override
