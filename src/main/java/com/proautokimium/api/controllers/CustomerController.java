@@ -86,6 +86,7 @@ public class CustomerController {
      * @return HttpStatus OK (200)
      */
     @DeleteMapping
+    @Operation(summary = "Deleta cliente", description = "Excluí do sistema o registro do cliente")
     public ResponseEntity<String> DeleteCustomer(@RequestBody @NotNull @Valid String codParceiro){
     	 service.DeleteCustomer(codParceiro);
     	 return ResponseEntity.status(HttpStatus.OK).body("Cliente deletado com sucesso!");
