@@ -27,15 +27,6 @@ import java.io.InputStream;
  *   <li>{@code logoCliente} — arquivo de imagem do logo do cliente</li>
  * </ul>
  * </p>
- *
- * <p>Exemplo de chamada via curl:</p>
- * <pre>
- * curl -X POST http://localhost:8080/api/v1/reports/guide \
- *   -H "Authorization: Bearer {token}" \
- *   -F 'request={"tituloGuia":"GERAL","productIds":["uuid1","uuid2"]};type=application/json' \
- *   -F 'logoCliente=@/caminho/logo.png' \
- *   --output guia.pdf
- * </pre>
  */
 @RestController
 @RequestMapping("/api/v1/reports")
