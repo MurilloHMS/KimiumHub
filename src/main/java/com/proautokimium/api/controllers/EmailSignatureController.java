@@ -2,6 +2,8 @@ package com.proautokimium.api.controllers;
 
 import com.proautokimium.api.Application.DTOs.signature.EmailSignatureDTO;
 import com.proautokimium.api.Infrastructure.services.reports.EmailSignatureService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -15,14 +17,24 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Responsável por criar Assinatura Corporativo
+ */
 @RestController
 @RequestMapping("api/email/signature")
+@Tag(name = "Assinatura corporativa", description = "Gera assinatura corporativa da empresa")
 public class EmailSignatureController {
 
     @Autowired
     private EmailSignatureService emailSignatureService;
 
+    /**
+     * Gera assinatura corporativa
+     * @param dto dados do funcionário
+     * @return Assinatura de Email em PNG
+     */
     @PostMapping()
+    @Operation(summary = "Gera assinatura", description = "Recebe dados do funcionário e gera assinatura corporativa")
     public ResponseEntity<?> postEmailSignature(@RequestBody @Valid EmailSignatureDTO dto) {
 
         InputStream backgroundImage = getClass()
