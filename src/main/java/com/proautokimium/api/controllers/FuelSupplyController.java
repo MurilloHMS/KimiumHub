@@ -9,22 +9,26 @@ import com.proautokimium.api.Application.DTOs.fuelsupply.FuelSupplyReportFilterD
 import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyReaderService;
 import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyReportService;
 import com.proautokimium.api.domain.enums.Department;
-import com.proautokimium.api.domain.enums.ReportFormat;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.proautokimium.api.Infrastructure.interfaces.fuelsupply.IFuelSupplyReader;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.FuelSupply;
 
+/**
+ * Responsável por coletar dados e gerar relatório
+ */
 @Slf4j
 @RestController
 @RequestMapping("api/fuelsupply")
+@Tag(name = "Abastecimento", description = "Controle dos abastecimentos")
 public class FuelSupplyController {
 
 	@Autowired
@@ -39,7 +43,13 @@ public class FuelSupplyController {
 	@Autowired
 	EmployeeRepository employeeRepository;
 
+	/**
+	 * Coleta dados via planilha
+	 * @param file Arquivo xlsx com dados dos combustíveis
+	 * @return HttpStatus OK (200)
+	 */
 	@PostMapping("/upload")
+	@Operation(summary = "Upload Dados", description = "Upload dos dados de abastecimento")
 	public ResponseEntity<?> importFuel(@RequestParam MultipartFile file) {
 
 		try (InputStream is = file.getInputStream()) {
@@ -82,7 +92,13 @@ public class FuelSupplyController {
 		}
 	}
 
+	/**
+	 * Gera relatório de combustíveis
+	 * @param dto Dados do filtro
+	 * @return PDF com relatório
+	 */
 	@PostMapping
+	@Operation(summary = "Gerar relatório", description = "Gera o relatório de combustíveis")
 	public ResponseEntity<byte[]> generateReport(@RequestBody FuelSupplyReportFilterDTO dto) {
 		return reportService.generateReport(dto);
 	}
