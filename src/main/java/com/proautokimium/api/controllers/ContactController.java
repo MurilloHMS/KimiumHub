@@ -20,6 +20,7 @@ public class ContactController {
     ContactService service;
 
     @GetMapping
+    @Operation(summary = "Obtém todos os contatos", description = "Retorna todos os registros de contato")
     public ResponseEntity<Object> getAllContacts(){
         var contacts = service.getAllContact();
         
