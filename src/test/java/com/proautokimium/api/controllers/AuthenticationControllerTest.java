@@ -96,6 +96,7 @@ class AuthenticationControllerTest {
 
     @Test
     @DisplayName("Deve registrar usuário novo com senha criptografada")
+    @WithMockUser(roles = "ADMIN")
     void sholdRegisterNewUser() throws Exception{
         RegisterDTO dto = new RegisterDTO("novo.usuario", "email@exemple.com","123456", List.of(UserRole.ADMIN));
 
@@ -118,6 +119,7 @@ class AuthenticationControllerTest {
 
     @Test
     @DisplayName("Não deve registrar usuário já existente")
+    @WithMockUser(roles = "ADMIN")
     void shouldNotRegisterExistingUser() throws Exception {
         RegisterDTO dto = new RegisterDTO("admin","email@email.com", "123456", List.of(UserRole.ADMIN));
 
