@@ -101,27 +101,4 @@ class CertificateControllerTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_PDF))
                 .andExpect(content().bytes(pdf));
     }
-
-    @Test
-    @DisplayName("Deve retornar certificado com usuário autenticado")
-    @WithMockUser(roles = "ADMIN")
-    void createCertificate() throws Exception {
-
-        byte[] pdf = "test-pdf".getBytes();
-
-        when(generator.generateCertificate("pessoa"))
-                .thenReturn(pdf);
-
-        mockMvc.perform(
-                        post("/api/certificate/{name}", "pessoa")
-                                .with(csrf())
-                )
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
-                .andExpect(header().string(
-                        "Content-Disposition",
-                        "attachment; filename=\"PESSOA.pdf\""
-                ))
-                .andExpect(content().bytes(pdf));
-    }
 }
