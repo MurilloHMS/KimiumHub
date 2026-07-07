@@ -3,7 +3,6 @@ package com.proautokimium.api.controllers;
 import com.proautokimium.api.Application.DTOs.authentication.ChangePasswordDTO;
 import com.proautokimium.api.Application.DTOs.authentication.ForgotPasswordDTO;
 import com.proautokimium.api.Application.DTOs.authentication.ResetPasswordDTO;
-import com.proautokimium.api.Application.DTOs.partners.EmployeeDTO;
 import com.proautokimium.api.Application.DTOs.smtp.SmtpMail;
 import com.proautokimium.api.Application.DTOs.user.*;
 import com.proautokimium.api.Infrastructure.exceptions.auth.CredentialsIncorrectException;
@@ -15,10 +14,13 @@ import com.proautokimium.api.Infrastructure.services.email.smtp.SmtpService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,12 +28,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.cert.CertificateRevokedException;
 import java.util.List;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("api/auth")
+@Tag(name = "Autenticação", description = "Autenticação e registro de usuários")
 public class AuthenticationController {
     @Autowired
     AuthenticationManager authenticationManager;
@@ -54,9 +56,10 @@ public class AuthenticationController {
     SmtpService emailService;
 
     @PostMapping("/login")
+    @Operation(summary = "Realiza login", description = "Verifica usuário e senha e autoriza o login")
     public ResponseEntity<Object> Login(@RequestBody @Valid AuthenticationDTO data){
         var usernamepassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());
-        Authentication authenticate = null;
+        Authentication authenticate;
         try{
             authenticate = this.authenticationManager.authenticate(usernamepassword);
         }catch (BadCredentialsException e){
@@ -67,56 +70,14 @@ public class AuthenticationController {
         return ResponseEntity.ok(new LoginResponseDTO(token));
     }
 
-    @PostMapping("/login/android")
-    public ResponseEntity<Object> LoginAndoid(@RequestBody @Valid AuthenticationDTO data){
-        try {
-            var usernamepassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());
-            var auth = this.authenticationManager.authenticate(usernamepassword);
-
-            var token = tokenService.generateToken((User) auth.getPrincipal());
-
-            // Resolve o funcionário pelo vínculo explícito (FK); cai na convenção (username == login)
-            // apenas como retrocompatibilidade para usuários ainda não migrados.
-            Employee employee = repository.findByLoginWithEmployee(data.login())
-                    .map(User::getEmployee)
-                    .orElse(null);
-            if (employee == null) {
-                employee = employeeRepository.findByUsername(data.login()).orElse(null);
-            }
-
-            if (employee == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body("Funcionário não encontrado para este usuário");
-            }
-
-            EmployeeDTO employeeDTO = new EmployeeDTO(
-                    employee.getCodParceiro(),
-                    employee.getDocumento(),
-                    employee.getName(),
-                    employee.getEmail().getAddress(),
-                    employee.isAtivo(),
-                    employee.getCodigoGerente(),
-                    employee.getHierarquia(),
-                    employee.getBirthday(),
-                    employee.getDepartment()
-            );
-
-            return ResponseEntity.ok(new LoginAndroidResponseDTO(token, employeeDTO));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Credenciais inválidas");
-        }
-    }
-
     @PostMapping("/register")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Object> Register(@RequestBody @Valid RegisterDTO data){
         if(this.repository.findByLogin(data.login()) != null) return ResponseEntity.status(HttpStatus.CONFLICT).body("O Usuário informado, já existe!");
 
         String encryptedPassword = new BCryptPasswordEncoder().encode(data.password());
         User newUser = new User(data.login(), data.login(), encryptedPassword, data.roles());
 
-        // Vincula automaticamente ao funcionário cujo username corresponde ao login,
-        // gravando o vínculo explícito (FK) já na criação da conta.
         employeeRepository.findByUsername(data.login()).ifPresent(newUser::setEmployee);
 
         this.repository.save(newUser);
@@ -125,6 +86,7 @@ public class AuthenticationController {
 
     /** Vincula explicitamente um usuário a um funcionário (parceiro) pelo código do parceiro. */
     @PutMapping("/users/{login}/employee")
+    @Operation(summary = "Vincular funcionário", description = "Vincula explicitamente um usuário a um funcionário (parceiro) pelo código do parceiro")
     public ResponseEntity<Object> linkEmployee(@PathVariable("login") String login,
                                                @RequestBody @Valid LinkEmployeeRequest body) {
         User user = (User) repository.findByLogin(login);
@@ -146,6 +108,7 @@ public class AuthenticationController {
 
     /** Remove o vínculo de um usuário com o funcionário. */
     @DeleteMapping("/users/{login}/employee")
+    @Operation(summary = "Desvincula funcionário", description = "Realiza a exclusão do vínculo do funcionário")
     public ResponseEntity<Object> unlinkEmployee(@PathVariable("login") String login) {
         User user = (User) repository.findByLogin(login);
         if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado");
@@ -156,12 +119,15 @@ public class AuthenticationController {
     }
 
     @PostMapping("/app-token")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Gera token acesso", description = "Gera o token de acesso ao app ProStock")
     public ResponseEntity<Object> generateAppToken() {
         String appToken = tokenService.generateAppToken();
         return ResponseEntity.ok(new LoginResponseDTO(appToken));
     }
 
     @GetMapping("/users")
+    @Operation(summary = "Retorna Usuários", description = "Obtém a lista de usuários")
     public ResponseEntity<Object> getUsers(){
         var users = repository.findAllWithEmployee();
 
@@ -174,6 +140,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/forgot-password")
+    @Operation(summary = "Recupera a senha", description = "Gera o token de recuperação e envia via email")
     public ResponseEntity<Object> forgotPassword(@RequestBody @Valid ForgotPasswordDTO dto) {
         User user = (User) repository.findByLogin(dto.login());
 
@@ -198,6 +165,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/reset-password")
+    @Operation(summary = "Reset da senha", description = "Recebe o token e reseta a senha")
     public ResponseEntity<Object> resetPassword(@RequestBody @Valid ResetPasswordDTO dto) {
         var optionalToken = passwordResetTokenRepository.findByToken(dto.token());
 
@@ -221,6 +189,8 @@ public class AuthenticationController {
     }
 
     @PostMapping("/change-password")
+    @Operation(summary = "Altera senha", description = "Altera a senha do usuário enviado")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Object> changePassword(@RequestBody @Valid ChangePasswordDTO dto) {
         User user = (User) repository.findByLogin(dto.login());
 
@@ -229,6 +199,7 @@ public class AuthenticationController {
         return ResponseEntity.ok("Senha alterada com sucesso.");
     }
     @PutMapping("/users/{login}/roles")
+    @Operation(summary = "Retorna roles", description = "Retorna as roles de um usuário pelo login")
     public ResponseEntity<Object> getUserRoles(@PathVariable("login") String login, @RequestBody UpdateRolesRequest roles) {
         User user = (User) repository.findByLogin(login);
 
@@ -238,5 +209,4 @@ public class AuthenticationController {
         repository.save(user);
         return ResponseEntity.ok().body("Roles Atualizadas com sucesso!");
     }
-
 }
