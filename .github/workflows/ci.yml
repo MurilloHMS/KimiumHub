@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - run: mvn install:install-file -Dfile="libs/montserrat-font.jar" -DgroupId="custom.fonts" -DartifactId=montserrat -Dversion="1.0" -Dpackaging=jar
+
+      - run: ./mvnw verify
