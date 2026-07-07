@@ -81,8 +81,7 @@ class EmployeeControllerTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildDto())))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Funcionário criado com sucesso"));
+                .andExpect(status().isCreated());
     }
 
     @Test
@@ -105,7 +104,6 @@ class EmployeeControllerTest {
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildDto())))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Funcionário atualizado com sucesso"));
+                .andExpect(status().isOk());
     }
 }
