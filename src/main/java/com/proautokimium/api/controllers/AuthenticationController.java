@@ -5,6 +5,7 @@ import com.proautokimium.api.Application.DTOs.smtp.SmtpMail;
 import com.proautokimium.api.Application.DTOs.user.*;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
+import com.proautokimium.api.Infrastructure.security.TokenService;
 import com.proautokimium.api.Infrastructure.services.authentication.AuthenticationService;
 import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
 import com.proautokimium.api.Infrastructure.services.email.smtp.SmtpService;
@@ -44,7 +45,7 @@ public class AuthenticationController {
     PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Autowired
-    com.proautokimium.api.Infrastructure.security.TokenService tokenService;
+    TokenService tokenService;
 
     @Autowired
     SmtpService emailService;
