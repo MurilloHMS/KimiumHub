@@ -8,6 +8,7 @@ import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepos
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.SecurityConfiguration;
 import com.proautokimium.api.Infrastructure.security.TokenService;
+import com.proautokimium.api.Infrastructure.services.authentication.AuthenticationService;
 import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
 import com.proautokimium.api.Infrastructure.services.email.smtp.SmtpService;
 import com.proautokimium.api.domain.entities.auth.PasswordResetToken;
@@ -75,17 +76,15 @@ class AuthenticationControllerTest {
     @MockitoBean
     private SmtpService smtpService;
 
+    @MockitoBean
+    private AuthenticationService authService;
+
     @Test
     @DisplayName("Deve fazer login com sucesso e retornar token")
     void shouldLoginSuccessfully() throws Exception {
         AuthenticationDTO dto = new AuthenticationDTO("admin", "123456");
-        User user = new User("admin", "admin@email.com", "senha-criptografada", List.of(UserRole.ADMIN));
-        Authentication authentication = mock(Authentication.class);
 
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(user);
-        when(tokenService.generateToken(user)).thenReturn("jwt-token");
+        when(authService.login(any(AuthenticationDTO.class))).thenReturn("jwt-token");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -103,18 +102,13 @@ class AuthenticationControllerTest {
         when(userRepository.findByLogin(dto.login())).thenReturn(null);
 
         mockMvc.perform(post("/api/auth/register")
-                .with(csrf())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Usuário criado com sucesso!"));
 
-        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(captor.capture());
-
-        User savedUser = captor.getValue();
-        assertThat(savedUser.getLogin()).isEqualTo(dto.login());
-        assertThat(savedUser.getPassword()).isNotEqualTo(dto.password());
+        verify(authService).signIn(dto);
     }
 
     @Test
