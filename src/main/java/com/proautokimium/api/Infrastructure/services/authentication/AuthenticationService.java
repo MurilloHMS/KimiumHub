@@ -87,6 +87,7 @@ public class AuthenticationService {
 
         User newUser = new User();
         newUser.setLogin(username);
+        newUser.setEmail(dto.email());
         newUser.setPassword(encryptedPassword);
         newUser.setEmployee(firstAccessToken.getEmployee());
 
