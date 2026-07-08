@@ -28,7 +28,8 @@ public final class SecurityPaths {
             "/api/certificate/no-validation",
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
-            "/api/candidatura"
+            "/api/candidatura",
+            "/api/auth/first-access/**"
     };
 
     private SecurityPaths(){}
