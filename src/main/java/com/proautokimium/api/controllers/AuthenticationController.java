@@ -1,15 +1,12 @@
 package com.proautokimium.api.controllers;
 
-import com.proautokimium.api.Application.DTOs.authentication.ChangePasswordDTO;
-import com.proautokimium.api.Application.DTOs.authentication.ForgotPasswordDTO;
-import com.proautokimium.api.Application.DTOs.authentication.ResetPasswordDTO;
+import com.proautokimium.api.Application.DTOs.authentication.*;
 import com.proautokimium.api.Application.DTOs.smtp.SmtpMail;
 import com.proautokimium.api.Application.DTOs.user.*;
-import com.proautokimium.api.Infrastructure.exceptions.auth.CredentialsIncorrectException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
-import com.proautokimium.api.Infrastructure.security.TokenService;
-import com.proautokimium.api.Infrastructure.services.authentication.PasswordResetService;
+import com.proautokimium.api.Infrastructure.services.authentication.AuthenticationService;
+import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
 import com.proautokimium.api.Infrastructure.services.email.smtp.SmtpService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.User;
@@ -22,9 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,30 +38,24 @@ public class AuthenticationController {
     EmployeeRepository employeeRepository;
 
     @Autowired
-    PasswordResetService passwordResetService;
+    TokenAuthService accessTokenService;
 
     @Autowired
     PasswordResetTokenRepository passwordResetTokenRepository;
 
     @Autowired
-    TokenService tokenService;
+    com.proautokimium.api.Infrastructure.security.TokenService tokenService;
 
     @Autowired
     SmtpService emailService;
 
+    @Autowired
+    AuthenticationService authService;
+
     @PostMapping("/login")
     @Operation(summary = "Realiza login", description = "Verifica usuário e senha e autoriza o login")
     public ResponseEntity<Object> Login(@RequestBody @Valid AuthenticationDTO data){
-        var usernamepassword = new UsernamePasswordAuthenticationToken(data.login(), data.password());
-        Authentication authenticate;
-        try{
-            authenticate = this.authenticationManager.authenticate(usernamepassword);
-        }catch (BadCredentialsException e){
-            throw new CredentialsIncorrectException(e.getMessage());
-        }
-
-        var token = tokenService.generateToken((User) authenticate.getPrincipal());
-        return ResponseEntity.ok(new LoginResponseDTO(token));
+        return ResponseEntity.ok(new LoginResponseDTO(authService.login(data)));
     }
 
     @PostMapping("/register")
@@ -75,12 +63,7 @@ public class AuthenticationController {
     public ResponseEntity<Object> Register(@RequestBody @Valid RegisterDTO data){
         if(this.repository.findByLogin(data.login()) != null) return ResponseEntity.status(HttpStatus.CONFLICT).body("O Usuário informado, já existe!");
 
-        String encryptedPassword = new BCryptPasswordEncoder().encode(data.password());
-        User newUser = new User(data.login(), data.login(), encryptedPassword, data.roles());
-
-        employeeRepository.findByUsername(data.login()).ifPresent(newUser::setEmployee);
-
-        this.repository.save(newUser);
+        authService.signIn(data);
         return ResponseEntity.status(HttpStatus.OK).body("Usuário criado com sucesso!");
     }
 
@@ -95,14 +78,7 @@ public class AuthenticationController {
         Employee employee = employeeRepository.findByCodParceiro(body.codParceiro());
         if (employee == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Funcionário não encontrado");
 
-        Optional<User> jaVinculado = repository.findByEmployee_Id(employee.getId());
-        if (jaVinculado.isPresent() && !jaVinculado.get().getId().equals(user.getId())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("Este funcionário já está vinculado ao usuário '" + jaVinculado.get().getLogin() + "'");
-        }
-
-        user.setEmployee(employee);
-        repository.save(user);
+        authService.linkEmployee(user, employee);
         return ResponseEntity.ok("Usuário vinculado ao funcionário com sucesso!");
     }
 
@@ -110,11 +86,7 @@ public class AuthenticationController {
     @DeleteMapping("/users/{login}/employee")
     @Operation(summary = "Desvincula funcionário", description = "Realiza a exclusão do vínculo do funcionário")
     public ResponseEntity<Object> unlinkEmployee(@PathVariable("login") String login) {
-        User user = (User) repository.findByLogin(login);
-        if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado");
-
-        user.setEmployee(null);
-        repository.save(user);
+        authService.unlinkEmployee(login);
         return ResponseEntity.ok("Vínculo removido com sucesso!");
     }
 
@@ -148,7 +120,7 @@ public class AuthenticationController {
             return ResponseEntity.ok().build();
         }
 
-        String token = passwordResetService.createToken(user);
+        String token = accessTokenService.createToken(user);
         SmtpMail mail = new SmtpMail(
                 List.of(user.getEmail()),
                 "noreply@envios.proautokimium.com.br",
@@ -162,6 +134,49 @@ public class AuthenticationController {
 
         emailService.sendEmail(mail, null);
         return ResponseEntity.ok("Token de recuperação de senha enviado para o e-mail cadastrado.");
+    }
+
+    @PostMapping("/first-access")
+    @Operation(summary = "Cria o Primeiro Acesso", description = "Gera o token de primeiro acesso e envia via email")
+    public ResponseEntity<Object> forgotPassword(@RequestBody @Valid NewAccessDTO dto) {
+        Optional<Employee> employee = employeeRepository.findByCpfDigits(dto.cpf());
+
+        if(employee.isEmpty()){
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Não existe funcionário cadastrado com o CPF e email informado. Entre em contato com o RH para verificar.");
+        }
+
+        String token = accessTokenService.createTokenByEmployee(employee.get());
+        SmtpMail mail = new SmtpMail(
+                List.of(dto.email()),
+                "noreply@envios.proautokimium.com.br",
+                null,
+                "Token de primeiro acesso",
+                "Use o seguinte token para realizar o primeiro acesso a plataforma: " + token,
+                null,
+                null,
+                null
+        );
+
+        emailService.sendEmail(mail, null);
+        return ResponseEntity.ok("Token de recuperação de senha enviado para o e-mail cadastrado.");
+    }
+
+    @PostMapping("/first-access/{token}/is-valid")
+    @Operation(summary = "Valida o token enviado", description = "Valida o token enviado por email do primeiro acesso")
+    public ResponseEntity<?> firstAccessTokenIsValid(@PathVariable("token") String token){
+        Boolean isValid = authService.firstAccessTokenIsValid(token);
+        return isValid.equals(true) ? ResponseEntity.ok("Token Válido") : ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/first-access/{token}/sign-in")
+    @Operation(summary = "Cria o novo usuário", description = "Cria o novo usuário")
+    public ResponseEntity<?> createFirstUsername(@PathVariable("token") String token, @RequestBody @Valid NewAccessPasswordDTO dto){
+        boolean isValid = authService.firstAccessTokenIsValid(token);
+        if(isValid){
+            User user = authService.signInFirstAccess(token, dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body("Usuário criado com sucesso!\n\n Utilize o usuário: " + user.getLogin() + " para realizar o login");
+        }
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/reset-password")

@@ -22,4 +22,6 @@ public interface UserRepository extends JpaRepository<User, String> {
     List<User> findAllWithEmployee();
 
     Optional<User> findByEmployee_Id(UUID employeeId);
+
+    boolean existsByLogin(String username);
 }
