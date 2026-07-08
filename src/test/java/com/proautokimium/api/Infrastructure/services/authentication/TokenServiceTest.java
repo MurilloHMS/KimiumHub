@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.authentication;
 
+import com.proautokimium.api.Infrastructure.repositories.FirstAccessTokenRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.domain.entities.auth.PasswordResetToken;
 import com.proautokimium.api.domain.entities.auth.User;
@@ -14,10 +15,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
-class PasswordResetServiceTest {
+class TokenServiceTest {
 
     private final PasswordResetTokenRepository repository = mock(PasswordResetTokenRepository.class);
-    private final PasswordResetService service = new PasswordResetService(repository);
+    private final FirstAccessTokenRepository firstAccessTokenRepository = mock(FirstAccessTokenRepository.class);
+    private final TokenAuthService service = new TokenAuthService(repository, firstAccessTokenRepository);
 
     @Test
     @DisplayName("Deve gerar token com 6 caracteres e salvar no repositório")

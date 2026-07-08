@@ -8,7 +8,7 @@ import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepos
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.SecurityConfiguration;
 import com.proautokimium.api.Infrastructure.security.TokenService;
-import com.proautokimium.api.Infrastructure.services.authentication.PasswordResetService;
+import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
 import com.proautokimium.api.Infrastructure.services.email.smtp.SmtpService;
 import com.proautokimium.api.domain.entities.auth.PasswordResetToken;
 import com.proautokimium.api.domain.entities.auth.User;
@@ -64,7 +64,7 @@ class AuthenticationControllerTest {
     private EmployeeRepository employeeRepository;
 
     @MockitoBean
-    private PasswordResetService passwordResetService;
+    private TokenAuthService tokenAuthService;
 
     @MockitoBean
     private PasswordResetTokenRepository passwordResetTokenRepository;
@@ -150,7 +150,7 @@ class AuthenticationControllerTest {
                                 """))
                 .andExpect(status().isOk());
 
-        verify(passwordResetService, never()).createToken(any());
+        verify(tokenAuthService, never()).createToken(any());
         verify(smtpService, never()).sendEmail(any(), any());
     }
 
@@ -160,7 +160,7 @@ class AuthenticationControllerTest {
         User user = new User("admin", "admin@teste.com", "hash", List.of(UserRole.ADMIN));
 
         when(userRepository.findByLogin("admin")).thenReturn(user);
-        when(passwordResetService.createToken(user)).thenReturn("ABC123");
+        when(tokenAuthService.createToken(user)).thenReturn("ABC123");
 
         mockMvc.perform(post("/api/auth/forgot-password")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -172,7 +172,7 @@ class AuthenticationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string("Token de recuperação de senha enviado para o e-mail cadastrado."));
 
-        verify(passwordResetService).createToken(user);
+        verify(tokenAuthService).createToken(user);
         verify(smtpService).sendEmail(any(), eq(null));
     }
 
