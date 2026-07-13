@@ -138,25 +138,20 @@ public class AuthenticationService {
 
     @Transactional
     public String resetPassword(ResetPasswordDTO dto){
-        try{
-            var optionalToken = passwordResetTokenRepository.findByToken(dto.token());
+        var resetToken = passwordResetTokenRepository.findByToken(dto.token())
+                .orElseThrow(() -> new TokenInvalidException("Token inválido."));
 
-            if(optionalToken.isEmpty()){
-                throw new TokenInvalidException("Token inválido.");
-            }
-
-            var resetToken = optionalToken.get();
-            if(resetToken.isUsed() ||
-                    resetToken.getExpiration().isBefore(java.time.LocalDateTime.now())){
-                throw new TokenExpiredException("Token expirado ou já utilizado.");
-            }
-
-            User user = resetToken.getUser();
-            updatePassword(user, dto.newPassword());
-            return "Senha redefinida com sucesso";
-        }catch (Exception e){
-            throw new IllegalArgumentException(e.getMessage());
+        if(resetToken.isUsed() || resetToken.getExpiration().isBefore(LocalDateTime.now())){
+            throw new TokenExpiredException("Token expirado ou já utilizado.");
         }
+
+        User user = resetToken.getUser();
+        updatePassword(user, dto.newPassword());
+
+        resetToken.setUsed(true);
+        passwordResetTokenRepository.save(resetToken);
+
+        return "Senha redefinida com sucesso.";
     }
 
     // Helpers
