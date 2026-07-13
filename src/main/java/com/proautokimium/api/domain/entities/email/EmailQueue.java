@@ -101,4 +101,8 @@ public class EmailQueue extends com.proautokimium.api.domain.abstractions.Entity
         this.sentAt = LocalDateTime.now();
     }
 
+    public void markSchedule(){
+        this.status = EmailStatus.SCHEDULED;
+    }
+
 }
