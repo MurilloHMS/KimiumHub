@@ -1,26 +1,26 @@
 package com.proautokimium.api.Infrastructure.services.authentication;
 
-import com.proautokimium.api.Application.DTOs.authentication.NewAccessDTO;
 import com.proautokimium.api.Application.DTOs.authentication.NewAccessPasswordDTO;
-import com.proautokimium.api.Application.DTOs.smtp.SmtpMail;
+import com.proautokimium.api.Application.DTOs.authentication.ResetPasswordDTO;
 import com.proautokimium.api.Application.DTOs.user.AuthenticationDTO;
+import com.proautokimium.api.Application.DTOs.user.LinkEmployeeRequest;
 import com.proautokimium.api.Application.DTOs.user.RegisterDTO;
+import com.proautokimium.api.Application.DTOs.user.UserResponseDTO;
 import com.proautokimium.api.Infrastructure.exceptions.auth.CredentialsIncorrectException;
+import com.proautokimium.api.Infrastructure.exceptions.auth.token.TokenExpiredException;
+import com.proautokimium.api.Infrastructure.exceptions.auth.token.TokenInvalidException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.TokenService;
-import com.proautokimium.api.Infrastructure.services.email.smtp.SmtpService;
 import com.proautokimium.api.Infrastructure.utils.UsernameSanitizer;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.FirstAcessToken;
 import com.proautokimium.api.domain.entities.auth.User;
-import com.proautokimium.api.domain.enums.UserRole;
 import com.proautokimium.api.domain.exceptions.auth.UserNotFoundException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeHasAlreadyLinkedException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,7 +28,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.nio.file.attribute.UserPrincipalNotFoundException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -41,16 +40,14 @@ public class AuthenticationService {
     private final TokenAuthService accessTokenService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final TokenService tokenService;
-    private final SmtpService emailService;
 
-    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository,TokenService tokenService, SmtpService emailService) {
+    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository,TokenService tokenService) {
         this.authenticationManager = authenticationManager;
         this.repository = repository;
         this.employeeRepository = employeeRepository;
         this.accessTokenService = accessTokenService;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.tokenService = tokenService;
-        this.emailService = emailService;
     }
 
     public String login(AuthenticationDTO dto){
@@ -60,7 +57,10 @@ public class AuthenticationService {
             authentication = this.authenticationManager.authenticate(usernamePasswordAuthenticationToken);
         }catch (BadCredentialsException e){
             throw new CredentialsIncorrectException(e.getMessage());
+        }catch (Exception e){
+            throw new IllegalArgumentException();
         }
+
         Object principal = authentication.getPrincipal();
         return tokenService.generateToken((User) principal);
     }
@@ -94,22 +94,20 @@ public class AuthenticationService {
         return repository.save(newUser);
     }
 
-    public User linkEmployee(User user, Employee employee) {
-        if(user == null){
-            throw new UserNotFoundException("Usuário não encontrado");
-        }
+    public User linkEmployee(String login, LinkEmployeeRequest employeeRequest) {
+        Optional<User> user = Optional.ofNullable((User) repository.findByLogin(login));
+        user.orElseThrow(UserNotFoundException::new);
 
-        if(employee == null){
-            throw new EmployeeNotFoundException();
-        }
+        Optional<Employee> employee = Optional.ofNullable(employeeRepository.findByCodParceiro(employeeRequest.codParceiro()));
+        employee.orElseThrow(EmployeeNotFoundException::new);
 
-        Optional<User> jaVinculado = repository.findByEmployee_Id(employee.getId());
-        if(jaVinculado.isPresent() && !jaVinculado.get().getId().equals(user.getId())){
+        Optional<User> jaVinculado = repository.findByEmployee_Id(employee.get().getId());
+        if(jaVinculado.isPresent() && !jaVinculado.get().getId().equals(user.get().getId())){
             throw new EmployeeHasAlreadyLinkedException("Este funcionário já está vinculado ao usuário '" + jaVinculado.get().getLogin() + "'");
         }
 
-        user.setEmployee(employee);
-        return repository.save(user);
+        user.get().setEmployee(employee.get());
+        return repository.save(user.get());
     }
 
     public User unlinkEmployee(String login) {
@@ -127,25 +125,44 @@ public class AuthenticationService {
         return valid.map(firstAcessToken -> firstAcessToken.getExpiration().isAfter(LocalDateTime.now())).orElse(false);
     }
 
+    public List<UserResponseDTO> getUsers(){
+        List<User> users = repository.findAllWithEmployee();
+
+        return users.stream().map(u -> new UserResponseDTO(
+                u.getLogin(),
+                u.getRoles(),
+                u.getEmployee() != null
+                        ? u.getEmployee().getCodParceiro()
+                        : null)).toList();
+    }
+
+    @Transactional
+    public String resetPassword(ResetPasswordDTO dto){
+        try{
+            var optionalToken = passwordResetTokenRepository.findByToken(dto.token());
+
+            if(optionalToken.isEmpty()){
+                throw new TokenInvalidException("Token inválido.");
+            }
+
+            var resetToken = optionalToken.get();
+            if(resetToken.isUsed() ||
+                    resetToken.getExpiration().isBefore(java.time.LocalDateTime.now())){
+                throw new TokenExpiredException("Token expirado ou já utilizado.");
+            }
+
+            User user = resetToken.getUser();
+            updatePassword(user, dto.newPassword());
+            return "Senha redefinida com sucesso";
+        }catch (Exception e){
+            throw new IllegalArgumentException(e.getMessage());
+        }
+    }
+
     // Helpers
 
     @Transactional
-    protected User updatePassword(String login, String newPassword){
-        User user = (User) repository.findByLogin(login);
+    protected void updatePassword(User user, String newPassword){
         user.setPassword(new BCryptPasswordEncoder().encode(newPassword));
-        return user;
-    }
-
-    private void sendEmail(String subject, String body, String email, String token){
-        SmtpMail mail = new SmtpMail(
-                List.of(email),
-                "noreply@envios.proautokimium.com.br",
-                null,
-                subject,
-                body + token,
-                null,
-                null,
-                null
-        );
     }
 }
