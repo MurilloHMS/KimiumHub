@@ -1,57 +1,58 @@
 package com.proautokimium.api.controllers;
 
 import com.proautokimium.api.Application.DTOs.authentication.*;
-import com.proautokimium.api.Application.DTOs.smtp.SmtpMail;
 import com.proautokimium.api.Application.DTOs.user.*;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.Infrastructure.security.TokenService;
 import com.proautokimium.api.Infrastructure.services.authentication.AuthenticationService;
 import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
-import com.proautokimium.api.Infrastructure.services.email.smtp.SmtpService;
+import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("api/auth")
 @Tag(name = "Autenticação", description = "Autenticação e registro de usuários")
 public class AuthenticationController {
-    @Autowired
-    AuthenticationManager authenticationManager;
-    @Autowired
-    UserRepository repository;
+    private final UserRepository repository;
+    private final EmployeeRepository employeeRepository;
+    private final TokenAuthService accessTokenService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final TokenService tokenService;
+    private final EmailQueueService emailService;
+    private final AuthenticationService authService;
 
-    @Autowired
-    EmployeeRepository employeeRepository;
+    public AuthenticationController(
+            UserRepository repository,
+            EmployeeRepository employeeRepository,
+            TokenAuthService accessTokenService,
+            PasswordResetTokenRepository passwordResetTokenRepository,
+            TokenService tokenService,
+            EmailQueueService emailQueueService,
+            AuthenticationService authService
+    ){
+        this.repository = repository;
+        this.employeeRepository = employeeRepository;
+        this.accessTokenService = accessTokenService;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.tokenService = tokenService;
+        this.emailService = emailQueueService;
+        this.authService = authService;
 
-    @Autowired
-    TokenAuthService accessTokenService;
+    }
 
-    @Autowired
-    PasswordResetTokenRepository passwordResetTokenRepository;
-
-    @Autowired
-    TokenService tokenService;
-
-    @Autowired
-    SmtpService emailService;
-
-    @Autowired
-    AuthenticationService authService;
 
     @PostMapping("/login")
     @Operation(summary = "Realiza login", description = "Verifica usuário e senha e autoriza o login")
@@ -64,31 +65,28 @@ public class AuthenticationController {
     public ResponseEntity<Object> Register(@RequestBody @Valid RegisterDTO data){
         if(this.repository.findByLogin(data.login()) != null) return ResponseEntity.status(HttpStatus.CONFLICT).body("O Usuário informado, já existe!");
 
-        authService.signIn(data);
-        return ResponseEntity.status(HttpStatus.OK).body("Usuário criado com sucesso!");
+        return authService.signIn(data) != null ?
+                ResponseEntity.status(HttpStatus.OK).body("Usuário criado com sucesso!")
+                : ResponseEntity.noContent().build();
     }
 
     /** Vincula explicitamente um usuário a um funcionário (parceiro) pelo código do parceiro. */
     @PutMapping("/users/{login}/employee")
     @Operation(summary = "Vincular funcionário", description = "Vincula explicitamente um usuário a um funcionário (parceiro) pelo código do parceiro")
-    public ResponseEntity<Object> linkEmployee(@PathVariable("login") String login,
+    public ResponseEntity<Object> linkEmployee(@PathVariable String login,
                                                @RequestBody @Valid LinkEmployeeRequest body) {
-        User user = (User) repository.findByLogin(login);
-        if (user == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuário não encontrado");
-
-        Employee employee = employeeRepository.findByCodParceiro(body.codParceiro());
-        if (employee == null) return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Funcionário não encontrado");
-
-        authService.linkEmployee(user, employee);
-        return ResponseEntity.ok("Usuário vinculado ao funcionário com sucesso!");
+        return authService.linkEmployee(login, body) != null ?
+                ResponseEntity.ok("Usuário vinculado ao funcionário com sucesso!")
+                : ResponseEntity.noContent().build();
     }
 
     /** Remove o vínculo de um usuário com o funcionário. */
     @DeleteMapping("/users/{login}/employee")
     @Operation(summary = "Desvincula funcionário", description = "Realiza a exclusão do vínculo do funcionário")
-    public ResponseEntity<Object> unlinkEmployee(@PathVariable("login") String login) {
-        authService.unlinkEmployee(login);
-        return ResponseEntity.ok("Vínculo removido com sucesso!");
+    public ResponseEntity<Object> unlinkEmployee(@PathVariable String login) {
+        return authService.unlinkEmployee(login) != null ?
+                ResponseEntity.ok("Vínculo removido com sucesso!")
+                : ResponseEntity.noContent().build();
     }
 
     @PostMapping("/app-token")
@@ -102,14 +100,7 @@ public class AuthenticationController {
     @GetMapping("/users")
     @Operation(summary = "Retorna Usuários", description = "Obtém a lista de usuários")
     public ResponseEntity<Object> getUsers(){
-        var users = repository.findAllWithEmployee();
-
-        if(users == null || users.isEmpty())
-        	return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Não foi encontrado Usuários válidos");
-
-        return ResponseEntity.ok().body(users.stream().map(m -> new UserResponseDTO(
-        		m.getLogin(), m.getRoles(),
-        		m.getEmployee() != null ? m.getEmployee().getCodParceiro() : null)));
+        return ResponseEntity.ok(authService.getUsers());
     }
 
     @PostMapping("/forgot-password")
@@ -122,18 +113,12 @@ public class AuthenticationController {
         }
 
         String token = accessTokenService.createToken(user);
-        SmtpMail mail = new SmtpMail(
-                List.of(user.getEmail()),
+        emailService.sendEmail(
+                user.getEmail(),
                 "noreply@envios.proautokimium.com.br",
-                null,
                 "Token de recuperação de senha",
-                "Use o seguinte token para redefinir sua senha: " + token,
-                null,
-                null,
-                null
-        );
+                "Use o seguinte token para redefinir sua senha: " + token);
 
-        emailService.sendEmail(mail, null);
         return ResponseEntity.ok("Token de recuperação de senha enviado para o e-mail cadastrado.");
     }
 
@@ -147,31 +132,20 @@ public class AuthenticationController {
         }
 
         String token = accessTokenService.createTokenByEmployee(employee.get());
-        SmtpMail mail = new SmtpMail(
-                List.of(dto.email()),
-                "noreply@envios.proautokimium.com.br",
-                null,
-                "Token de primeiro acesso",
-                "Use o seguinte token para realizar o primeiro acesso a plataforma: " + token,
-                null,
-                null,
-                null
-        );
-
-        emailService.sendEmail(mail, null);
+        emailService.sendEmail(dto.email(), "noreply@envios.proautokimium.com.br", "Token de primeiro acesso", "Use o seguinte token para realizar o primeiro acesso a plataforma: " + token);
         return ResponseEntity.ok("Token de recuperação de senha enviado para o e-mail cadastrado.");
     }
 
     @PostMapping("/first-access/{token}/is-valid")
     @Operation(summary = "Valida o token enviado", description = "Valida o token enviado por email do primeiro acesso")
-    public ResponseEntity<?> firstAccessTokenIsValid(@PathVariable("token") String token){
+    public ResponseEntity<?> firstAccessTokenIsValid(@PathVariable String token){
         Boolean isValid = authService.firstAccessTokenIsValid(token);
         return isValid.equals(true) ? ResponseEntity.ok("Token Válido") : ResponseEntity.noContent().build();
     }
 
     @PostMapping("/first-access/{token}/sign-in")
     @Operation(summary = "Cria o novo usuário", description = "Cria o novo usuário")
-    public ResponseEntity<?> createFirstUsername(@PathVariable("token") String token, @RequestBody @Valid NewAccessPasswordDTO dto){
+    public ResponseEntity<?> createFirstUsername(@PathVariable String token, @RequestBody @Valid NewAccessPasswordDTO dto){
         boolean isValid = authService.firstAccessTokenIsValid(token);
         if(isValid){
             User user = authService.signInFirstAccess(token, dto);
@@ -183,25 +157,8 @@ public class AuthenticationController {
     @PostMapping("/reset-password")
     @Operation(summary = "Reset da senha", description = "Recebe o token e reseta a senha")
     public ResponseEntity<Object> resetPassword(@RequestBody @Valid ResetPasswordDTO dto) {
-        var optionalToken = passwordResetTokenRepository.findByToken(dto.token());
-
-        if(optionalToken.isEmpty()){
-            return ResponseEntity.badRequest().body("Token inválido.");
-        }
-
-        var resetToken = optionalToken.get();
-        if(resetToken.isUsed() ||
-            resetToken.getExpiration().isBefore(java.time.LocalDateTime.now())){
-            return ResponseEntity.badRequest().body("Token expirado ou já utilizado.");
-        }
-
-        User user = resetToken.getUser();
-        user.setPassword(new BCryptPasswordEncoder().encode(dto.newPassword()));
-
-        repository.save(user);
-        resetToken.setUsed(true);
-        passwordResetTokenRepository.save(resetToken);
-        return ResponseEntity.ok("Senha redefinida com sucesso.");
+        String response = authService.resetPassword(dto);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/change-password")
@@ -216,7 +173,7 @@ public class AuthenticationController {
     }
     @PutMapping("/users/{login}/roles")
     @Operation(summary = "Retorna roles", description = "Retorna as roles de um usuário pelo login")
-    public ResponseEntity<Object> getUserRoles(@PathVariable("login") String login, @RequestBody UpdateRolesRequest roles) {
+    public ResponseEntity<Object> getUserRoles(@PathVariable String login, @RequestBody UpdateRolesRequest roles) {
         User user = (User) repository.findByLogin(login);
 
         if(user == null) return ResponseEntity.notFound().build();
