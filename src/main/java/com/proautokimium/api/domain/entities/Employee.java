@@ -23,7 +23,8 @@ import java.time.LocalDate;
 public class Employee extends Partner {
     @Column(name = "codigo_gerente", length = 9)
     private String codigoGerente;
-    
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "hierarquia", length = 15)
     private Hierarchy hierarquia;
     
