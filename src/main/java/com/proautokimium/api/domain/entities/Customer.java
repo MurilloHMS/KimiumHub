@@ -17,7 +17,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Customer extends Partner {
-    @Column(name = "recebe_email", nullable = false)
+    @Column(name = "recebe_email")
     private boolean recebeEmail;
     @Column(name = "codigo_matriz", length = 9)
     private String codigoMatriz;
