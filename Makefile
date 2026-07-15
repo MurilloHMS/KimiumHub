@@ -1,3 +1,5 @@
+.PHONY: install-libs build run deploy restart stop remove logs
+
 CONTAINER=proauto-api:local
 PORT=5007:5007
 NAME=proauto-api
@@ -6,8 +8,8 @@ VOLUME=/var/proauto/curriculos:/app/curriculos
 IMAGE_VOLUME=/var/proauto/upload/images:/app/upload/images
 ENV=.env
 
-install:
-    mvn install:install-file -Dfile="libs/montserrat-font.jar" -DgroupId="custom.fonts" -DartifactId=montserrat -Dversion="1.0" -Dpackaging=jar
+install-libs:
+	mvn install:install-file -Dfile=libs/montserrat-font.jar -DgroupId=custom.fonts -DartifactId=montserrat -Dversion=1.0 -Dpackaging=jar
 
 build:
 	docker build -t $(CONTAINER) .
@@ -27,4 +29,4 @@ remove:
 	-docker rm $(NAME)
 
 logs:
-	-docker logs $(NAME) -f
+	-docker logs -f $(NAME)
