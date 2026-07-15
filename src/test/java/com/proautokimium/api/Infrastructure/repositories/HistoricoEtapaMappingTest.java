@@ -17,6 +17,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,10 +33,10 @@ class HistoricoEtapaMappingTest {
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    @DisplayName("Etapa deve ser persistida como nome e não como número")
-    void ShouldPersistsStringNotOrdinal(){
+    @DisplayName("Enums devem ser persistidos como nome e não como número")
+    void shouldPersistEnumsAsNamesNotOrdinal(){
         Candidatura application = persistedApplication();
-        HistoricoEtapa historicoEtapa = new HistoricoEtapa(application, Etapa.TRIAGEM, Etapa.ENTREVISTA_RH, StatusCandidatura.EM_ANDAMENTO, "observacao", LocalDateTime.now());
+        HistoricoEtapa historicoEtapa = new HistoricoEtapa(application, Etapa.TRIAGEM, Etapa.ENTREVISTA_RH, StatusCandidatura.EM_ANDAMENTO, "observacao", LocalDateTime.of(2026, Month.JANUARY, 1,12,0));
 
         entityManager.persistAndFlush(historicoEtapa);
 
