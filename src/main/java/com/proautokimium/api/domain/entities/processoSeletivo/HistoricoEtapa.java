@@ -18,12 +18,15 @@ import java.util.UUID;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class HistoricoEtapa extends com.proautokimium.api.domain.abstractions.Entity{
+public class HistoricoEtapa extends com.proautokimium.api.domain.abstractions.Entity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "candidatura_id", nullable = false)
     private Candidatura candidatura;
+    @Enumerated(EnumType.STRING)
     private Etapa etapaAnterior;
+    @Enumerated(EnumType.STRING)
     private Etapa etapaNova;
+    @Enumerated(EnumType.STRING)
     private StatusCandidatura status;
     private String observacao;
     private LocalDateTime dataMovimentacao;
