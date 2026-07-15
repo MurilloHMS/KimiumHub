@@ -9,7 +9,7 @@ SET role = CASE role
     WHEN '6' THEN 'FINANCEIRO'
     WHEN '7' THEN 'DESIGN'
     WHEN '8' THEN 'MARKETING'
-    WHEN '9' THEN 'CONTATOS'
+    WHEN '9' THEN 'CONTRATOS'
     WHEN '10' THEN 'CLIENTE'
     WHEN '11' THEN 'PARCEIRO'
     WHEN '12' THEN 'TECNICO'
@@ -19,4 +19,4 @@ SET role = CASE role
     WHEN '16' THEN 'ALMOXARIFADO'
     ELSE role
 END
-WHERE role ~ '^[0-9]+$'
+WHERE role ~ '^[0-9]+$';

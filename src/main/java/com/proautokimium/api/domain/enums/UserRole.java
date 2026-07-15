@@ -13,7 +13,7 @@ public enum UserRole {
     FINANCEIRO("financeiro"),
     DESIGN("design"),
     MARKETING("marketing"),
-    CONTRATOS("contatos"),
+    CONTRATOS("contratos"),
     CLIENTE("cliente"),
     PARCEIRO("parceiro"),
     TECNICO("tecnico"),
