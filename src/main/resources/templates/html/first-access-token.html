@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Código de primeiro acesso</title>
+</head>
+<body style="margin:0; padding:0; font-family: Arial, sans-serif; background-color:#f4f4f4;">
+
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td align="center" style="padding:30px 10px;">
+
+                <!-- Card principal -->
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600"
+                       style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 3px 8px rgba(0,0,0,.12);">
+
+                    <!-- Cabeçalho com degradê -->
+                    <tr>
+                        <td align="center" style="background:linear-gradient(90deg, #232e61, #57c1ab); padding:36px 20px; color:#ffffff;">
+                            <h1 style="margin:0; font-size:28px; font-weight:bold;">Primeiro acesso</h1>
+                            <p style="margin:10px 0 0; font-size:16px;">Portal Proauto Kimium</p>
+                        </td>
+                    </tr>
+
+                    <!-- Mensagem principal -->
+                    <tr>
+                        <td style="padding:36px 30px 10px; color:#444444; font-size:16px; line-height:26px;">
+                            <p style="margin:0 0 16px;">Olá!</p>
+                            <p style="margin:0 0 16px;">
+                                Recebemos uma solicitação de <strong>primeiro acesso</strong> ao portal.
+                                Use o código abaixo para continuar o seu cadastro:
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Código em destaque -->
+                    <tr>
+                        <td align="center" style="padding:10px 30px;">
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td align="center"
+                                        style="background:#f0f3fb; border:2px dashed #232e61; border-radius:10px; padding:24px 10px;">
+                                        <span th:text="${token}"
+                                              style="font-family:'Courier New', Courier, monospace; font-size:40px; font-weight:bold; letter-spacing:10px; color:#232e61;">
+                                            ABC123
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p th:text="'O código expira em ' + ${ttlMinutes} + ' minutos.'"
+                               style="margin:12px 0 0; font-size:13px; color:#888888;">
+                                O código expira em 30 minutos.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Botão CTA: continua o cadastro com o código já preenchido -->
+                    <tr>
+                        <td align="center" style="padding:24px 30px 8px;">
+                            <a th:href="${actionUrl}" target="_blank"
+                               style="background:#232e61; color:#ffffff; text-decoration:none; padding:14px 36px; border-radius:6px; font-size:16px; font-weight:bold; display:inline-block;">
+                                Continuar cadastro
+                            </a>
+                        </td>
+                    </tr>
+
+                    <!-- Fallback do link para clientes que bloqueiam botões -->
+                    <tr>
+                        <td align="center" style="padding:0 30px 28px;">
+                            <p style="margin:8px 0 0; font-size:12px; color:#888888; line-height:18px;">
+                                Se o botão não funcionar, copie e cole este endereço no navegador:<br>
+                                <a th:href="${actionUrl}" th:text="${actionUrl}" style="color:#57c1ab; word-break:break-all;">
+                                    https://proautokimium.com.br/first-access?token=ABC123
+                                </a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Aviso de segurança -->
+                    <tr>
+                        <td style="padding:0 30px 32px; color:#888888; font-size:13px; line-height:20px; border-top:1px solid #eeeeee;">
+                            <p style="margin:20px 0 0;">
+                                Se você não solicitou este acesso, ignore este e-mail e avise o RH.
+                                O código é de uso único e só funciona com a senha criada por você.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Rodapé -->
+                    <tr>
+                        <td align="center" style="background:#f8f8f8; padding:16px 30px; color:#aaaaaa; font-size:12px;">
+                            E-mail automático — não responda. Proauto Kimium.
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

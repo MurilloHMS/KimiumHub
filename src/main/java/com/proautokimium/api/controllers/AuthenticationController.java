@@ -8,6 +8,7 @@ import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepos
 import com.proautokimium.api.Infrastructure.security.TokenService;
 import com.proautokimium.api.Infrastructure.services.authentication.AuthenticationService;
 import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
+import com.proautokimium.api.Infrastructure.services.email.AuthEmailService;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
 import com.proautokimium.api.Infrastructure.services.notification.NotificationService;
 import com.proautokimium.api.domain.entities.Employee;
@@ -41,6 +42,7 @@ public class AuthenticationController {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final TokenService tokenService;
     private final EmailQueueService emailService;
+    private final AuthEmailService authEmailService;
     private final AuthenticationService authService;
     private final NotificationService notificationService;
 
@@ -51,6 +53,7 @@ public class AuthenticationController {
             PasswordResetTokenRepository passwordResetTokenRepository,
             TokenService tokenService,
             EmailQueueService emailQueueService,
+            AuthEmailService authEmailService,
             AuthenticationService authService,
             NotificationService notificationService
     ){
@@ -60,6 +63,7 @@ public class AuthenticationController {
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.tokenService = tokenService;
         this.emailService = emailQueueService;
+        this.authEmailService = authEmailService;
         this.authService = authService;
         this.notificationService = notificationService;
     }
@@ -147,7 +151,7 @@ public class AuthenticationController {
         }
 
         String token = accessTokenService.createTokenByEmployee(employee.get());
-        emailService.sendNow(dto.email(), "noreply@envios.proautokimium.com.br", "Token de primeiro acesso", "Use o seguinte token para realizar o primeiro acesso a plataforma: " + token);
+        authEmailService.sendFirstAccessToken(dto.email(), token);
         return ResponseEntity.ok("Token de primeiro acesso enviado para o e-mail informado.");
     }
 

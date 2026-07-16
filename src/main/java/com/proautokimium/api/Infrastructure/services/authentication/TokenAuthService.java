@@ -17,7 +17,8 @@ import java.util.Optional;
 @Service
 public class TokenAuthService {
 
-    private static final int TOKEN_TTL_MINUTES = 30;
+    /** Fonte única do TTL do token — também usado no e-mail que informa a validade ao usuário. */
+    public static final int TOKEN_TTL_MINUTES = 30;
 
     private final PasswordResetTokenRepository repositoryResetToken;
     private final FirstAccessTokenRepository repositoryFirstAccessToken;
