@@ -6,6 +6,7 @@ import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.FirstAcessToken;
 import com.proautokimium.api.domain.entities.auth.PasswordResetToken;
 import com.proautokimium.api.domain.entities.auth.User;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -58,6 +59,12 @@ public class TokenAuthService {
 
     public Optional<FirstAcessToken> isValid(String token) {
         return repositoryFirstAccessToken.findByToken(token);
+    }
+
+    @Transactional
+    public FirstAcessToken markTokenUsed(FirstAcessToken token){
+        token.markUsed();
+        return repositoryFirstAccessToken.save(token);
     }
 
     // Helpers

@@ -2,30 +2,39 @@ package com.proautokimium.api.controllers;
 
 import com.proautokimium.api.Application.DTOs.authentication.*;
 import com.proautokimium.api.Application.DTOs.user.*;
+import com.proautokimium.api.Infrastructure.exceptions.auth.UserAlreadyExistsException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.Infrastructure.security.TokenService;
 import com.proautokimium.api.Infrastructure.services.authentication.AuthenticationService;
 import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
+import com.proautokimium.api.Infrastructure.services.notification.NotificationService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.User;
+import com.proautokimium.api.domain.enums.NotificationType;
+import com.proautokimium.api.domain.enums.UserRole;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("api/auth")
 @Tag(name = "Autenticação", description = "Autenticação e registro de usuários")
 public class AuthenticationController {
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationController.class);
+
     private final UserRepository repository;
     private final EmployeeRepository employeeRepository;
     private final TokenAuthService accessTokenService;
@@ -33,6 +42,7 @@ public class AuthenticationController {
     private final TokenService tokenService;
     private final EmailQueueService emailService;
     private final AuthenticationService authService;
+    private final NotificationService notificationService;
 
     public AuthenticationController(
             UserRepository repository,
@@ -41,7 +51,8 @@ public class AuthenticationController {
             PasswordResetTokenRepository passwordResetTokenRepository,
             TokenService tokenService,
             EmailQueueService emailQueueService,
-            AuthenticationService authService
+            AuthenticationService authService,
+            NotificationService notificationService
     ){
         this.repository = repository;
         this.employeeRepository = employeeRepository;
@@ -50,7 +61,7 @@ public class AuthenticationController {
         this.tokenService = tokenService;
         this.emailService = emailQueueService;
         this.authService = authService;
-
+        this.notificationService = notificationService;
     }
 
 
@@ -124,16 +135,20 @@ public class AuthenticationController {
 
     @PostMapping("/first-access")
     @Operation(summary = "Cria o Primeiro Acesso", description = "Gera o token de primeiro acesso e envia via email")
-    public ResponseEntity<Object> forgotPassword(@RequestBody @Valid NewAccessDTO dto) {
+    public ResponseEntity<Object> firstAccess(@RequestBody @Valid NewAccessDTO dto) {
         Optional<Employee> employee = employeeRepository.findByCpfDigits(dto.cpf());
 
         if(employee.isEmpty()){
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Não existe funcionário cadastrado com o CPF e email informado. Entre em contato com o RH para verificar.");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Não existe funcionário cadastrado com o CPF informado. Entre em contato com o RH para verificar.");
+        }
+
+        if(repository.findByEmployee_Id(employee.get().getId()).isPresent()){
+            throw new UserAlreadyExistsException("Já existe um usuário cadastrado para o CPF informado. Utilize a recuperação de senha ou contate o RH.");
         }
 
         String token = accessTokenService.createTokenByEmployee(employee.get());
         emailService.sendNow(dto.email(), "noreply@envios.proautokimium.com.br", "Token de primeiro acesso", "Use o seguinte token para realizar o primeiro acesso a plataforma: " + token);
-        return ResponseEntity.ok("Token de recuperação de senha enviado para o e-mail cadastrado.");
+        return ResponseEntity.ok("Token de primeiro acesso enviado para o e-mail informado.");
     }
 
     @PostMapping("/first-access/{token}/is-valid")
@@ -149,9 +164,27 @@ public class AuthenticationController {
         boolean isValid = authService.firstAccessTokenIsValid(token);
         if(isValid){
             User user = authService.signInFirstAccess(token, dto);
+            notifyStaffAboutFirstAccess(user);
             return ResponseEntity.status(HttpStatus.CREATED).body("Usuário criado com sucesso!\n\n Utilize o usuário: " + user.getLogin() + " para realizar o login");
         }
         return ResponseEntity.badRequest().body("Erro ao criar usuário, Token inválido ou expirado");
+    }
+
+    /** Aviso a RH/Desenvolvedores é melhor esforço: falha na entrega não pode desfazer nem esconder a criação do usuário. */
+    private void notifyStaffAboutFirstAccess(User user){
+        try{
+            List<User> recipients = repository.findByRolesIn(List.of(UserRole.RH, UserRole.DEVELOPER));
+            for(User recipient : recipients){
+                notificationService.notify(
+                        recipient.getLogin(),
+                        NotificationType.GERAL,
+                        "Novo usuário criado via primeiro acesso",
+                        "O funcionário " + user.getEmployee().getName() + " criou o usuário '" + user.getLogin() + "' pelo fluxo de primeiro acesso.",
+                        null);
+            }
+        }catch (Exception e){
+            log.warn("Falha ao notificar RH/Desenvolvedores sobre o primeiro acesso do usuário {}", user.getLogin(), e);
+        }
     }
 
     @PostMapping("/reset-password")
