@@ -11,6 +11,7 @@ import com.proautokimium.api.Infrastructure.security.SecurityConfiguration;
 import com.proautokimium.api.Infrastructure.security.TokenService;
 import com.proautokimium.api.Infrastructure.services.authentication.AuthenticationService;
 import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
+import com.proautokimium.api.Infrastructure.services.email.AuthEmailService;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
 import com.proautokimium.api.Infrastructure.services.notification.NotificationService;
 import com.proautokimium.api.domain.entities.Employee;
@@ -84,6 +85,9 @@ class AuthenticationControllerTest {
 
     @MockitoBean
     private NotificationService notificationService;
+
+    @MockitoBean
+    private AuthEmailService authEmailService;
 
     @Test
     @DisplayName("Deve fazer login com sucesso e retornar token")
@@ -240,7 +244,7 @@ class AuthenticationControllerTest {
                         "Já existe um usuário cadastrado para o CPF informado. Utilize a recuperação de senha ou contate o RH."));
 
         verify(tokenAuthService, never()).createTokenByEmployee(any());
-        verify(emailQueueService, never()).sendNow(any(), any(), any(), any());
+        verify(authEmailService, never()).sendFirstAccessToken(any(), any());
     }
 
     @Test
@@ -263,7 +267,7 @@ class AuthenticationControllerTest {
                                 """))
                 .andExpect(status().isOk());
 
-        verify(emailQueueService).sendNow(eq("novo@teste.com"), any(), any(), contains("ABC123"));
+        verify(authEmailService).sendFirstAccessToken("novo@teste.com", "ABC123");
     }
 
     @Test
