@@ -1,11 +1,13 @@
 package com.proautokimium.api.Infrastructure.repositories;
 
 import com.proautokimium.api.domain.entities.auth.User;
+import com.proautokimium.api.domain.enums.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,6 +24,10 @@ public interface UserRepository extends JpaRepository<User, String> {
     List<User> findAllWithEmployee();
 
     Optional<User> findByEmployee_Id(UUID employeeId);
+
+    /** Usuários que possuem qualquer uma das roles informadas (DISTINCT: usuário com mais de uma role vem uma vez só). */
+    @Query("SELECT DISTINCT u FROM users u JOIN u.roles r WHERE r IN :roles")
+    List<User> findByRolesIn(@Param("roles") Collection<UserRole> roles);
 
     boolean existsByLogin(String username);
 }

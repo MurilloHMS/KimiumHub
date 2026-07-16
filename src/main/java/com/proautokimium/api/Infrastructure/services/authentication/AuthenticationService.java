@@ -7,6 +7,7 @@ import com.proautokimium.api.Application.DTOs.user.LinkEmployeeRequest;
 import com.proautokimium.api.Application.DTOs.user.RegisterDTO;
 import com.proautokimium.api.Application.DTOs.user.UserResponseDTO;
 import com.proautokimium.api.Infrastructure.exceptions.auth.CredentialsIncorrectException;
+import com.proautokimium.api.Infrastructure.exceptions.auth.UserAlreadyExistsException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.token.TokenExpiredException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.token.TokenInvalidException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
@@ -29,6 +30,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -41,14 +43,16 @@ public class AuthenticationService {
     private final TokenAuthService accessTokenService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final TokenService tokenService;
+    private final Clock clock;
 
-    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository,TokenService tokenService) {
+    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository,TokenService tokenService, Clock clock) {
         this.authenticationManager = authenticationManager;
         this.repository = repository;
         this.employeeRepository = employeeRepository;
         this.accessTokenService = accessTokenService;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.tokenService = tokenService;
+        this.clock = clock;
     }
 
     public String login(AuthenticationDTO dto){
@@ -75,11 +79,17 @@ public class AuthenticationService {
         return this.repository.save(newUser);
     }
 
+    @Transactional
     public User signInFirstAccess(String token, NewAccessPasswordDTO dto) {
         String encryptedPassword = new BCryptPasswordEncoder().encode(dto.password());
 
         FirstAcessToken firstAccessToken = accessTokenService.getToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("Token inválido ou expirado."));
+
+        repository.findByEmployee_Id(firstAccessToken.getEmployee().getId())
+                .ifPresent(existing -> {
+                    throw new UserAlreadyExistsException("Este funcionário já possui o usuário '" + existing.getLogin() + "'. Utilize a recuperação de senha.");
+                });
 
         String username = UsernameSanitizer.generateUnique(
                 firstAccessToken.getEmployee().getName(),
@@ -92,6 +102,8 @@ public class AuthenticationService {
         newUser.setPassword(encryptedPassword);
         newUser.setEmployee(firstAccessToken.getEmployee());
         newUser.setRoles(List.of(UserRole.USER));
+
+        accessTokenService.markTokenUsed(firstAccessToken);
 
         return repository.save(newUser);
     }
@@ -124,7 +136,7 @@ public class AuthenticationService {
 
     public boolean firstAccessTokenIsValid(String token){
         Optional<FirstAcessToken> valid = accessTokenService.isValid(token);
-        return valid.map(firstAcessToken -> firstAcessToken.getExpiration().isAfter(LocalDateTime.now())).orElse(false);
+        return valid.map(t -> t.isValid(LocalDateTime.now(clock))).orElse(false);
     }
 
     public List<UserResponseDTO> getUsers(){

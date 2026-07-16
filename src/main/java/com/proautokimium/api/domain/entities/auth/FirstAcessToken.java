@@ -29,4 +29,13 @@ public class FirstAcessToken extends com.proautokimium.api.domain.abstractions.E
     private LocalDateTime expiration;
 
     private boolean used = false;
+
+    // Methods
+    public boolean isValid(LocalDateTime now){
+        return this.expiration.isAfter(now) && !this.used;
+    }
+
+    public void markUsed(){
+        this.used = true;
+    }
 }

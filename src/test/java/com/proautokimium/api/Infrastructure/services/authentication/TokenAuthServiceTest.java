@@ -58,4 +58,18 @@ class TokenAuthServiceTest {
         assertThat(captor.getAllValues().get(1).getExpiration())
                 .isEqualTo(LocalDateTime.of(2026, 7, 16, 14, 30));
     }
+
+    @Test
+    @DisplayName("Deve marcar o token como usado e persistir")
+    void shouldMarkTokenUsedAndPersist() {
+        TokenAuthService service = new TokenAuthService(passwordResetTokenRepository, firstAccessTokenRepository, Clock.fixed(NOON, ZONE));
+        FirstAcessToken token = new FirstAcessToken();
+        token.setToken("ABC123");
+
+        service.markTokenUsed(token);
+
+        ArgumentCaptor<FirstAcessToken> captor = ArgumentCaptor.forClass(FirstAcessToken.class);
+        verify(firstAccessTokenRepository).save(captor.capture());
+        assertThat(captor.getValue().isUsed()).isTrue();
+    }
 }
