@@ -139,8 +139,8 @@ public class AuthenticationController {
     @PostMapping("/first-access/{token}/is-valid")
     @Operation(summary = "Valida o token enviado", description = "Valida o token enviado por email do primeiro acesso")
     public ResponseEntity<?> firstAccessTokenIsValid(@PathVariable String token){
-        Boolean isValid = authService.firstAccessTokenIsValid(token);
-        return isValid.equals(true) ? ResponseEntity.ok("Token Válido") : ResponseEntity.noContent().build();
+        boolean isValid = authService.firstAccessTokenIsValid(token);
+        return isValid ? ResponseEntity.ok("Token Válido") : ResponseEntity.badRequest().body("Token inválido ou expirado.");
     }
 
     @PostMapping("/first-access/{token}/sign-in")
@@ -151,7 +151,7 @@ public class AuthenticationController {
             User user = authService.signInFirstAccess(token, dto);
             return ResponseEntity.status(HttpStatus.CREATED).body("Usuário criado com sucesso!\n\n Utilize o usuário: " + user.getLogin() + " para realizar o login");
         }
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.badRequest().body("Erro ao criar usuário, Token inválido ou expirado");
     }
 
     @PostMapping("/reset-password")
