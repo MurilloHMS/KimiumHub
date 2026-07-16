@@ -36,7 +36,7 @@ class AuthEmailServiceTest {
         assertThat(ctx.getVariable("token")).isEqualTo("ABC123");
         assertThat(ctx.getVariable("ttlMinutes")).isEqualTo(TokenAuthService.TOKEN_TTL_MINUTES);
         assertThat(ctx.getVariable("actionUrl"))
-                .isEqualTo("https://site.teste/first-access?token=ABC123&email=novo%40teste.com");
+                .isEqualTo("https://site.teste/login/first-access?token=ABC123&email=novo%40teste.com");
 
         verify(emailQueueService).sendNow(
                 eq("novo@teste.com"),

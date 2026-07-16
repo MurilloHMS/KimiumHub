@@ -44,7 +44,7 @@ public class AuthEmailService {
 
     /** Deep link com token e e-mail: o front pula direto para a validação do código. */
     private String buildFirstAccessUrl(String email, String token) {
-        return websiteBaseUrl + "/first-access"
+        return websiteBaseUrl + "/login/first-access"
                 + "?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8)
                 + "&email=" + URLEncoder.encode(email, StandardCharsets.UTF_8);
     }
