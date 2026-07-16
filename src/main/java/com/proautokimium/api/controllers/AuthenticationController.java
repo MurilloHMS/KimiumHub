@@ -113,7 +113,7 @@ public class AuthenticationController {
         }
 
         String token = accessTokenService.createToken(user);
-        emailService.sendEmail(
+        emailService.sendNow(
                 user.getEmail(),
                 "noreply@envios.proautokimium.com.br",
                 "Token de recuperação de senha",
@@ -132,15 +132,15 @@ public class AuthenticationController {
         }
 
         String token = accessTokenService.createTokenByEmployee(employee.get());
-        emailService.sendEmail(dto.email(), "noreply@envios.proautokimium.com.br", "Token de primeiro acesso", "Use o seguinte token para realizar o primeiro acesso a plataforma: " + token);
+        emailService.sendNow(dto.email(), "noreply@envios.proautokimium.com.br", "Token de primeiro acesso", "Use o seguinte token para realizar o primeiro acesso a plataforma: " + token);
         return ResponseEntity.ok("Token de recuperação de senha enviado para o e-mail cadastrado.");
     }
 
     @PostMapping("/first-access/{token}/is-valid")
     @Operation(summary = "Valida o token enviado", description = "Valida o token enviado por email do primeiro acesso")
     public ResponseEntity<?> firstAccessTokenIsValid(@PathVariable String token){
-        Boolean isValid = authService.firstAccessTokenIsValid(token);
-        return isValid.equals(true) ? ResponseEntity.ok("Token Válido") : ResponseEntity.noContent().build();
+        boolean isValid = authService.firstAccessTokenIsValid(token);
+        return isValid ? ResponseEntity.ok("Token Válido") : ResponseEntity.badRequest().body("Token inválido ou expirado.");
     }
 
     @PostMapping("/first-access/{token}/sign-in")
@@ -151,7 +151,7 @@ public class AuthenticationController {
             User user = authService.signInFirstAccess(token, dto);
             return ResponseEntity.status(HttpStatus.CREATED).body("Usuário criado com sucesso!\n\n Utilize o usuário: " + user.getLogin() + " para realizar o login");
         }
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.badRequest().body("Erro ao criar usuário, Token inválido ou expirado");
     }
 
     @PostMapping("/reset-password")

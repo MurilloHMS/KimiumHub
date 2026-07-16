@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,7 +20,7 @@ class TokenServiceTest {
 
     private final PasswordResetTokenRepository repository = mock(PasswordResetTokenRepository.class);
     private final FirstAccessTokenRepository firstAccessTokenRepository = mock(FirstAccessTokenRepository.class);
-    private final TokenAuthService service = new TokenAuthService(repository, firstAccessTokenRepository);
+    private final TokenAuthService service = new TokenAuthService(repository, firstAccessTokenRepository, Clock.systemDefaultZone());
 
     @Test
     @DisplayName("Deve gerar token com 6 caracteres e salvar no repositório")

@@ -17,6 +17,7 @@ import com.proautokimium.api.Infrastructure.utils.UsernameSanitizer;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.FirstAcessToken;
 import com.proautokimium.api.domain.entities.auth.User;
+import com.proautokimium.api.domain.enums.UserRole;
 import com.proautokimium.api.domain.exceptions.auth.UserNotFoundException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeHasAlreadyLinkedException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
@@ -90,6 +91,7 @@ public class AuthenticationService {
         newUser.setEmail(dto.email());
         newUser.setPassword(encryptedPassword);
         newUser.setEmployee(firstAccessToken.getEmployee());
+        newUser.setRoles(List.of(UserRole.USER));
 
         return repository.save(newUser);
     }
