@@ -113,7 +113,7 @@ public class AuthenticationController {
         }
 
         String token = accessTokenService.createToken(user);
-        emailService.sendEmail(
+        emailService.sendNow(
                 user.getEmail(),
                 "noreply@envios.proautokimium.com.br",
                 "Token de recuperação de senha",
@@ -132,7 +132,7 @@ public class AuthenticationController {
         }
 
         String token = accessTokenService.createTokenByEmployee(employee.get());
-        emailService.sendEmail(dto.email(), "noreply@envios.proautokimium.com.br", "Token de primeiro acesso", "Use o seguinte token para realizar o primeiro acesso a plataforma: " + token);
+        emailService.sendNow(dto.email(), "noreply@envios.proautokimium.com.br", "Token de primeiro acesso", "Use o seguinte token para realizar o primeiro acesso a plataforma: " + token);
         return ResponseEntity.ok("Token de recuperação de senha enviado para o e-mail cadastrado.");
     }
 
