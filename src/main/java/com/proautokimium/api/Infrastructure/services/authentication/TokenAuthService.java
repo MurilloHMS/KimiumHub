@@ -9,19 +9,23 @@ import com.proautokimium.api.domain.entities.auth.User;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
 public class TokenAuthService {
 
+    private static final int TOKEN_TTL_MINUTES = 30;
+
     private final PasswordResetTokenRepository repositoryResetToken;
     private final FirstAccessTokenRepository repositoryFirstAccessToken;
-    private final LocalDateTime TIME_EXPIRATION =  LocalDateTime.now().plusMinutes(30);
+    private final Clock clock;
 
-    public TokenAuthService(PasswordResetTokenRepository repositoryResetToken, FirstAccessTokenRepository repositoryFirstAccessToken) {
+    public TokenAuthService(PasswordResetTokenRepository repositoryResetToken, FirstAccessTokenRepository repositoryFirstAccessToken, Clock clock) {
         this.repositoryResetToken = repositoryResetToken;
         this.repositoryFirstAccessToken = repositoryFirstAccessToken;
+        this.clock = clock;
     }
 
     public String createToken(User user) {
@@ -30,7 +34,7 @@ public class TokenAuthService {
         PasswordResetToken resetToken = new PasswordResetToken();
         resetToken.setToken(token);
         resetToken.setUser(user);
-        resetToken.setExpiration(TIME_EXPIRATION);
+        resetToken.setExpiration(expirationFromNow());
 
         repositoryResetToken.save(resetToken);
         return token;
@@ -42,7 +46,7 @@ public class TokenAuthService {
         FirstAcessToken accessToken = new FirstAcessToken();
         accessToken.setToken(token);
         accessToken.setEmployee(employee);
-        accessToken.setExpiration(TIME_EXPIRATION);
+        accessToken.setExpiration(expirationFromNow());
 
         repositoryFirstAccessToken.save(accessToken);
         return token;
@@ -52,6 +56,15 @@ public class TokenAuthService {
         return repositoryFirstAccessToken.findByToken(token);
     }
 
+    public Optional<FirstAcessToken> isValid(String token) {
+        return repositoryFirstAccessToken.findByToken(token);
+    }
+
+    // Helpers
+
+    private LocalDateTime expirationFromNow(){
+        return LocalDateTime.now(clock).plusMinutes(TOKEN_TTL_MINUTES);
+    }
     private String generateToken(){
         String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         SecureRandom random = new SecureRandom();
@@ -64,7 +77,4 @@ public class TokenAuthService {
         return token.toString();
     }
 
-    public Optional<FirstAcessToken> isValid(String token) {
-        return repositoryFirstAccessToken.findByToken(token);
-    }
 }
