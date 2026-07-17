@@ -1,6 +1,5 @@
 package com.proautokimium.api.domain.entities.processoSeletivo;
 
-import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.ResponseCandidaturaDTO;
 import com.proautokimium.api.domain.enums.processoSeletivo.Etapa;
 import com.proautokimium.api.domain.enums.processoSeletivo.StatusCandidatura;
 import jakarta.persistence.*;
@@ -10,8 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "candidaturas")
@@ -40,6 +37,9 @@ public class Candidatura extends com.proautokimium.api.domain.abstractions.Entit
 
     // Methods
     public void iniciar() {
+        if(this.status == StatusCandidatura.EM_ANDAMENTO || this.status == StatusCandidatura.APROVADO)
+            throw new IllegalStateException("Não é possível iniciar uma candidatura já em andamento ou aprovada.");
+
         this.etapaAtual = Etapa.TRIAGEM;
         this.status = StatusCandidatura.EM_ANDAMENTO;
         this.criadoEm = LocalDateTime.now();
@@ -78,10 +78,18 @@ public class Candidatura extends com.proautokimium.api.domain.abstractions.Entit
     }
 
     public void reprovar(){
+        if(this.etapaAtual == Etapa.CONTRATADO || this.status == StatusCandidatura.APROVADO)
+            throw new IllegalStateException("Não é possível reprovar uma candidatura contratada.");
+
         this.status = StatusCandidatura.REPROVADO;
+        this.atualizadoEm = LocalDateTime.now();
     }
 
     public void encerrar(){
+        if(this.etapaAtual == Etapa.CONTRATADO || this.status == StatusCandidatura.APROVADO || this.status == StatusCandidatura.ENCERRADO)
+            throw new IllegalStateException("Não é possível encerrar uma candidatura aprovada ou já encerrada.");
+
         this.status = StatusCandidatura.ENCERRADO;
+        this.atualizadoEm = LocalDateTime.now();
     }
 }
