@@ -51,7 +51,7 @@ import java.util.Map;
 public class GuideReportService {
     private final Logger logger = LoggerFactory.getLogger(GuideReportService.class);
 
-    private static final String REPORT_LOCATION = "guide/guia_utilizacao.jrxml";
+    private static final String REPORT_LOCATION = "guide/guia_utilizacao.jasper";
 
     private final ProductWebSiteRepository productRepository;
     private final ProductImageStorageService productImageStorage;
