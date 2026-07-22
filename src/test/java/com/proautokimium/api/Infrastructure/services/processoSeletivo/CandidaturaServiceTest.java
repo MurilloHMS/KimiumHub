@@ -17,11 +17,13 @@ import com.proautokimium.api.domain.entities.processoSeletivo.Candidato;
 import com.proautokimium.api.domain.entities.processoSeletivo.Candidatura;
 import com.proautokimium.api.domain.entities.processoSeletivo.Vaga;
 import com.proautokimium.api.domain.enums.processoSeletivo.Etapa;
+import com.proautokimium.api.domain.enums.processoSeletivo.StatusCandidatura;
 import com.proautokimium.api.domain.valueObjects.Email;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -119,8 +121,18 @@ class CandidaturaServiceTest {
 
         candidaturaService.create(createDto, null);
 
-        verify(candidaturaRepository).save(any(Candidatura.class));
+        ArgumentCaptor<Candidatura> captor = ArgumentCaptor.forClass(Candidatura.class);
+        verify(candidaturaRepository).save(captor.capture());
+        Candidatura saved = captor.getValue();
+
+        assertThat(saved.getCandidato().getEmail()).isEqualTo(new Email(createDto.email()));
+        assertThat(saved.getVaga()).isEqualTo(vaga);
+        assertThat(saved.getEtapaAtual()).isEqualTo(Etapa.TRIAGEM);
+        assertThat(saved.getStatus()).isEqualTo(StatusCandidatura.EM_ANDAMENTO);
+
         verify(emailService).create(any(EmailQueue.class));
+        verify(emailFactory).candidaturaConfirmada(eq("joao@email.com"), eq("João Silva"), eq("Desenvolvedor Java"));
+        verify(storageService, never()).save(any(), any());
     }
 
     @Test
@@ -135,9 +147,11 @@ class CandidaturaServiceTest {
                 .thenAnswer(invocation -> {
                     Candidato c = invocation.getArgument(0);
 
-                    Field field = Entity.class.getDeclaredField("id");
-                    field.setAccessible(true);
-                    field.set(c, UUID.randomUUID());
+                    if (c.getId() == null) {
+                        Field field = Entity.class.getDeclaredField("id");
+                        field.setAccessible(true);
+                        field.set(c, UUID.randomUUID());
+                    }
 
                     return c;
                 });
@@ -149,8 +163,17 @@ class CandidaturaServiceTest {
 
         candidaturaService.create(createDto, curriculo);
 
-        verify(storageService).save(any(), any());
+        ArgumentCaptor<Candidato> candidatoCaptor = ArgumentCaptor.forClass(Candidato.class);
+        verify(candidatoRepository, times(2)).save(candidatoCaptor.capture());
+        Candidato candidatoSalvo = candidatoCaptor.getValue();
+        assertThat(candidatoSalvo.getPathCurriculo()).isEqualTo("curriculo.pdf");
+
+        verify(storageService).save(eq(curriculo), eq(candidatoSalvo.getId().toString()));
+
         verify(candidaturaRepository).save(any(Candidatura.class));
+
+        verify(emailFactory).candidaturaConfirmada(eq("joao@email.com"), eq("João Silva"), eq("Desenvolvedor Java"));
+        verify(emailService).create(any(EmailQueue.class));
     }
 
     @Test
