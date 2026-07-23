@@ -2,7 +2,6 @@ package com.proautokimium.api.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,11 +11,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.proautokimium.api.Application.DTOs.partners.CreateEmployeeRequestDTO;
 import com.proautokimium.api.Application.DTOs.partners.EmployeeDTO;
+import com.proautokimium.api.Application.DTOs.partners.EmployeeResponseDTO;
+import com.proautokimium.api.Application.DTOs.partners.PartnerRecipientDTO;
 import com.proautokimium.api.Infrastructure.services.partner.EmployeeService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+
+import java.util.List;
 
 /**
  * Responsável pelo cadastro dos funcionários
@@ -25,20 +29,23 @@ import jakarta.validation.constraints.NotNull;
 @RequestMapping("api/employee")
 @Tag(name = "Funcionários", description = "CRUD Funcionários")
 public class EmployeeController {
-	
-	@Autowired
-	EmployeeService service;
-	
+
+	private final EmployeeService service;
+
+	public EmployeeController(EmployeeService service) {
+		this.service = service;
+	}
+
 	@GetMapping
 	@Operation(summary = "Obtém funcionários", description = "Retorna lista de funcionários")
-	public ResponseEntity<?> getEmployes(){
-		return service.getAllEmployes();
+	public ResponseEntity<List<EmployeeResponseDTO>> getEmployes(){
+		return ResponseEntity.ok(service.getAllEmployes());
 	}
 
 	@GetMapping("only-email")
 	@Operation(summary = "Obtém e-mails dos funcionários", description = "Retorna lista dos e-mails dos funcionários")
-	public ResponseEntity<?> getEmployesEmail(){
-		return service.getAllEmployesEmail();
+	public ResponseEntity<List<PartnerRecipientDTO>> getEmployesEmail(){
+		return ResponseEntity.ok(service.getAllEmployesEmail());
 	}
 
 	/**
@@ -48,7 +55,7 @@ public class EmployeeController {
 	 */
 	@PostMapping
 	@Operation(summary = "Cria Funcionário", description = "Registra os dados do funcionário")
-	public ResponseEntity<?> createEmploye(@RequestBody @Valid @NotNull EmployeeDTO dto){
+	public ResponseEntity<EmployeeResponseDTO> createEmploye(@RequestBody @Valid @NotNull CreateEmployeeRequestDTO dto){
 		return ResponseEntity.status(HttpStatus.CREATED).body(service.createEmployee(dto));
 	}
 
@@ -59,7 +66,7 @@ public class EmployeeController {
 	 */
 	@PutMapping
 	@Operation(summary = "Atualiza Funcionário", description = "Atualiza os dados do funcionário")
-	public ResponseEntity<?> updateEmploye(@RequestBody @Valid @NotNull EmployeeDTO dto){
+	public ResponseEntity<EmployeeResponseDTO> updateEmploye(@RequestBody @Valid @NotNull EmployeeDTO dto){
 		return ResponseEntity.status(HttpStatus.OK).body(service.updateEmployee(dto));
 	}
 }

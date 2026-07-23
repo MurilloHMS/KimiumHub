@@ -6,8 +6,9 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.proautokimium.api.domain.enums.Department;
 import com.proautokimium.api.domain.enums.Hierarchy;
+import com.proautokimium.api.domain.enums.humanResources.ContractType;
 
-public record EmployeeDTO(
+public record CreateEmployeeRequestDTO(
 		String partnerCode,
 		String document,
 		String name,
@@ -19,5 +20,10 @@ public record EmployeeDTO(
 		LocalDate birthday,
 		Department department,
 		UUID companyId,
-		UUID teamId
+		UUID teamId,
+		UUID positionId,
+		UUID positionLevelId,
+		ContractType contractType,
+		@JsonFormat(pattern = "yyyy-MM-dd")
+		LocalDate hiringDate
 		) {}
