@@ -21,7 +21,7 @@ public class DepartmentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN´, 'RH')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
     public ResponseEntity<DepartmentResponseDTO> create(@Valid @RequestBody CreateDepartmentRequestDTO request){
         return ResponseEntity.ok(departmentService.create(request));
     }
