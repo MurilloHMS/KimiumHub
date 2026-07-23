@@ -8,6 +8,8 @@ public enum NotificationType {
     DOCUMENTO,
     /** Mudança de status (aprovado/reprovado/pago) numa solicitação de reembolso. */
     REEMBOLSO,
+    /** Mensagem composta manualmente pelo RH pra um ou mais funcionários. */
+    PERSONALIZADA,
     /** Notificação genérica do sistema. */
     GERAL
 }
