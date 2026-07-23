@@ -50,4 +50,7 @@ public class Employee extends Partner {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id")
     private Team team;
+
+    @Column(name = "vacation_balance_days")
+    private Integer vacationBalanceDays;
 }
