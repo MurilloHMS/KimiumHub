@@ -4,6 +4,8 @@ package com.proautokimium.api.domain.enums;
 public enum NotificationType {
     /** Novos holerites disponibilizados pelo RH. */
     HOLERITE,
+    /** Novo documento vinculado pelo RH ao funcionário. */
+    DOCUMENTO,
     /** Notificação genérica do sistema. */
     GERAL
 }
