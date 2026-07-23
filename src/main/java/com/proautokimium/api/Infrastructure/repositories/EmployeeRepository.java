@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.repositories;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,6 +15,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
 
     Optional<Employee> findByEmail_Address(String emailAdress);
     Optional<Employee> findByUsername(String username);
+    List<Employee> findByAtivoTrue();
 
     /** Casa pelo CPF ignorando formatação (compara apenas os dígitos). */
     @Query("SELECT e FROM Employee e WHERE function('regexp_replace', e.documento, '[^0-9]', '', 'g') = :cpf")
