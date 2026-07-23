@@ -3,11 +3,11 @@ package com.proautokimium.api.Application.DTOs.partners;
 import java.time.LocalDate;
 import java.util.UUID;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.proautokimium.api.domain.enums.Department;
 import com.proautokimium.api.domain.enums.Hierarchy;
 
-public record EmployeeDTO(
+public record EmployeeResponseDTO(
+		UUID id,
 		String partnerCode,
 		String document,
 		String name,
@@ -15,7 +15,6 @@ public record EmployeeDTO(
 		Boolean ativo,
 		String managerCode,
 		Hierarchy hierarchy,
-		@JsonFormat(pattern = "yyyy-MM-dd")
 		LocalDate birthday,
 		Department department,
 		UUID companyId,
