@@ -52,4 +52,16 @@ public class PositionLevel extends com.proautokimium.api.domain.abstractions.Ent
     public static PositionLevel percentage(String name, Integer levelOrder, Position position, BigDecimal percentageIncrease) {
         return new PositionLevel(name, levelOrder, position, SalaryAdjustmentType.PERCENTAGE, null, percentageIncrease);
     }
+
+    /**
+     * Aplica um reajuste (dissídio) multiplicando o valor fixo atual.
+     * Só existe pra nível FIXED — níveis PERCENTAGE se ajustam sozinhos,
+     * porque são relativos ao nível anterior, não a um valor absoluto.
+     */
+    public void applyFixedAmountIncrease(BigDecimal multiplier) {
+        if (this.adjustmentType != SalaryAdjustmentType.FIXED) {
+            throw new IllegalStateException("Apenas níveis FIXED podem ter o valor ajustado diretamente");
+        }
+        this.fixedAmount = this.fixedAmount.multiply(multiplier);
+    }
 }
