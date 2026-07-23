@@ -6,6 +6,8 @@ public enum NotificationType {
     HOLERITE,
     /** Novo documento vinculado pelo RH ao funcionário. */
     DOCUMENTO,
+    /** Mudança de status (aprovado/reprovado/pago) numa solicitação de reembolso. */
+    REEMBOLSO,
     /** Notificação genérica do sistema. */
     GERAL
 }
