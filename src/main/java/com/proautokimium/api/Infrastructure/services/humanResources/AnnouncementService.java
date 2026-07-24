@@ -4,6 +4,7 @@ import com.proautokimium.api.Application.DTOs.humanResources.Announcement.Announ
 import com.proautokimium.api.Application.DTOs.humanResources.Announcement.CreateAnnouncementRequestDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.Notification.SendNotificationRequestDTO;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
+import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.AnnouncementRepository;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.humanResources.Announcement;
@@ -20,26 +21,31 @@ public class AnnouncementService {
 
     private final AnnouncementRepository repository;
     private final EmployeeRepository employeeRepository;
+    private final UserRepository userRepository;
     private final EmployeeNotificationService notificationService;
     private final Clock clock;
 
     public AnnouncementService(
             AnnouncementRepository repository,
             EmployeeRepository employeeRepository,
+            UserRepository userRepository,
             EmployeeNotificationService notificationService,
             Clock clock
     ) {
         this.repository = repository;
         this.employeeRepository = employeeRepository;
+        this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.clock = clock;
     }
 
     /** Publica o aviso no mural e notifica todos os funcionários ativos. */
     @Transactional
-    public AnnouncementResponseDTO publish(CreateAnnouncementRequestDTO dto) {
-        Employee publisher = employeeRepository.findById(dto.publishedByEmployeeId())
-                .orElseThrow(EmployeeNotFoundException::new);
+    public AnnouncementResponseDTO publish(CreateAnnouncementRequestDTO dto, String login) {
+        Employee publisher = resolveEmployee(login);
+        if (publisher == null) {
+            throw new EmployeeNotFoundException();
+        }
 
         Announcement announcement = new Announcement();
         announcement.setTitle(dto.title());
@@ -60,6 +66,14 @@ public class AnnouncementService {
         return repository.findAllByOrderByPublishedAtDesc().stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    private Employee resolveEmployee(String login) {
+        Employee viaLink = userRepository.findByLoginWithEmployee(login)
+                .map(u -> u.getEmployee())
+                .orElse(null);
+        if (viaLink != null) return viaLink;
+        return employeeRepository.findByUsername(login).orElse(null);
     }
 
     private AnnouncementResponseDTO toResponse(Announcement announcement) {
