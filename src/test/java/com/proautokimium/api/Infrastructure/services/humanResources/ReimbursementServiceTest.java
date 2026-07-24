@@ -92,17 +92,18 @@ class ReimbursementServiceTest {
         );
         UUID requestId = UUID.randomUUID();
         Employee reviewer = new Employee();
-        UUID reviewerId = UUID.randomUUID();
+        String reviewerLogin = "reviewer.login";
 
         when(repository.findById(requestId)).thenReturn(Optional.of(reimbursement));
-        when(employeeRepository.findById(reviewerId)).thenReturn(Optional.of(reviewer));
+        when(userRepository.findByLoginWithEmployee(reviewerLogin)).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername(reviewerLogin)).thenReturn(Optional.of(reviewer));
         when(repository.save(any(Reimbursement.class))).thenAnswer(inv -> inv.getArgument(0));
 
         User linkedUser = mock(User.class);
         when(linkedUser.getLogin()).thenReturn("emp001.login");
         when(userRepository.findByEmployee_Id(employeeId)).thenReturn(Optional.of(linkedUser));
 
-        service.approve(requestId, new ReviewReimbursementDTO(reviewerId, "Dentro da política"));
+        service.approve(requestId, new ReviewReimbursementDTO("Dentro da política"), reviewerLogin);
 
         verify(notificationService).notify(eq("emp001.login"), any(), any(), any(), eq("/reembolsos"));
     }

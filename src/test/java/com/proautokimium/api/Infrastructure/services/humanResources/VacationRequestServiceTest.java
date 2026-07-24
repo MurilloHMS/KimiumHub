@@ -123,13 +123,14 @@ class VacationRequestServiceTest {
         UUID requestId = UUID.randomUUID();
 
         Employee reviewer = new Employee();
-        UUID reviewerId = UUID.randomUUID();
+        String reviewerLogin = "reviewer.login";
 
         when(vacationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
-        when(employeeRepository.findById(reviewerId)).thenReturn(Optional.of(reviewer));
+        when(userRepository.findByLoginWithEmployee(reviewerLogin)).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername(reviewerLogin)).thenReturn(Optional.of(reviewer));
         when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        service.approve(requestId, new ReviewVacationRequestDTO(reviewerId, "Aprovado"));
+        service.approve(requestId, new ReviewVacationRequestDTO("Aprovado"), reviewerLogin);
 
         assertThat(employee.getVacationBalanceDays()).isEqualTo(2); // 12 - 10
         verify(employeeRepository).save(employee);
@@ -144,13 +145,14 @@ class VacationRequestServiceTest {
         );
         UUID requestId = UUID.randomUUID();
         Employee reviewer = new Employee();
-        UUID reviewerId = UUID.randomUUID();
+        String reviewerLogin = "reviewer.login";
 
         when(vacationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
-        when(employeeRepository.findById(reviewerId)).thenReturn(Optional.of(reviewer));
+        when(userRepository.findByLoginWithEmployee(reviewerLogin)).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername(reviewerLogin)).thenReturn(Optional.of(reviewer));
         when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        service.reject(requestId, new ReviewVacationRequestDTO(reviewerId, "Conflito de setor"));
+        service.reject(requestId, new ReviewVacationRequestDTO("Conflito de setor"), reviewerLogin);
 
         assertThat(employee.getVacationBalanceDays()).isEqualTo(12);
         verify(employeeRepository, never()).save(any());

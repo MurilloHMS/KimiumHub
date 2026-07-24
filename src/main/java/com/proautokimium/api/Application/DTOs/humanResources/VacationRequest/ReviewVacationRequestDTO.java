@@ -1,9 +1,7 @@
 package com.proautokimium.api.Application.DTOs.humanResources.VacationRequest;
 
-import java.util.UUID;
-
+/** Quem revisa é sempre o RH autenticado — reviewerId nunca vem do cliente. */
 public record ReviewVacationRequestDTO(
-        UUID reviewerId,
         String notes
 ) {
 }

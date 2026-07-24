@@ -53,14 +53,14 @@ public class ReimbursementController {
 
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
-    public ResponseEntity<ReimbursementResponseDTO> approve(@PathVariable UUID id, @Valid @RequestBody ReviewReimbursementDTO request) {
-        return ResponseEntity.ok(service.approve(id, request));
+    public ResponseEntity<ReimbursementResponseDTO> approve(@PathVariable UUID id, @Valid @RequestBody ReviewReimbursementDTO request, Authentication auth) {
+        return ResponseEntity.ok(service.approve(id, request, auth.getName()));
     }
 
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
-    public ResponseEntity<ReimbursementResponseDTO> reject(@PathVariable UUID id, @Valid @RequestBody ReviewReimbursementDTO request) {
-        return ResponseEntity.ok(service.reject(id, request));
+    public ResponseEntity<ReimbursementResponseDTO> reject(@PathVariable UUID id, @Valid @RequestBody ReviewReimbursementDTO request, Authentication auth) {
+        return ResponseEntity.ok(service.reject(id, request, auth.getName()));
     }
 
     @PostMapping("/{id}/pay")
