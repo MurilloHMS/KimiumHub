@@ -40,15 +40,15 @@ public class ReimbursementController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Solicita reembolso", description = "Funcionário solicita reembolso com comprovante")
     public ResponseEntity<ReimbursementResponseDTO> request(
-            @RequestParam UUID employeeId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expenseDate,
             @RequestParam BigDecimal amount,
             @RequestParam String category,
             @RequestParam String reason,
-            @RequestParam("receipt") MultipartFile receipt
+            @RequestParam("receipt") MultipartFile receipt,
+            Authentication auth
     ) throws IOException {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(service.request(employeeId, expenseDate, amount, category, reason, receipt));
+                .body(service.request(auth.getName(), expenseDate, amount, category, reason, receipt));
     }
 
     @PostMapping("/{id}/approve")

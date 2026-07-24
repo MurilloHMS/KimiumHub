@@ -6,8 +6,10 @@ import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.Vac
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.InsufficientVacationBalanceException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.OverlappingVacationRequestException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
+import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.VacationRequestRepository;
 import com.proautokimium.api.domain.entities.Employee;
+import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.entities.humanResources.Team;
 import com.proautokimium.api.domain.entities.humanResources.VacationRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,19 +38,19 @@ class VacationRequestServiceTest {
 
     @Mock private VacationRequestRepository vacationRequestRepository;
     @Mock private EmployeeRepository employeeRepository;
+    @Mock private UserRepository userRepository;
 
     private VacationRequestService service;
 
-    private UUID employeeId;
+    private static final String LOGIN = "murillo.login";
     private Employee employee;
     private Team team;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(LocalDateTime.of(2026, 7, 23, 10, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
-        service = new VacationRequestService(vacationRequestRepository, employeeRepository, clock);
+        service = new VacationRequestService(vacationRequestRepository, employeeRepository, userRepository, clock);
 
-        employeeId = UUID.randomUUID();
         employee = new Employee();
         employee.setVacationBalanceDays(12);
 
@@ -56,19 +58,25 @@ class VacationRequestServiceTest {
         employee.setTeam(team);
     }
 
+    private void mockAuthenticatedEmployee() {
+        User user = mock(User.class);
+        when(user.getEmployee()).thenReturn(employee);
+        when(userRepository.findByLoginWithEmployee(LOGIN)).thenReturn(Optional.of(user));
+    }
+
     @Test
     @DisplayName("Deve criar solicitação quando há saldo e não há sobreposição no setor")
     void deveCriarSolicitacaoComSaldoESemSobreposicao() {
-        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
+        mockAuthenticatedEmployee();
         when(vacationRequestRepository.findOverlappingInTeam(eq(team), eq(employee), any(), any()))
                 .thenReturn(List.of());
         when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
 
         CreateVacationRequestDTO dto = new CreateVacationRequestDTO(
-                employeeId, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10), null
+                LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10), null
         );
 
-        VacationRequestResponseDTO response = service.create(dto);
+        VacationRequestResponseDTO response = service.create(dto, LOGIN);
 
         assertThat(response.daysRequested()).isEqualTo(10);
         assertThat(response.status().name()).isEqualTo("PENDING");
@@ -78,28 +86,28 @@ class VacationRequestServiceTest {
     @DisplayName("Não deve criar solicitação além do saldo disponível")
     void naoDeveCriarSolicitacaoAlemDoSaldo() {
         employee.setVacationBalanceDays(5);
-        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
+        mockAuthenticatedEmployee();
 
         CreateVacationRequestDTO dto = new CreateVacationRequestDTO(
-                employeeId, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10), null
+                LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10), null
         );
 
-        assertThrows(InsufficientVacationBalanceException.class, () -> service.create(dto));
+        assertThrows(InsufficientVacationBalanceException.class, () -> service.create(dto, LOGIN));
         verify(vacationRequestRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("Não deve criar solicitação sobreposta a outro funcionário do mesmo setor")
     void naoDeveCriarSolicitacaoSobrepostaNoSetor() {
-        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
+        mockAuthenticatedEmployee();
         when(vacationRequestRepository.findOverlappingInTeam(eq(team), eq(employee), any(), any()))
                 .thenReturn(List.of(mock(VacationRequest.class)));
 
         CreateVacationRequestDTO dto = new CreateVacationRequestDTO(
-                employeeId, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10), null
+                LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10), null
         );
 
-        assertThrows(OverlappingVacationRequestException.class, () -> service.create(dto));
+        assertThrows(OverlappingVacationRequestException.class, () -> service.create(dto, LOGIN));
         verify(vacationRequestRepository, never()).save(any());
     }
 

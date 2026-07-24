@@ -37,15 +37,15 @@ public class MedicalCertificateController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Envia atestado", description = "Funcionário envia atestado por foto ou arquivo")
     public ResponseEntity<MedicalCertificateResponseDTO> submit(
-            @RequestParam UUID employeeId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam SubmissionType submissionType,
             @RequestParam(required = false) Boolean confirmedLegible,
-            @RequestParam("file") MultipartFile file
+            @RequestParam("file") MultipartFile file,
+            Authentication auth
     ) throws IOException {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(service.submit(employeeId, startDate, endDate, submissionType, confirmedLegible, file));
+                .body(service.submit(auth.getName(), startDate, endDate, submissionType, confirmedLegible, file));
     }
 
     @GetMapping("/me")

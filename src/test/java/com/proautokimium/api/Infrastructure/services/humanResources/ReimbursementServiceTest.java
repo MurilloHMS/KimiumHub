@@ -68,13 +68,15 @@ class ReimbursementServiceTest {
     @DisplayName("Deve solicitar reembolso, salvar comprovante no storage e ficar PENDING")
     void deveSolicitarReembolso() throws Exception {
         MockMultipartFile receipt = new MockMultipartFile("receipt", "nota.jpg", "image/jpeg", "conteudo".getBytes());
+        String login = "emp001.login";
 
-        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
+        when(userRepository.findByLoginWithEmployee(login)).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername(login)).thenReturn(Optional.of(employee));
         when(storage.save(any(), eq("EMP001"), eq("nota.jpg"))).thenReturn("EMP001/uuid-nota.jpg");
         when(repository.save(any(Reimbursement.class))).thenAnswer(inv -> inv.getArgument(0));
 
         ReimbursementResponseDTO response = service.request(
-                employeeId, LocalDate.of(2026, 7, 20), new BigDecimal("150.00"), "Restaurante", "Almoço com cliente", receipt
+                login, LocalDate.of(2026, 7, 20), new BigDecimal("150.00"), "Restaurante", "Almoço com cliente", receipt
         );
 
         assertThat(response.status().name()).isEqualTo("PENDING");

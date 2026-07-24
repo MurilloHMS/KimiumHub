@@ -54,11 +54,14 @@ public class ReimbursementService {
         this.clock = clock;
     }
 
+    /** Quem solicita é sempre o funcionário autenticado — employeeId nunca vem do cliente. */
     @Transactional
-    public ReimbursementResponseDTO request(UUID employeeId, LocalDate expenseDate, BigDecimal amount,
+    public ReimbursementResponseDTO request(String login, LocalDate expenseDate, BigDecimal amount,
                                              String category, String reason, MultipartFile receipt) throws IOException {
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(EmployeeNotFoundException::new);
+        Employee employee = resolveEmployee(login);
+        if (employee == null) {
+            throw new EmployeeNotFoundException();
+        }
 
         String storagePath = storage.save(receipt.getBytes(), employee.getCodParceiro(), receipt.getOriginalFilename());
 

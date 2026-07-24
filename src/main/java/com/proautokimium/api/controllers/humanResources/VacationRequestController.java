@@ -7,6 +7,7 @@ import com.proautokimium.api.Infrastructure.services.humanResources.VacationRequ
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,8 +24,9 @@ public class VacationRequestController {
     }
 
     @PostMapping
-    public ResponseEntity<VacationRequestResponseDTO> create(@Valid @RequestBody CreateVacationRequestDTO request) {
-        return ResponseEntity.ok(vacationRequestService.create(request));
+    public ResponseEntity<VacationRequestResponseDTO> create(
+            @Valid @RequestBody CreateVacationRequestDTO request, Authentication auth) {
+        return ResponseEntity.ok(vacationRequestService.create(request, auth.getName()));
     }
 
     @PostMapping("/{id}/approve")
@@ -41,7 +43,13 @@ public class VacationRequestController {
         return ResponseEntity.ok(vacationRequestService.reject(id, request));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<List<VacationRequestResponseDTO>> mine(Authentication auth) {
+        return ResponseEntity.ok(vacationRequestService.listMine(auth.getName()));
+    }
+
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
     public ResponseEntity<List<VacationRequestResponseDTO>> listByEmployee(@RequestParam UUID employeeId) {
         return ResponseEntity.ok(vacationRequestService.listByEmployee(employeeId));
     }
