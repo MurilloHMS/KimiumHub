@@ -1,8 +1,10 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.CreateVacationRequestDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.EmployeeVacationOverviewDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.ReviewVacationRequestDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationRequestResponseDTO;
+import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.InsufficientVacationBalanceException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.OverlappingVacationRequestException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
@@ -152,5 +154,31 @@ class VacationRequestServiceTest {
 
         assertThat(employee.getVacationBalanceDays()).isEqualTo(12);
         verify(employeeRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("getMyOverview traz o saldo atual junto com o histórico de solicitações")
+    void getMyOverviewTrazSaldoEHistorico() {
+        VacationRequest request = VacationRequest.request(
+                employee, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10),
+                null, LocalDateTime.of(2026, 7, 20, 9, 0)
+        );
+        mockAuthenticatedEmployee();
+        when(vacationRequestRepository.findByEmployeeOrderByRequestedAtDesc(employee))
+                .thenReturn(List.of(request));
+
+        EmployeeVacationOverviewDTO overview = service.getMyOverview(LOGIN);
+
+        assertThat(overview.vacationBalanceDays()).isEqualTo(12);
+        assertThat(overview.requests()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("getMyOverview lança exceção se o login não corresponde a nenhum funcionário")
+    void getMyOverviewSemFuncionarioVinculado() {
+        when(userRepository.findByLoginWithEmployee("sem-vinculo")).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername("sem-vinculo")).thenReturn(Optional.empty());
+
+        assertThrows(EmployeeNotFoundException.class, () -> service.getMyOverview("sem-vinculo"));
     }
 }

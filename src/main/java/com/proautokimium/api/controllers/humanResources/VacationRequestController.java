@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers.humanResources;
 
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.CreateVacationRequestDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.EmployeeVacationOverviewDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.ReviewVacationRequestDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationRequestResponseDTO;
 import com.proautokimium.api.Infrastructure.services.humanResources.VacationRequestService;
@@ -44,8 +45,8 @@ public class VacationRequestController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<List<VacationRequestResponseDTO>> mine(Authentication auth) {
-        return ResponseEntity.ok(vacationRequestService.listMine(auth.getName()));
+    public ResponseEntity<EmployeeVacationOverviewDTO> mine(Authentication auth) {
+        return ResponseEntity.ok(vacationRequestService.getMyOverview(auth.getName()));
     }
 
     @GetMapping

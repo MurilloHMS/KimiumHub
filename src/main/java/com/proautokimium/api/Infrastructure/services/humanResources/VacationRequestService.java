@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.CreateVacationRequestDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.EmployeeVacationOverviewDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.ReviewVacationRequestDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationRequestResponseDTO;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.InsufficientVacationBalanceException;
@@ -114,14 +115,23 @@ public class VacationRequestService {
                 .toList();
     }
 
-    /** "Minhas solicitações" — resolve o funcionário pelo login autenticado, mesmo padrão dos outros módulos self-service. */
-    public List<VacationRequestResponseDTO> listMine(String login) {
+    /**
+     * "Minhas férias" — saldo atual + histórico, resolvendo o funcionário pelo login
+     * autenticado (mesmo padrão dos outros módulos self-service). O saldo precisa vir
+     * junto porque é o dado que o funcionário usa pra decidir quantos dias pedir.
+     */
+    public EmployeeVacationOverviewDTO getMyOverview(String login) {
         Employee employee = resolveEmployee(login);
-        if (employee == null) return List.of();
+        if (employee == null) {
+            throw new EmployeeNotFoundException();
+        }
 
-        return vacationRequestRepository.findByEmployeeOrderByRequestedAtDesc(employee).stream()
+        List<VacationRequestResponseDTO> requests = vacationRequestRepository
+                .findByEmployeeOrderByRequestedAtDesc(employee).stream()
                 .map(this::toResponse)
                 .toList();
+
+        return new EmployeeVacationOverviewDTO(employee.getVacationBalanceDays(), requests);
     }
 
     private Employee resolveEmployee(String login) {
