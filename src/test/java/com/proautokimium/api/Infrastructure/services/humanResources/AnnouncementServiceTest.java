@@ -5,6 +5,7 @@ import com.proautokimium.api.Application.DTOs.humanResources.Announcement.Create
 import com.proautokimium.api.Application.DTOs.humanResources.Notification.SendNotificationRequestDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.Notification.SendNotificationResponseDTO;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
+import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.AnnouncementRepository;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.humanResources.Announcement;
@@ -33,6 +34,7 @@ class AnnouncementServiceTest {
 
     @Mock private AnnouncementRepository repository;
     @Mock private EmployeeRepository employeeRepository;
+    @Mock private UserRepository userRepository;
     @Mock private EmployeeNotificationService notificationService;
 
     private AnnouncementService service;
@@ -42,7 +44,7 @@ class AnnouncementServiceTest {
     @BeforeEach
     void setUp() throws Exception {
         Clock clock = Clock.fixed(LocalDateTime.of(2026, 7, 23, 10, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
-        service = new AnnouncementService(repository, employeeRepository, notificationService, clock);
+        service = new AnnouncementService(repository, employeeRepository, userRepository, notificationService, clock);
 
         publisherId = UUID.randomUUID();
         publisher = new Employee();
@@ -55,15 +57,17 @@ class AnnouncementServiceTest {
     @Test
     @DisplayName("Publicar salva o aviso e notifica todos os funcionários ativos")
     void publicarSalvaENotificaTodos() {
-        when(employeeRepository.findById(publisherId)).thenReturn(Optional.of(publisher));
+        String login = "rh.login";
+        when(userRepository.findByLoginWithEmployee(login)).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername(login)).thenReturn(Optional.of(publisher));
         when(repository.save(any(Announcement.class))).thenAnswer(inv -> inv.getArgument(0));
         when(notificationService.send(any())).thenReturn(new SendNotificationResponseDTO(10, 0));
 
         CreateAnnouncementRequestDTO dto = new CreateAnnouncementRequestDTO(
-                publisherId, "Mudança no horário de almoço", "A partir de agosto, o almoço passa a ser das 12h às 13h."
+                "Mudança no horário de almoço", "A partir de agosto, o almoço passa a ser das 12h às 13h."
         );
 
-        AnnouncementResponseDTO response = service.publish(dto);
+        AnnouncementResponseDTO response = service.publish(dto, login);
 
         assertThat(response.title()).isEqualTo("Mudança no horário de almoço");
         assertThat(response.publishedByName()).isEqualTo("RH da Proauto");

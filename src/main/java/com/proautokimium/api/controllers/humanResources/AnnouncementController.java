@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,8 +32,8 @@ public class AnnouncementController {
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
     @Operation(summary = "Publica aviso", description = "Publica no mural e notifica todos os funcionários ativos")
-    public ResponseEntity<AnnouncementResponseDTO> publish(@Valid @RequestBody CreateAnnouncementRequestDTO request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.publish(request));
+    public ResponseEntity<AnnouncementResponseDTO> publish(@Valid @RequestBody CreateAnnouncementRequestDTO request, Authentication auth) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.publish(request, auth.getName()));
     }
 
     @GetMapping
