@@ -16,6 +16,8 @@ public interface VacationRequestRepository extends JpaRepository<VacationRequest
 
     List<VacationRequest> findByEmployeeOrderByRequestedAtDesc(Employee employee);
     List<VacationRequest> findByStatus(VacationRequestStatus status);
+    List<VacationRequest> findAllByOrderByRequestedAtDesc();
+    List<VacationRequest> findByStatusOrderByRequestedAtDesc(VacationRequestStatus status);
 
     /** Solicitações do status dado cujo período se sobrepõe ao intervalo — usado pelo calendário. */
     List<VacationRequest> findByStatusAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
