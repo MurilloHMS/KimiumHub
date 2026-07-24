@@ -53,4 +53,10 @@ public class Employee extends Partner {
 
     @Column(name = "vacation_balance_days")
     private Integer vacationBalanceDays;
+
+    @Column(name = "daily_commutes_count")
+    private Integer dailyCommutesCount;
+
+    @Column(name = "daily_meals_count")
+    private Integer dailyMealsCount;
 }
