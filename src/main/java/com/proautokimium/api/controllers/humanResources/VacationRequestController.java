@@ -34,15 +34,15 @@ public class VacationRequestController {
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
     public ResponseEntity<VacationRequestResponseDTO> approve(
-            @PathVariable UUID id, @Valid @RequestBody ReviewVacationRequestDTO request) {
-        return ResponseEntity.ok(vacationRequestService.approve(id, request));
+            @PathVariable UUID id, @Valid @RequestBody ReviewVacationRequestDTO request, Authentication auth) {
+        return ResponseEntity.ok(vacationRequestService.approve(id, request, auth.getName()));
     }
 
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
     public ResponseEntity<VacationRequestResponseDTO> reject(
-            @PathVariable UUID id, @Valid @RequestBody ReviewVacationRequestDTO request) {
-        return ResponseEntity.ok(vacationRequestService.reject(id, request));
+            @PathVariable UUID id, @Valid @RequestBody ReviewVacationRequestDTO request, Authentication auth) {
+        return ResponseEntity.ok(vacationRequestService.reject(id, request, auth.getName()));
     }
 
     @GetMapping("/me")

@@ -77,11 +77,13 @@ public class VacationRequestService {
     }
 
     @Transactional
-    public VacationRequestResponseDTO approve(UUID id, ReviewVacationRequestDTO dto) {
+    public VacationRequestResponseDTO approve(UUID id, ReviewVacationRequestDTO dto, String reviewerLogin) {
         VacationRequest request = vacationRequestRepository.findById(id)
                 .orElseThrow(VacationRequestNotFoundException::new);
-        Employee reviewer = employeeRepository.findById(dto.reviewerId())
-                .orElseThrow(EmployeeNotFoundException::new);
+        Employee reviewer = resolveEmployee(reviewerLogin);
+        if (reviewer == null) {
+            throw new EmployeeNotFoundException();
+        }
 
         request.approve(reviewer, dto.notes(), LocalDateTime.now(clock));
 
@@ -95,11 +97,13 @@ public class VacationRequestService {
     }
 
     @Transactional
-    public VacationRequestResponseDTO reject(UUID id, ReviewVacationRequestDTO dto) {
+    public VacationRequestResponseDTO reject(UUID id, ReviewVacationRequestDTO dto, String reviewerLogin) {
         VacationRequest request = vacationRequestRepository.findById(id)
                 .orElseThrow(VacationRequestNotFoundException::new);
-        Employee reviewer = employeeRepository.findById(dto.reviewerId())
-                .orElseThrow(EmployeeNotFoundException::new);
+        Employee reviewer = resolveEmployee(reviewerLogin);
+        if (reviewer == null) {
+            throw new EmployeeNotFoundException();
+        }
 
         request.reject(reviewer, dto.notes(), LocalDateTime.now(clock));
 

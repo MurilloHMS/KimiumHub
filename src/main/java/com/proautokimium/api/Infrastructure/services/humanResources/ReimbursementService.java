@@ -75,9 +75,12 @@ public class ReimbursementService {
     }
 
     @Transactional
-    public ReimbursementResponseDTO approve(UUID id, ReviewReimbursementDTO dto) {
+    public ReimbursementResponseDTO approve(UUID id, ReviewReimbursementDTO dto, String reviewerLogin) {
         Reimbursement reimbursement = repository.findById(id).orElseThrow(ReimbursementNotFoundException::new);
-        Employee reviewer = employeeRepository.findById(dto.reviewerId()).orElseThrow(EmployeeNotFoundException::new);
+        Employee reviewer = resolveEmployee(reviewerLogin);
+        if (reviewer == null) {
+            throw new EmployeeNotFoundException();
+        }
 
         reimbursement.approve(reviewer, dto.notes(), LocalDateTime.now(clock));
         Reimbursement saved = repository.save(reimbursement);
@@ -88,9 +91,12 @@ public class ReimbursementService {
     }
 
     @Transactional
-    public ReimbursementResponseDTO reject(UUID id, ReviewReimbursementDTO dto) {
+    public ReimbursementResponseDTO reject(UUID id, ReviewReimbursementDTO dto, String reviewerLogin) {
         Reimbursement reimbursement = repository.findById(id).orElseThrow(ReimbursementNotFoundException::new);
-        Employee reviewer = employeeRepository.findById(dto.reviewerId()).orElseThrow(EmployeeNotFoundException::new);
+        Employee reviewer = resolveEmployee(reviewerLogin);
+        if (reviewer == null) {
+            throw new EmployeeNotFoundException();
+        }
 
         reimbursement.reject(reviewer, dto.notes(), LocalDateTime.now(clock));
         Reimbursement saved = repository.save(reimbursement);

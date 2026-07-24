@@ -1,9 +1,7 @@
 package com.proautokimium.api.Application.DTOs.humanResources.Reimbursement;
 
-import java.util.UUID;
-
+/** Quem revisa é sempre o RH autenticado — reviewerId nunca vem do cliente. */
 public record ReviewReimbursementDTO(
-        UUID reviewerId,
         String notes
 ) {
 }
