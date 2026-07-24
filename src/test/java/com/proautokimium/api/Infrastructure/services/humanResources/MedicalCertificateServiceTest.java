@@ -60,13 +60,15 @@ class MedicalCertificateServiceTest {
     @DisplayName("Deve enviar atestado salvando no storage")
     void deveEnviarAtestado() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "atestado.pdf", "application/pdf", "conteudo".getBytes());
+        String login = "emp001.login";
 
-        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
+        when(userRepository.findByLoginWithEmployee(login)).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername(login)).thenReturn(Optional.of(employee));
         when(storage.save(any(), eq("EMP001"), eq("atestado.pdf"))).thenReturn("EMP001/uuid-atestado.pdf");
         when(repository.save(any(MedicalCertificate.class))).thenAnswer(inv -> inv.getArgument(0));
 
         MedicalCertificateResponseDTO response = service.submit(
-                employeeId, LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 21),
+                login, LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 21),
                 SubmissionType.FILE, null, file
         );
 

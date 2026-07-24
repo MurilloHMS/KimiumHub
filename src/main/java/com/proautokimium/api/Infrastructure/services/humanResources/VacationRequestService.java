@@ -7,6 +7,7 @@ import com.proautokimium.api.Infrastructure.exceptions.humanResources.Insufficie
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.OverlappingVacationRequestException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.VacationRequestNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
+import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.VacationRequestRepository;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.humanResources.VacationRequest;
@@ -24,22 +25,28 @@ public class VacationRequestService {
 
     private final VacationRequestRepository vacationRequestRepository;
     private final EmployeeRepository employeeRepository;
+    private final UserRepository userRepository;
     private final Clock clock;
 
     public VacationRequestService(
             VacationRequestRepository vacationRequestRepository,
             EmployeeRepository employeeRepository,
+            UserRepository userRepository,
             Clock clock
     ) {
         this.vacationRequestRepository = vacationRequestRepository;
         this.employeeRepository = employeeRepository;
+        this.userRepository = userRepository;
         this.clock = clock;
     }
 
+    /** Quem solicita é sempre o funcionário autenticado — employeeId nunca vem do cliente. */
     @Transactional
-    public VacationRequestResponseDTO create(CreateVacationRequestDTO dto) {
-        Employee employee = employeeRepository.findById(dto.employeeId())
-                .orElseThrow(EmployeeNotFoundException::new);
+    public VacationRequestResponseDTO create(CreateVacationRequestDTO dto, String login) {
+        Employee employee = resolveEmployee(login);
+        if (employee == null) {
+            throw new EmployeeNotFoundException();
+        }
 
         Employee replacement = dto.replacementEmployeeId() != null
                 ? employeeRepository.findById(dto.replacementEmployeeId()).orElseThrow(EmployeeNotFoundException::new)
@@ -105,6 +112,24 @@ public class VacationRequestService {
         return vacationRequestRepository.findByEmployeeOrderByRequestedAtDesc(employee).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    /** "Minhas solicitações" — resolve o funcionário pelo login autenticado, mesmo padrão dos outros módulos self-service. */
+    public List<VacationRequestResponseDTO> listMine(String login) {
+        Employee employee = resolveEmployee(login);
+        if (employee == null) return List.of();
+
+        return vacationRequestRepository.findByEmployeeOrderByRequestedAtDesc(employee).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    private Employee resolveEmployee(String login) {
+        Employee viaLink = userRepository.findByLoginWithEmployee(login)
+                .map(u -> u.getEmployee())
+                .orElse(null);
+        if (viaLink != null) return viaLink;
+        return employeeRepository.findByUsername(login).orElse(null);
     }
 
     private VacationRequestResponseDTO toResponse(VacationRequest request) {

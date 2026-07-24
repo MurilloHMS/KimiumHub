@@ -46,12 +46,15 @@ public class MedicalCertificateService {
         this.clock = clock;
     }
 
+    /** Quem envia é sempre o funcionário autenticado — employeeId nunca vem do cliente. */
     @Transactional
-    public MedicalCertificateResponseDTO submit(UUID employeeId, LocalDate startDate, LocalDate endDate,
+    public MedicalCertificateResponseDTO submit(String login, LocalDate startDate, LocalDate endDate,
                                                  SubmissionType submissionType, Boolean confirmedLegible,
                                                  MultipartFile file) throws IOException {
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(EmployeeNotFoundException::new);
+        Employee employee = resolveEmployee(login);
+        if (employee == null) {
+            throw new EmployeeNotFoundException();
+        }
 
         String storagePath = storage.save(file.getBytes(), employee.getCodParceiro(), file.getOriginalFilename());
 
