@@ -12,6 +12,7 @@ import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.VacationRequestRepository;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.humanResources.VacationRequest;
+import com.proautokimium.api.domain.enums.humanResources.VacationRequestStatus;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -113,6 +114,14 @@ public class VacationRequestService {
         return vacationRequestRepository.findByEmployeeOrderByRequestedAtDesc(employee).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    /** Gerenciador do RH — lista tudo, opcionalmente filtrado por status. */
+    public List<VacationRequestResponseDTO> listAll(VacationRequestStatus status) {
+        List<VacationRequest> results = status != null
+                ? vacationRequestRepository.findByStatusOrderByRequestedAtDesc(status)
+                : vacationRequestRepository.findAllByOrderByRequestedAtDesc();
+        return results.stream().map(this::toResponse).toList();
     }
 
     /**

@@ -174,6 +174,32 @@ class VacationRequestServiceTest {
     }
 
     @Test
+    @DisplayName("listAll sem status busca tudo, não filtra")
+    void listAllSemStatusBuscaTudo() {
+        VacationRequest pendente = VacationRequest.request(
+                employee, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 5), null, LocalDateTime.of(2026, 7, 1, 9, 0)
+        );
+        when(vacationRequestRepository.findAllByOrderByRequestedAtDesc()).thenReturn(List.of(pendente));
+
+        assertThat(service.listAll(null)).hasSize(1);
+        verify(vacationRequestRepository, never()).findByStatusOrderByRequestedAtDesc(any());
+    }
+
+    @Test
+    @DisplayName("listAll com status repassa o filtro pro repositório")
+    void listAllComStatusFiltraNoRepositorio() {
+        VacationRequest pendente = VacationRequest.request(
+                employee, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 5), null, LocalDateTime.of(2026, 7, 1, 9, 0)
+        );
+        when(vacationRequestRepository.findByStatusOrderByRequestedAtDesc(
+                com.proautokimium.api.domain.enums.humanResources.VacationRequestStatus.PENDING))
+                .thenReturn(List.of(pendente));
+
+        assertThat(service.listAll(com.proautokimium.api.domain.enums.humanResources.VacationRequestStatus.PENDING)).hasSize(1);
+        verify(vacationRequestRepository, never()).findAllByOrderByRequestedAtDesc();
+    }
+
+    @Test
     @DisplayName("getMyOverview lança exceção se o login não corresponde a nenhum funcionário")
     void getMyOverviewSemFuncionarioVinculado() {
         when(userRepository.findByLoginWithEmployee("sem-vinculo")).thenReturn(Optional.empty());
