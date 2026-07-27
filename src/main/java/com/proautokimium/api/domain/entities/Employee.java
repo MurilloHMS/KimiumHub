@@ -4,6 +4,7 @@ import com.proautokimium.api.domain.entities.humanResources.Company;
 import com.proautokimium.api.domain.entities.humanResources.Team;
 import com.proautokimium.api.domain.enums.Department;
 import com.proautokimium.api.domain.enums.Hierarchy;
+import com.proautokimium.api.domain.enums.humanResources.TransportType;
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
@@ -17,6 +18,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -59,4 +61,17 @@ public class Employee extends Partner {
 
     @Column(name = "daily_meals_count")
     private Integer dailyMealsCount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transport_type", length = 25)
+    private TransportType transportType;
+
+    @Column(name = "ticket_price", precision = 10, scale = 2)
+    private BigDecimal ticketPrice;
+
+    @Column(name = "vehicle_km_per_liter", precision = 6, scale = 2)
+    private BigDecimal vehicleKmPerLiter;
+
+    @Column(name = "daily_distance_km", precision = 8, scale = 2)
+    private BigDecimal dailyDistanceKm;
 }

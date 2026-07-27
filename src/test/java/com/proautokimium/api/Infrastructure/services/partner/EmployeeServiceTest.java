@@ -92,7 +92,8 @@ class EmployeeServiceTest {
                 "EMP001", "12345678900", "Funcionario Teste", "func@teste.com", true, "MGR001",
                 null, LocalDate.of(1990, 1, 1), null,
                 companyId, teamId, positionId, positionLevelId,
-                ContractType.CLT, LocalDate.of(2026, 7, 23)
+                ContractType.CLT, LocalDate.of(2026, 7, 23),
+                null, null, null, null, null
         );
     }
 
@@ -178,7 +179,8 @@ class EmployeeServiceTest {
 
         EmployeeDTO updateDto = new EmployeeDTO(
                 "EMP001", "12345678900", "Funcionario Atualizado", "novo@teste.com", true,
-                "MGR001", null, LocalDate.of(1990, 1, 1), null, null, null
+                "MGR001", null, LocalDate.of(1990, 1, 1), null, null, null,
+                null, null, null, null, null
         );
 
         when(employeeRepository.findByCodParceiro("EMP001")).thenReturn(existing);
@@ -195,7 +197,8 @@ class EmployeeServiceTest {
     void deveLancarExcecaoAoAtualizarFuncionarioInexistente() {
         EmployeeDTO updateDto = new EmployeeDTO(
                 "EMP001", "12345678900", "Teste", "func@teste.com", true,
-                "MGR001", null, null, null, null, null
+                "MGR001", null, null, null, null, null,
+                null, null, null, null, null
         );
 
         when(employeeRepository.findByCodParceiro("EMP001")).thenReturn(null);

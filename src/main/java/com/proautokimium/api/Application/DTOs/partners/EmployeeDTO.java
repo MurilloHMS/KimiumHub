@@ -6,6 +6,8 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.proautokimium.api.domain.enums.Department;
 import com.proautokimium.api.domain.enums.Hierarchy;
+import com.proautokimium.api.domain.enums.humanResources.TransportType;
+import java.math.BigDecimal;
 
 public record EmployeeDTO(
 		String partnerCode,
@@ -19,5 +21,10 @@ public record EmployeeDTO(
 		LocalDate birthday,
 		Department department,
 		UUID companyId,
-		UUID teamId
+		UUID teamId,
+		TransportType transportType,
+		Integer dailyCommutesCount,
+		BigDecimal ticketPrice,
+		BigDecimal vehicleKmPerLiter,
+		BigDecimal dailyDistanceKm
 		) {}
