@@ -1,32 +1,26 @@
-version: '3.8'
-
 services:
-
-  db:
-    container_name: postgres_db
-    image: postgres:alpine
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Development@123
-      POSTGRES_DB: flexpro
+  api:
+    build: .
+    image: proauto-api:local
+    container_name: proauto-api
     ports:
-      - "5432:5432"
-    networks:
-      - postgres-compose-network
-
-  pgadmin:
-    container_name: pgadmin4
-    image: dpage/pgadmin4
-    restart: always
+      - "5007:5007"
+    env_file:
+      - .env
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: root123
-    ports:
-      - "15432:80"
+      - SPRING_PROFILES_ACTIVE=dev
+    volumes:
+      - /var/proauto/curriculos:/app/curriculos
+      - /var/proauto/upload/images:/app/upload/images
+      - /var/proauto/funcionario/holerite:/app/funcionario/holerite
+      - /var/proauto/funcionario/documentos:/app/funcionario/documentos
+      - /var/proauto/funcionario/reembolsos:/app/funcionario/reembolsos
+      - /var/proauto/funcionario/atestados:/app/funcionario/atestados
+    restart: always
     networks:
-      - postgres-compose-network
+      - db-network
 
 networks:
-  postgres-compose-network:
-    driver: bridge
+  db-network:
+    external: true
+    name: api_postgres-compose-network

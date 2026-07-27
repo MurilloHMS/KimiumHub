@@ -6,7 +6,7 @@ RUN mvn install:install-file -Dfile=libs/montserrat-font.jar -DgroupId=custom.fo
 
 RUN mvn clean package -DskipTests
 
-FROM eclipse-temurin:24-jdk
+FROM eclipse-temurin:24-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
