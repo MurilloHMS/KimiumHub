@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
+import com.proautokimium.api.Application.DTOs.humanResources.Department.DepartmentResponseDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.Team.CreateTeamRequestDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.Team.TeamResponseDTO;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.DepartmentNotFoundException;
@@ -38,10 +39,11 @@ public class TeamService {
     }
 
     private TeamResponseDTO toResponse(Team team){
+        Department dept = team.getDepartment();
         return new TeamResponseDTO(
                 team.getId(),
                 team.getName(),
-                team.getDepartment()
+                new DepartmentResponseDTO(dept.getId(), dept.getName())
         );
     }
 }
