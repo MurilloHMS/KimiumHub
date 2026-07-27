@@ -7,6 +7,8 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.proautokimium.api.domain.enums.Department;
 import com.proautokimium.api.domain.enums.Hierarchy;
 import com.proautokimium.api.domain.enums.humanResources.ContractType;
+import com.proautokimium.api.domain.enums.humanResources.TransportType;
+import java.math.BigDecimal;
 import jakarta.validation.constraints.NotNull;
 
 public record CreateEmployeeRequestDTO(
@@ -32,5 +34,10 @@ public record CreateEmployeeRequestDTO(
 		ContractType contractType,
 		@NotNull(message = "Data de admissão é obrigatória")
 		@JsonFormat(pattern = "yyyy-MM-dd")
-		LocalDate hiringDate
+		LocalDate hiringDate,
+		TransportType transportType,
+		Integer dailyCommutesCount,
+		BigDecimal ticketPrice,
+		BigDecimal vehicleKmPerLiter,
+		BigDecimal dailyDistanceKm
 		) {}

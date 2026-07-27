@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.proautokimium.api.domain.entities.Employee;
+import com.proautokimium.api.domain.enums.humanResources.TransportType;
 
 public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
 	Employee findByCodParceiro(String codParceiro);
@@ -20,4 +21,6 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
     /** Casa pelo CPF ignorando formatação (compara apenas os dígitos). */
     @Query("SELECT e FROM Employee e WHERE function('regexp_replace', e.documento, '[^0-9]', '', 'g') = :cpf")
     Optional<Employee> findByCpfDigits(@Param("cpf") String cpfDigits);
+
+    List<Employee> findByTransportTypeAndAtivoTrue(TransportType transportType);
 }

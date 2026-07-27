@@ -86,6 +86,11 @@ public class EmployeeService {
         employee.setDepartment(dto.department());
         employee.setCompany(company);
         employee.setTeam(team);
+        employee.setTransportType(dto.transportType());
+        employee.setDailyCommutesCount(dto.dailyCommutesCount());
+        employee.setTicketPrice(dto.ticketPrice());
+        employee.setVehicleKmPerLiter(dto.vehicleKmPerLiter());
+        employee.setDailyDistanceKm(dto.dailyDistanceKm());
 
         Employee savedEmployee = employeeRepository.save(employee);
 
@@ -138,6 +143,12 @@ public class EmployeeService {
             employee.setTeam(team);
         }
 
+        employee.setTransportType(dto.transportType());
+        employee.setDailyCommutesCount(dto.dailyCommutesCount());
+        employee.setTicketPrice(dto.ticketPrice());
+        employee.setVehicleKmPerLiter(dto.vehicleKmPerLiter());
+        employee.setDailyDistanceKm(dto.dailyDistanceKm());
+
         Employee saved = employeeRepository.save(employee);
         return toResponse(saved);
     }
@@ -172,7 +183,12 @@ public class EmployeeService {
                 employee.getBirthday(),
                 employee.getDepartment(),
                 employee.getCompany() != null ? employee.getCompany().getId() : null,
-                employee.getTeam() != null ? employee.getTeam().getId() : null
+                employee.getTeam() != null ? employee.getTeam().getId() : null,
+                employee.getTransportType(),
+                employee.getDailyCommutesCount(),
+                employee.getTicketPrice(),
+                employee.getVehicleKmPerLiter(),
+                employee.getDailyDistanceKm()
         );
     }
 }
