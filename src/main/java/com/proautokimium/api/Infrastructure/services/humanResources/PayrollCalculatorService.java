@@ -1,24 +1,23 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.CltPjComparisonResponseDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.FuelRequestDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.FuelResponseDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.MealVoucherRequestDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.MealVoucherResponseDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.TransportationVoucherRequestDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.TransportationVoucherResponseDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.Calculator.*;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.CareerHistoryNotFoundException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.EmployeePayrollDataMissingException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.CareerHistoryRepository;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.humanResources.CareerHistory;
+import com.proautokimium.api.domain.enums.humanResources.TransportType;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Calculadoras do RH. São cálculos puros (sem persistência) — o valor de referência
@@ -118,6 +117,97 @@ public class PayrollCalculatorService {
                 employee.getId(), employee.getName(), baseSalary,
                 inssPatronal, fgts, thirteenthSalaryProvision, vacationProvision,
                 totalCltCost, totalCltCost
+        );
+    }
+
+    public List<BulkTransportVoucherResponseDTO> calculateBulkTransportVoucher(BulkTransportVoucherRequestDTO request) {
+        List<Employee> employees = employeeRepository.findByTransportTypeAndAtivoTrue(request.transportType())
+                .stream()
+                .filter(e -> e.getDailyCommutesCount() != null && e.getTicketPrice() != null)
+                .toList();
+
+        Map<String, List<Employee>> byCompany = employees.stream()
+                .collect(Collectors.groupingBy(
+                        e -> e.getCompany() != null ? e.getCompany().getName() : "Sem empresa",
+                        Collectors.toList()
+                ));
+
+        return byCompany.entrySet().stream().map(entry -> {
+            List<BulkTransportVoucherResultDTO> results = entry.getValue().stream().map(e -> {
+                BigDecimal total = e.getTicketPrice()
+                        .multiply(BigDecimal.valueOf(e.getDailyCommutesCount()))
+                        .multiply(BigDecimal.valueOf(request.workingDays()))
+                        .setScale(2, RoundingMode.HALF_UP);
+
+                return new BulkTransportVoucherResultDTO(
+                        e.getId(), e.getName(), e.getDocumento(),
+                        e.getDailyCommutesCount(), e.getTicketPrice(),
+                        request.workingDays(), total
+                );
+            }).toList();
+
+            BigDecimal grandTotal = results.stream()
+                    .map(BulkTransportVoucherResultDTO::totalAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            UUID companyId = entry.getValue().getFirst().getCompany() != null
+                    ? entry.getValue().getFirst().getCompany().getId() : null;
+
+            return new BulkTransportVoucherResponseDTO(entry.getKey(), companyId, results, grandTotal);
+        }).toList();
+    }
+
+    public List<BulkFuelResponseDTO> calculateBulkFuel(BulkFuelRequestDTO request) {
+        List<Employee> employees = employeeRepository.findByTransportTypeAndAtivoTrue(TransportType.VEHICLE)
+                .stream()
+                .filter(e -> e.getVehicleKmPerLiter() != null && e.getDailyDistanceKm() != null)
+                .toList();
+
+        Map<String, List<Employee>> byCompany = employees.stream()
+                .collect(Collectors.groupingBy(
+                        e -> e.getCompany() != null ? e.getCompany().getName() : "Sem empresa",
+                        Collectors.toList()
+                ));
+
+        return byCompany.entrySet().stream().map(entry -> {
+            List<BulkFuelResultDTO> results = entry.getValue().stream().map(e -> {
+                BigDecimal totalKm = e.getDailyDistanceKm()
+                        .multiply(BigDecimal.valueOf(request.workingDays()));
+                BigDecimal liters = totalKm
+                        .divide(e.getVehicleKmPerLiter(), 4, RoundingMode.HALF_UP);
+                BigDecimal total = liters.multiply(request.fuelPricePerLiter())
+                        .setScale(2, RoundingMode.HALF_UP);
+
+                return new BulkFuelResultDTO(
+                        e.getId(), e.getName(), e.getDocumento(),
+                        e.getDailyDistanceKm(), e.getVehicleKmPerLiter(),
+                        liters.setScale(2, RoundingMode.HALF_UP), total
+                );
+            }).toList();
+
+            BigDecimal grandTotal = results.stream()
+                    .map(BulkFuelResultDTO::totalAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            UUID companyId = entry.getValue().getFirst().getCompany() != null
+                    ? entry.getValue().getFirst().getCompany().getId() : null;
+
+            return new BulkFuelResponseDTO(entry.getKey(), companyId, results, grandTotal);
+        }).toList();
+    }
+
+    @Transactional
+    public TicketPriceAdjustmentResponseDTO adjustTicketPrices(TicketPriceAdjustmentRequestDTO request) {
+        if (request.transportType() == TransportType.VEHICLE) {
+            throw new IllegalArgumentException("Reajuste de tarifa só se aplica a transporte público");
+        }
+
+        List<Employee> employees = employeeRepository.findByTransportTypeAndAtivoTrue(request.transportType());
+        employees.forEach(e -> e.setTicketPrice(request.newTicketPrice()));
+        employeeRepository.saveAll(employees);
+
+        return new TicketPriceAdjustmentResponseDTO(
+                employees.size(), request.transportType(), request.newTicketPrice()
         );
     }
 

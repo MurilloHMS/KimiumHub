@@ -1,25 +1,15 @@
 package com.proautokimium.api.controllers.humanResources;
 
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.CltPjComparisonResponseDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.FuelRequestDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.FuelResponseDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.MealVoucherRequestDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.MealVoucherResponseDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.TransportationVoucherRequestDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.Calculator.TransportationVoucherResponseDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.Calculator.*;
 import com.proautokimium.api.Infrastructure.services.humanResources.PayrollCalculatorService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -56,5 +46,23 @@ public class PayrollCalculatorController {
     @Operation(summary = "Compara CLT x PJ", description = "Pega o salário atual do funcionário e simula o custo real como CLT")
     public ResponseEntity<CltPjComparisonResponseDTO> cltPj(@PathVariable UUID employeeId) {
         return ResponseEntity.ok(service.compareCltPj(employeeId));
+    }
+
+    @PostMapping("/bulk/transportation-voucher")
+    @Operation(summary = "Cálculo mensal VT em massa", description = "Calcula vale-transporte para todos os funcionários do tipo informado, agrupado por empresa")
+    public ResponseEntity<List<BulkTransportVoucherResponseDTO>> bulkTransportationVoucher(@Valid @RequestBody BulkTransportVoucherRequestDTO request) {
+        return ResponseEntity.ok(service.calculateBulkTransportVoucher(request));
+    }
+
+    @PostMapping("/bulk/fuel")
+    @Operation(summary = "Cálculo mensal combustível em massa", description = "Calcula combustível para todos os funcionários com veículo, agrupado por empresa")
+    public ResponseEntity<List<BulkFuelResponseDTO>> bulkFuel(@Valid @RequestBody BulkFuelRequestDTO request) {
+        return ResponseEntity.ok(service.calculateBulkFuel(request));
+    }
+
+    @PutMapping("/ticket-price-adjustment")
+    @Operation(summary = "Reajuste de tarifas em massa", description = "Atualiza o valor da passagem para todos os funcionários do tipo informado")
+    public ResponseEntity<TicketPriceAdjustmentResponseDTO> adjustTicketPrices(@Valid @RequestBody TicketPriceAdjustmentRequestDTO request) {
+        return ResponseEntity.ok(service.adjustTicketPrices(request));
     }
 }
