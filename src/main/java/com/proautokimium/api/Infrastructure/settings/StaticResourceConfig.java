@@ -13,6 +13,9 @@ public class StaticResourceConfig implements WebMvcConfigurer {
     @Value("${storage.equipment.image.path}")
     private String equipmentPath;
 
+    @Value("${storage.profile.image.path}")
+    private String profilePath;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry){
         registry.addResourceHandler("/upload/images/**")
@@ -20,5 +23,8 @@ public class StaticResourceConfig implements WebMvcConfigurer {
 
         registry.addResourceHandler("/upload/equipment/images/**")
                 .addResourceLocations("file:" + equipmentPath + "/");
+
+        registry.addResourceHandler("/upload/profile/images/**")
+                .addResourceLocations("file:" + profilePath + "/");
     }
 }

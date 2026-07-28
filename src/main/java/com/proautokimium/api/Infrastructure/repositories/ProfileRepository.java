@@ -10,4 +10,7 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID> {
     Optional<Profile> findBySlug(String slug);
     Optional<Profile> findBySlugAndAtivoTrue(String slug);
     boolean existsBySlug(String slug);
+
+    Optional<Profile> findByEmployee_Id(UUID employeeId);
+    boolean existsByEmployee_Id(UUID employeeId);
 }

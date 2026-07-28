@@ -60,6 +60,10 @@ public class Profile extends com.proautokimium.api.domain.abstractions.Entity {
     @Column(columnDefinition = "jsonb")
     private List<String> segmentosAtendimento = new ArrayList<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_id")
+    private Employee employee;
+
     @Column(nullable = false)
     private boolean ativo = true;
 }

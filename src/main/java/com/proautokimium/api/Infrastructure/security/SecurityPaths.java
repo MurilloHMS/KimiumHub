@@ -15,6 +15,7 @@ public final class SecurityPaths {
             "/api/product/website/active",
             "/upload/images/**",
             "/upload/equipment/images/**",
+            "/upload/profile/images/**",
             "/api/faq/public",
             "/api/profile/public/**",
             "/ws/**"
