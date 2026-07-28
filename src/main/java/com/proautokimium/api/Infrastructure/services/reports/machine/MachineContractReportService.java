@@ -27,22 +27,38 @@ public class MachineContractReportService {
                 .map(entry -> {
                     List<MachineContract> linhas = entry.getValue();
 
-                    long totalUnidades = linhas.stream()
-                            .map(MachineContract::getNumeroNota)
-                            .distinct().count();
+                    Map<String, List<MachineContract>> porNota = linhas.stream()
+                            .collect(Collectors.groupingBy(
+                                    MachineContract::getNumeroNota,
+                                    LinkedHashMap::new,
+                                    Collectors.toList()
+                            ));
 
-                    BigDecimal total = linhas.stream()
-                            .collect(Collectors.groupingBy(MachineContract::getNumeroNota))
-                            .values().stream()
+                    BigDecimal total = porNota.values().stream()
                             .map(u -> BigDecimal.valueOf(u.get(0).getVlrDesdobramento()))
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                    List<UnidadePreviewDTO> unidades = porNota.entrySet().stream()
+                            .map(notaEntry -> {
+                                MachineContract first = notaEntry.getValue().get(0);
+                                return new UnidadePreviewDTO(
+                                        notaEntry.getKey(),
+                                        first.getNomeParceiro(),
+                                        first.getDocumento(),
+                                        first.getEnderecoEntrega(),
+                                        notaEntry.getValue().size(),
+                                        BigDecimal.valueOf(first.getVlrDesdobramento())
+                                );
+                            })
+                            .collect(Collectors.toList());
 
                     MatrizPreviewDTO p = new MatrizPreviewDTO();
                     p.setCodMatriz(entry.getKey());
                     p.setNomeMatriz(linhas.get(0).getNomeMatriz());
-                    p.setTotalUnidades((int) totalUnidades);
+                    p.setTotalUnidades(porNota.size());
                     p.setTotalMaquinas(linhas.size());
                     p.setTotalMatriz(total);
+                    p.setUnidades(unidades);
                     return p;
                 })
                 .collect(Collectors.toList());
