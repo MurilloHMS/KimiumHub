@@ -6,10 +6,11 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
 public class MatrizPreviewDTO {
     private String codMatriz;
@@ -17,4 +18,14 @@ public class MatrizPreviewDTO {
     private int totalUnidades;
     private int totalMaquinas;
     private BigDecimal totalMatriz;
+    private List<UnidadePreviewDTO> unidades = new ArrayList<>();
+
+    public MatrizPreviewDTO(String codMatriz, String nomeMatriz, int totalUnidades,
+                            int totalMaquinas, BigDecimal totalMatriz) {
+        this.codMatriz = codMatriz;
+        this.nomeMatriz = nomeMatriz;
+        this.totalUnidades = totalUnidades;
+        this.totalMaquinas = totalMaquinas;
+        this.totalMatriz = totalMatriz;
+    }
 }

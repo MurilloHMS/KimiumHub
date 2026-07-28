@@ -12,10 +12,13 @@ services:
     volumes:
       - /var/proauto/curriculos:/app/curriculos
       - /var/proauto/upload/images:/app/upload/images
+      - /var/proauto/upload/equipment:/app/upload/equipment
+      - /var/proauto/upload/profile:/app/upload/profile
       - /var/proauto/funcionario/holerite:/app/funcionario/holerite
       - /var/proauto/funcionario/documentos:/app/funcionario/documentos
       - /var/proauto/funcionario/reembolsos:/app/funcionario/reembolsos
       - /var/proauto/funcionario/atestados:/app/funcionario/atestados
+      - /var/proauto/recibos-locacao:/app/recibos-locacao
     restart: always
     networks:
       - db-network
