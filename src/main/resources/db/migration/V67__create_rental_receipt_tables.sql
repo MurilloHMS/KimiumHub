@@ -2,7 +2,7 @@ CREATE TABLE rental_receipt_batches (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     reference_month VARCHAR(20) NOT NULL,
     reference_year INT NOT NULL,
-    generated_by UUID REFERENCES users(id),
+    generated_by TEXT REFERENCES users(id),
     generated_at TIMESTAMP NOT NULL,
     total_amount NUMERIC(15,2),
     source_filename VARCHAR(255)
