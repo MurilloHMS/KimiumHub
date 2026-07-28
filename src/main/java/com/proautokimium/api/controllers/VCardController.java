@@ -1,8 +1,6 @@
 package com.proautokimium.api.controllers;
 
-import com.proautokimium.api.Application.DTOs.profile.ProfileCreateDto;
-import com.proautokimium.api.Application.DTOs.profile.ProfileResponseDto;
-import com.proautokimium.api.Application.DTOs.profile.ProfileUpdateDto;
+import com.proautokimium.api.Application.DTOs.profile.*;
 import com.proautokimium.api.Infrastructure.converters.ProfileConverter;
 import com.proautokimium.api.Infrastructure.services.vcard.ProfileService;
 import com.proautokimium.api.Infrastructure.services.vcard.VCardService;
@@ -11,8 +9,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,6 +27,8 @@ public class VCardController {
     private final VCardService vCardService;
     private final ProfileService service;
     private final ProfileConverter converter;
+
+    // ── Admin CRUD ────────────────────────────────────────────────────────────
 
     @GetMapping
     public ResponseEntity<List<ProfileResponseDto>> getAll() {
@@ -53,6 +57,40 @@ public class VCardController {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    // ── Self-service (Meu Perfil) ─────────────────────────────────────────────
+
+    @GetMapping("/me")
+    public ResponseEntity<MyProfileResponseDto> getMyProfile(Authentication authentication) {
+        return ResponseEntity.ok(service.getMyProfile(authentication.getName()));
+    }
+
+    @PostMapping("/me")
+    @PreAuthorize("hasRole('VENDEDOR')")
+    public ResponseEntity<ProfileResponseDto> createMyProfile(
+            Authentication authentication,
+            @RequestBody ProfileCreateDto dto) {
+        return ResponseEntity.ok(service.createMyProfile(authentication.getName(), dto));
+    }
+
+    @PutMapping("/me")
+    @PreAuthorize("hasRole('VENDEDOR')")
+    public ResponseEntity<ProfileResponseDto> updateMyProfile(
+            Authentication authentication,
+            @RequestBody ProfileUpdateDto dto) {
+        return ResponseEntity.ok(service.updateMyProfile(authentication.getName(), dto));
+    }
+
+    @PostMapping("/me/image")
+    @PreAuthorize("hasRole('VENDEDOR')")
+    public ResponseEntity<String> uploadMyProfileImage(
+            Authentication authentication,
+            @RequestParam("file") MultipartFile file) throws IOException {
+        String imageUrl = service.uploadMyProfileImage(authentication.getName(), file);
+        return ResponseEntity.ok(imageUrl);
+    }
+
+    // ── Public ────────────────────────────────────────────────────────────────
 
     @GetMapping("/public/{slug}")
     public ResponseEntity<ProfileResponseDto> getBySlug(@PathVariable String slug) {
