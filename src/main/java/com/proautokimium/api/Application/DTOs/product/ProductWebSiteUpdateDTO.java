@@ -12,6 +12,7 @@ public record ProductWebSiteUpdateDTO(
         String concentracao,
         String localUso,
         String descricao,
+        String descricaoGuia,
         UUID equipmentId
 ) {
 }

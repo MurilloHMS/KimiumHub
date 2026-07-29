@@ -14,6 +14,7 @@ public record ProductWebSiteResponseDTO(
         String concentracao,
         String localUso,
         String descricao,
+        String descricaoGuia,
         String imagem,
         UUID equipmentId
 ) {

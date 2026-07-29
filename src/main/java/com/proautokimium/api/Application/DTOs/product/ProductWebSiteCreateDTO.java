@@ -13,6 +13,7 @@ public record ProductWebSiteCreateDTO(
         String concentracao,
         String localUso,
         String descricao,
+        String descricaoGuia,
         UUID equipmentId
 ) {
 }
