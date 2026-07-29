@@ -29,6 +29,9 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class EmployeeService {
@@ -88,6 +91,7 @@ public class EmployeeService {
         employee.setTeam(team);
         employee.setTransportType(dto.transportType());
         employee.setDailyCommutesCount(dto.dailyCommutesCount());
+        employee.setDailyMealsCount(dto.dailyMealsCount());
         employee.setTicketPrice(dto.ticketPrice());
         employee.setVehicleKmPerLiter(dto.vehicleKmPerLiter());
         employee.setDailyDistanceKm(dto.dailyDistanceKm());
@@ -106,9 +110,9 @@ public class EmployeeService {
                 dto.hiringDate(),
                 null
         );
-        careerHistoryRepository.save(hiringSnapshot);
+        CareerHistory savedHistory = careerHistoryRepository.save(hiringSnapshot);
 
-        return toResponse(savedEmployee);
+        return toResponse(savedEmployee, savedHistory);
     }
 
     /**
@@ -145,17 +149,23 @@ public class EmployeeService {
 
         employee.setTransportType(dto.transportType());
         employee.setDailyCommutesCount(dto.dailyCommutesCount());
+        employee.setDailyMealsCount(dto.dailyMealsCount());
         employee.setTicketPrice(dto.ticketPrice());
         employee.setVehicleKmPerLiter(dto.vehicleKmPerLiter());
         employee.setDailyDistanceKm(dto.dailyDistanceKm());
 
         Employee saved = employeeRepository.save(employee);
-        return toResponse(saved);
+        CareerHistory latest = careerHistoryRepository.findByEmployeeOrderByEffectiveDateDesc(saved)
+                .stream().findFirst().orElse(null);
+        return toResponse(saved, latest);
     }
 
     public List<EmployeeResponseDTO> getAllEmployes() {
-        return employeeRepository.findAll().stream()
-                .map(this::toResponse)
+        List<Employee> employees = employeeRepository.findAll();
+        Map<UUID, CareerHistory> latestByEmployee = careerHistoryRepository.findLatestPerEmployee().stream()
+                .collect(Collectors.toMap(ch -> ch.getEmployee().getId(), ch -> ch, (a, b) -> a));
+        return employees.stream()
+                .map(e -> toResponse(e, latestByEmployee.get(e.getId())))
                 .toList();
     }
 
@@ -170,7 +180,7 @@ public class EmployeeService {
                 .toList();
     }
 
-    private EmployeeResponseDTO toResponse(Employee employee) {
+    private EmployeeResponseDTO toResponse(Employee employee, CareerHistory latest) {
         return new EmployeeResponseDTO(
                 employee.getId(),
                 employee.getCodParceiro(),
@@ -184,11 +194,20 @@ public class EmployeeService {
                 employee.getDepartment(),
                 employee.getCompany() != null ? employee.getCompany().getId() : null,
                 employee.getTeam() != null ? employee.getTeam().getId() : null,
+                latest != null ? latest.getPosition().getId() : null,
+                latest != null ? latest.getPositionLevel().getId() : null,
+                latest != null ? latest.getPosition().getName() : null,
+                latest != null ? latest.getPositionLevel().getName() : null,
+                latest != null ? latest.getContractType() : null,
+                latest != null ? latest.getEffectiveDate() : null,
+                latest != null ? latest.getSalary() : null,
                 employee.getTransportType(),
                 employee.getDailyCommutesCount(),
+                employee.getDailyMealsCount(),
                 employee.getTicketPrice(),
                 employee.getVehicleKmPerLiter(),
-                employee.getDailyDistanceKm()
+                employee.getDailyDistanceKm(),
+                employee.getVacationBalanceDays()
         );
     }
 }

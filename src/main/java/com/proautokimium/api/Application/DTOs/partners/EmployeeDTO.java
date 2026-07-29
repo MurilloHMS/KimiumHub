@@ -24,6 +24,7 @@ public record EmployeeDTO(
 		UUID teamId,
 		TransportType transportType,
 		Integer dailyCommutesCount,
+		Integer dailyMealsCount,
 		BigDecimal ticketPrice,
 		BigDecimal vehicleKmPerLiter,
 		BigDecimal dailyDistanceKm

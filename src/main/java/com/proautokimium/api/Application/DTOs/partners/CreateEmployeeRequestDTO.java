@@ -37,6 +37,7 @@ public record CreateEmployeeRequestDTO(
 		LocalDate hiringDate,
 		TransportType transportType,
 		Integer dailyCommutesCount,
+		Integer dailyMealsCount,
 		BigDecimal ticketPrice,
 		BigDecimal vehicleKmPerLiter,
 		BigDecimal dailyDistanceKm

@@ -54,6 +54,13 @@ public class MedicalCertificateController {
         return ResponseEntity.ok(service.listMine(auth.getName()));
     }
 
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @Operation(summary = "Todos os atestados", description = "Lista todos os atestados para gestao do RH")
+    public ResponseEntity<List<MedicalCertificateResponseDTO>> listAll() {
+        return ResponseEntity.ok(service.listAll());
+    }
+
     @GetMapping("/employee/{employeeId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
     @Operation(summary = "Histórico do funcionário", description = "Histórico completo + contagem de atestados no ano corrente")

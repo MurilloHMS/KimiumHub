@@ -10,5 +10,6 @@ import java.util.UUID;
 
 public interface MedicalCertificateRepository extends JpaRepository<MedicalCertificate, UUID> {
     List<MedicalCertificate> findByEmployeeOrderByStartDateDesc(Employee employee);
+    List<MedicalCertificate> findAllByOrderBySubmittedAtDesc();
     long countByEmployeeAndStartDateBetween(Employee employee, LocalDate rangeStart, LocalDate rangeEnd);
 }

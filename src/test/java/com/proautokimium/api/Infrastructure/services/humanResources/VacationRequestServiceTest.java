@@ -9,6 +9,7 @@ import com.proautokimium.api.Infrastructure.exceptions.humanResources.Insufficie
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.OverlappingVacationRequestException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
+import com.proautokimium.api.Infrastructure.repositories.humanResources.CareerHistoryRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.VacationRequestRepository;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.User;
@@ -41,6 +42,7 @@ class VacationRequestServiceTest {
     @Mock private VacationRequestRepository vacationRequestRepository;
     @Mock private EmployeeRepository employeeRepository;
     @Mock private UserRepository userRepository;
+    @Mock private CareerHistoryRepository careerHistoryRepository;
 
     private VacationRequestService service;
 
@@ -51,7 +53,7 @@ class VacationRequestServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(LocalDateTime.of(2026, 7, 23, 10, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
-        service = new VacationRequestService(vacationRequestRepository, employeeRepository, userRepository, clock);
+        service = new VacationRequestService(vacationRequestRepository, employeeRepository, userRepository, careerHistoryRepository, clock);
 
         employee = new Employee();
         employee.setVacationBalanceDays(12);
