@@ -9,6 +9,7 @@ import java.util.UUID;
 public record MedicalCertificateResponseDTO(
         UUID id,
         UUID employeeId,
+        String employeeName,
         LocalDate startDate,
         LocalDate endDate,
         long daysCount,

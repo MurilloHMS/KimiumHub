@@ -93,7 +93,7 @@ class EmployeeServiceTest {
                 null, LocalDate.of(1990, 1, 1), null,
                 companyId, teamId, positionId, positionLevelId,
                 ContractType.CLT, LocalDate.of(2026, 7, 23),
-                null, null, null, null, null
+                null, null, null, null, null, null
         );
     }
 
@@ -112,6 +112,7 @@ class EmployeeServiceTest {
         when(positionLevelRepository.findById(positionLevelId)).thenReturn(Optional.of(positionLevel));
         when(salaryResolver.resolve(positionLevel)).thenReturn(new BigDecimal("1690.00"));
         when(employeeRepository.save(any(Employee.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(careerHistoryRepository.save(any(CareerHistory.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         EmployeeResponseDTO response = employeeService.createEmployee(createDto);
 
@@ -180,11 +181,12 @@ class EmployeeServiceTest {
         EmployeeDTO updateDto = new EmployeeDTO(
                 "EMP001", "12345678900", "Funcionario Atualizado", "novo@teste.com", true,
                 "MGR001", null, LocalDate.of(1990, 1, 1), null, null, null,
-                null, null, null, null, null
+                null, null, null, null, null, null
         );
 
         when(employeeRepository.findByCodParceiro("EMP001")).thenReturn(existing);
         when(employeeRepository.save(existing)).thenReturn(existing);
+        when(careerHistoryRepository.findByEmployeeOrderByEffectiveDateDesc(existing)).thenReturn(List.of());
 
         EmployeeResponseDTO response = employeeService.updateEmployee(updateDto);
 
@@ -198,7 +200,7 @@ class EmployeeServiceTest {
         EmployeeDTO updateDto = new EmployeeDTO(
                 "EMP001", "12345678900", "Teste", "func@teste.com", true,
                 "MGR001", null, null, null, null, null,
-                null, null, null, null, null
+                null, null, null, null, null, null
         );
 
         when(employeeRepository.findByCodParceiro("EMP001")).thenReturn(null);
@@ -214,6 +216,7 @@ class EmployeeServiceTest {
         employee.setCodParceiro("EMP001");
         employee.setEmail(new Email("func@teste.com"));
         when(employeeRepository.findAll()).thenReturn(List.of(employee));
+        when(careerHistoryRepository.findLatestPerEmployee()).thenReturn(List.of());
 
         List<EmployeeResponseDTO> response = employeeService.getAllEmployes();
 

@@ -3,6 +3,7 @@ package com.proautokimium.api.controllers.humanResources;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.CreateVacationRequestDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.EmployeeVacationOverviewDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.ReviewVacationRequestDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationAlertDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationRequestResponseDTO;
 import com.proautokimium.api.Infrastructure.services.humanResources.VacationRequestService;
 import com.proautokimium.api.domain.enums.humanResources.VacationRequestStatus;
@@ -48,6 +49,12 @@ public class VacationRequestController {
     @GetMapping("/me")
     public ResponseEntity<EmployeeVacationOverviewDTO> mine(Authentication auth) {
         return ResponseEntity.ok(vacationRequestService.getMyOverview(auth.getName()));
+    }
+
+    @GetMapping("/alerts")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    public ResponseEntity<List<VacationAlertDTO>> alerts() {
+        return ResponseEntity.ok(vacationRequestService.getVacationAlerts());
     }
 
     /** Gerenciador do RH: sem employeeId lista tudo (opcionalmente filtrado por status); com employeeId, filtra por funcionário. */

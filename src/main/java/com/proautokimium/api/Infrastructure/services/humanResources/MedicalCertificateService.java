@@ -90,6 +90,10 @@ public class MedicalCertificateService {
         return new EmployeeMedicalCertificatesDTO(history, countThisYear);
     }
 
+    public List<MedicalCertificateResponseDTO> listAll() {
+        return repository.findAllByOrderBySubmittedAtDesc().stream().map(this::toResponse).toList();
+    }
+
     public Optional<MedicalCertificate> buscar(UUID id) {
         return repository.findById(id);
     }
@@ -117,6 +121,7 @@ public class MedicalCertificateService {
         return new MedicalCertificateResponseDTO(
                 certificate.getId(),
                 certificate.getEmployee().getId(),
+                certificate.getEmployee().getName(),
                 certificate.getStartDate(),
                 certificate.getEndDate(),
                 certificate.getDaysCount(),

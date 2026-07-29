@@ -45,7 +45,7 @@ class EmployeeControllerTest {
 
     private EmployeeDTO buildUpdateDto() {
         return new EmployeeDTO("EMP001", "12345678900", "Funcionario Teste", "func@teste.com", true, "MGR001", null, null, null, null, null,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
     }
 
     private CreateEmployeeRequestDTO buildCreateDto() {
@@ -54,14 +54,15 @@ class EmployeeControllerTest {
                 null, LocalDate.of(1990, 1, 1), null,
                 UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 ContractType.CLT, LocalDate.now(),
-                null, null, null, null, null
+                null, null, null, null, null, null
         );
     }
 
     private EmployeeResponseDTO buildResponseDto() {
         return new EmployeeResponseDTO(UUID.randomUUID(), "EMP001", "12345678900", "Funcionario Teste",
                 "func@teste.com", true, "MGR001", null, null, null, null, null,
-                null, null, null, null, null);
+                null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null);
     }
 
     @Test
