@@ -138,7 +138,9 @@ public class GuideReportService {
                 resolveProductImage(p.getImagem()),
                 coresHex,
                 p.getFinalidade(),
-                p.getDescricao(),
+                p.getDescricaoGuia() != null && !p.getDescricaoGuia().isBlank()
+                        ? p.getDescricaoGuia()
+                        : p.getDescricao(),
                 p.getDiluicao(),
                 p.getConcentracao(),
                 p.getLocalUso(),

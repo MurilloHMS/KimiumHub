@@ -37,7 +37,8 @@ public class ProductWebsite extends ProductEntity{
     private String localUso;
     @Column(name = "descricao", length = 1000)
     private String descricao;
-    @Column
+    @Column(name = "descricao_guia", length = 300)
+    private String descricaoGuia;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

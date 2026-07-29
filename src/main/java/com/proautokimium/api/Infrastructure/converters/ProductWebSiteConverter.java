@@ -28,6 +28,7 @@ public class ProductWebSiteConverter implements DtoConverter<ProductWebsite, Pro
                 entity.getConcentracao(),
                 entity.getLocalUso(),
                 entity.getDescricao(),
+                entity.getDescricaoGuia(),
                 entity.getImagem(),
                 firstEquipmentId(entity)
         );
@@ -53,6 +54,7 @@ public class ProductWebSiteConverter implements DtoConverter<ProductWebsite, Pro
         entity.setDiluicao(dto.diluicao());
         entity.setConcentracao(dto.concentracao());
         entity.setLocalUso(dto.localUso());
+        entity.setDescricaoGuia(dto.descricaoGuia());
         return entity;
     }
 
@@ -66,6 +68,7 @@ public class ProductWebSiteConverter implements DtoConverter<ProductWebsite, Pro
         entity.setFinalidade(dto.finalidade());
         entity.setDiluicao(dto.diluicao());
         entity.setDescricao(dto.descricao());
+        entity.setDescricaoGuia(dto.descricaoGuia());
         entity.setConcentracao(dto.concentracao());
         entity.setLocalUso(dto.localUso());
     }
