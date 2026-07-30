@@ -1,10 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.CreateVacationRequestDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.EmployeeVacationOverviewDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.ReviewVacationRequestDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationAlertDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationRequestResponseDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.*;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.InsufficientVacationBalanceException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.OverlappingVacationRequestException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.VacationRequestNotFoundException;
@@ -92,9 +88,6 @@ public class VacationRequestService {
         VacationRequest request = vacationRequestRepository.findById(id)
                 .orElseThrow(VacationRequestNotFoundException::new);
         Employee reviewer = resolveEmployee(reviewerLogin);
-        if (reviewer == null) {
-            throw new EmployeeNotFoundException();
-        }
 
         request.approve(reviewer, dto.notes(), LocalDateTime.now(clock));
 
@@ -112,9 +105,6 @@ public class VacationRequestService {
         VacationRequest request = vacationRequestRepository.findById(id)
                 .orElseThrow(VacationRequestNotFoundException::new);
         Employee reviewer = resolveEmployee(reviewerLogin);
-        if (reviewer == null) {
-            throw new EmployeeNotFoundException();
-        }
 
         request.reject(reviewer, dto.notes(), LocalDateTime.now(clock));
 
@@ -227,6 +217,40 @@ public class VacationRequestService {
 
         alerts.sort(Comparator.comparing(VacationAlertDTO::concessionDeadline));
         return alerts;
+    }
+
+    @Transactional
+    public VacationRequestResponseDTO createByRh(CreateVacationByRhDTO dto, String login){
+        Employee employee = employeeRepository.findById(dto.employeeId())
+                .orElseThrow(EmployeeNotFoundException::new);
+
+        Employee reviewer = resolveEmployee(login);
+
+        if(dto.vacationBalanceDays() != null){
+            employee.setVacationBalanceDays(dto.vacationBalanceDays());
+        }
+
+        if(employee.getTeam() != null){
+            List<VacationRequest> overlapping = vacationRequestRepository.findOverlappingInTeam(
+                    employee.getTeam(), employee, dto.startDate(), dto.endDate()
+            );
+            if(!overlapping.isEmpty()){
+                throw new OverlappingVacationRequestException();
+            }
+        }
+
+        VacationRequest request = VacationRequest.request(
+                employee, dto.startDate(), dto.endDate(), null, LocalDateTime.now(clock)
+        );
+
+        request.approve(reviewer, dto.notes(), LocalDateTime.now(clock));
+
+        int balance = employee.getVacationBalanceDays() != null ? employee.getVacationBalanceDays() : 0;
+        employee.setVacationBalanceDays(balance - (int) request.getDaysRequested());
+        employeeRepository.save(employee);
+
+        VacationRequest saved = vacationRequestRepository.save(request);
+        return toResponse(saved);
     }
 
     private Employee resolveEmployee(String login) {
