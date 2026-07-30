@@ -34,19 +34,21 @@ public class VacationRequestService {
     private final UserRepository userRepository;
     private final CareerHistoryRepository careerHistoryRepository;
     private final Clock clock;
+    private final BrazilianBusinessDayCalculator businessDayCalculator;
 
     public VacationRequestService(
             VacationRequestRepository vacationRequestRepository,
             EmployeeRepository employeeRepository,
             UserRepository userRepository,
             CareerHistoryRepository careerHistoryRepository,
-            Clock clock
+            Clock clock, BrazilianBusinessDayCalculator businessDayCalculator
     ) {
         this.vacationRequestRepository = vacationRequestRepository;
         this.employeeRepository = employeeRepository;
         this.userRepository = userRepository;
         this.careerHistoryRepository = careerHistoryRepository;
         this.clock = clock;
+        this.businessDayCalculator = businessDayCalculator;
     }
 
     /** Quem solicita é sempre o funcionário autenticado — employeeId nunca vem do cliente. */
@@ -66,7 +68,8 @@ public class VacationRequestService {
         );
 
         int balance = employee.getVacationBalanceDays() != null ? employee.getVacationBalanceDays() : 0;
-        if (request.getDaysRequested() > balance) {
+        long businessDay = businessDayCalculator.countBusinessDays(dto.startDate(), dto.endDate());
+        if (businessDay > balance) {
             throw new InsufficientVacationBalanceException();
         }
 
@@ -93,7 +96,8 @@ public class VacationRequestService {
 
         Employee employee = request.getEmployee();
         int balance = employee.getVacationBalanceDays() != null ? employee.getVacationBalanceDays() : 0;
-        employee.setVacationBalanceDays(balance - (int) request.getDaysRequested());
+        long businessDay = businessDayCalculator.countBusinessDays(request.getStartDate(), request.getEndDate());
+        employee.setVacationBalanceDays(balance - (int) businessDay);
         employeeRepository.save(employee);
 
         VacationRequest saved = vacationRequestRepository.save(request);
@@ -246,7 +250,8 @@ public class VacationRequestService {
         request.approve(reviewer, dto.notes(), LocalDateTime.now(clock));
 
         int balance = employee.getVacationBalanceDays() != null ? employee.getVacationBalanceDays() : 0;
-        employee.setVacationBalanceDays(balance - (int) request.getDaysRequested());
+        long businessDays = businessDayCalculator.countBusinessDays(dto.startDate(), dto.endDate());
+        employee.setVacationBalanceDays(balance - (int) businessDays);
         employeeRepository.save(employee);
 
         VacationRequest saved = vacationRequestRepository.save(request);
@@ -267,7 +272,7 @@ public class VacationRequestService {
                 request.getEmployee().getId(),
                 request.getStartDate(),
                 request.getEndDate(),
-                request.getDaysRequested(),
+                businessDayCalculator.countBusinessDays(request.getStartDate(), request.getEndDate()),
                 request.getReplacementEmployee() != null ? request.getReplacementEmployee().getId() : null,
                 request.getStatus(),
                 request.getRequestedAt(),
