@@ -1,10 +1,6 @@
 package com.proautokimium.api.controllers.humanResources;
 
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.CreateVacationRequestDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.EmployeeVacationOverviewDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.ReviewVacationRequestDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationAlertDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationRequestResponseDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.*;
 import com.proautokimium.api.Infrastructure.services.humanResources.VacationRequestService;
 import com.proautokimium.api.domain.enums.humanResources.VacationRequestStatus;
 import jakarta.validation.Valid;
@@ -69,4 +65,12 @@ public class VacationRequestController {
         }
         return ResponseEntity.ok(vacationRequestService.listAll(status));
     }
+
+    @PostMapping("/register")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    public ResponseEntity<VacationRequestResponseDTO> registerByRh(
+            @Valid @RequestBody CreateVacationByRhDTO request, Authentication auth){
+        return ResponseEntity.ok(vacationRequestService.createByRh(request, auth.getName()));
+    }
 }
+

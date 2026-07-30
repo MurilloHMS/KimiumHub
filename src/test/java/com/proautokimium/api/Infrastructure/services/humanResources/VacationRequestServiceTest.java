@@ -15,6 +15,7 @@ import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.entities.humanResources.Team;
 import com.proautokimium.api.domain.entities.humanResources.VacationRequest;
+import org.hibernate.validator.constraints.ModCheck;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,7 @@ class VacationRequestServiceTest {
     @Mock private EmployeeRepository employeeRepository;
     @Mock private UserRepository userRepository;
     @Mock private CareerHistoryRepository careerHistoryRepository;
+    @Mock private BrazilianBusinessDayCalculator brazilianBussinessCalculator;
 
     private VacationRequestService service;
 
@@ -53,7 +55,7 @@ class VacationRequestServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(LocalDateTime.of(2026, 7, 23, 10, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
-        service = new VacationRequestService(vacationRequestRepository, employeeRepository, userRepository, careerHistoryRepository, clock);
+        service = new VacationRequestService(vacationRequestRepository, employeeRepository, userRepository, careerHistoryRepository, clock, brazilianBussinessCalculator);
 
         employee = new Employee();
         employee.setVacationBalanceDays(12);

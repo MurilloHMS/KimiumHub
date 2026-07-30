@@ -1,10 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.CreateVacationRequestDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.EmployeeVacationOverviewDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.ReviewVacationRequestDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationAlertDTO;
-import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationRequestResponseDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.*;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.InsufficientVacationBalanceException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.OverlappingVacationRequestException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.VacationRequestNotFoundException;
@@ -38,19 +34,21 @@ public class VacationRequestService {
     private final UserRepository userRepository;
     private final CareerHistoryRepository careerHistoryRepository;
     private final Clock clock;
+    private final BrazilianBusinessDayCalculator businessDayCalculator;
 
     public VacationRequestService(
             VacationRequestRepository vacationRequestRepository,
             EmployeeRepository employeeRepository,
             UserRepository userRepository,
             CareerHistoryRepository careerHistoryRepository,
-            Clock clock
+            Clock clock, BrazilianBusinessDayCalculator businessDayCalculator
     ) {
         this.vacationRequestRepository = vacationRequestRepository;
         this.employeeRepository = employeeRepository;
         this.userRepository = userRepository;
         this.careerHistoryRepository = careerHistoryRepository;
         this.clock = clock;
+        this.businessDayCalculator = businessDayCalculator;
     }
 
     /** Quem solicita é sempre o funcionário autenticado — employeeId nunca vem do cliente. */
@@ -70,7 +68,8 @@ public class VacationRequestService {
         );
 
         int balance = employee.getVacationBalanceDays() != null ? employee.getVacationBalanceDays() : 0;
-        if (request.getDaysRequested() > balance) {
+        long businessDay = businessDayCalculator.countBusinessDays(dto.startDate(), dto.endDate());
+        if (businessDay > balance) {
             throw new InsufficientVacationBalanceException();
         }
 
@@ -92,15 +91,13 @@ public class VacationRequestService {
         VacationRequest request = vacationRequestRepository.findById(id)
                 .orElseThrow(VacationRequestNotFoundException::new);
         Employee reviewer = resolveEmployee(reviewerLogin);
-        if (reviewer == null) {
-            throw new EmployeeNotFoundException();
-        }
 
         request.approve(reviewer, dto.notes(), LocalDateTime.now(clock));
 
         Employee employee = request.getEmployee();
         int balance = employee.getVacationBalanceDays() != null ? employee.getVacationBalanceDays() : 0;
-        employee.setVacationBalanceDays(balance - (int) request.getDaysRequested());
+        long businessDay = businessDayCalculator.countBusinessDays(request.getStartDate(), request.getEndDate());
+        employee.setVacationBalanceDays(balance - (int) businessDay);
         employeeRepository.save(employee);
 
         VacationRequest saved = vacationRequestRepository.save(request);
@@ -112,9 +109,6 @@ public class VacationRequestService {
         VacationRequest request = vacationRequestRepository.findById(id)
                 .orElseThrow(VacationRequestNotFoundException::new);
         Employee reviewer = resolveEmployee(reviewerLogin);
-        if (reviewer == null) {
-            throw new EmployeeNotFoundException();
-        }
 
         request.reject(reviewer, dto.notes(), LocalDateTime.now(clock));
 
@@ -229,6 +223,41 @@ public class VacationRequestService {
         return alerts;
     }
 
+    @Transactional
+    public VacationRequestResponseDTO createByRh(CreateVacationByRhDTO dto, String login){
+        Employee employee = employeeRepository.findById(dto.employeeId())
+                .orElseThrow(EmployeeNotFoundException::new);
+
+        Employee reviewer = resolveEmployee(login);
+
+        if(dto.vacationBalanceDays() != null){
+            employee.setVacationBalanceDays(dto.vacationBalanceDays());
+        }
+
+        if(employee.getTeam() != null){
+            List<VacationRequest> overlapping = vacationRequestRepository.findOverlappingInTeam(
+                    employee.getTeam(), employee, dto.startDate(), dto.endDate()
+            );
+            if(!overlapping.isEmpty()){
+                throw new OverlappingVacationRequestException();
+            }
+        }
+
+        VacationRequest request = VacationRequest.request(
+                employee, dto.startDate(), dto.endDate(), null, LocalDateTime.now(clock)
+        );
+
+        request.approve(reviewer, dto.notes(), LocalDateTime.now(clock));
+
+        int balance = employee.getVacationBalanceDays() != null ? employee.getVacationBalanceDays() : 0;
+        long businessDays = businessDayCalculator.countBusinessDays(dto.startDate(), dto.endDate());
+        employee.setVacationBalanceDays(balance - (int) businessDays);
+        employeeRepository.save(employee);
+
+        VacationRequest saved = vacationRequestRepository.save(request);
+        return toResponse(saved);
+    }
+
     private Employee resolveEmployee(String login) {
         Employee viaLink = userRepository.findByLoginWithEmployee(login)
                 .map(u -> u.getEmployee())
@@ -243,7 +272,7 @@ public class VacationRequestService {
                 request.getEmployee().getId(),
                 request.getStartDate(),
                 request.getEndDate(),
-                request.getDaysRequested(),
+                businessDayCalculator.countBusinessDays(request.getStartDate(), request.getEndDate()),
                 request.getReplacementEmployee() != null ? request.getReplacementEmployee().getId() : null,
                 request.getStatus(),
                 request.getRequestedAt(),
