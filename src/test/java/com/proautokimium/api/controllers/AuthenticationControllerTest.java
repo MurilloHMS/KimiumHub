@@ -157,7 +157,7 @@ class AuthenticationControllerTest {
                 .andExpect(status().isOk());
 
         verify(tokenAuthService, never()).createToken(any());
-        verify(emailQueueService, never()).sendNow(any(), any(), any(), any());
+        verify(authEmailService, never()).sendResetPasswordToken(any(), any());
     }
 
     @Test
@@ -179,7 +179,7 @@ class AuthenticationControllerTest {
                 .andExpect(content().string("Token de recuperação de senha enviado para o e-mail cadastrado."));
 
         verify(tokenAuthService).createToken(user);
-        verify(emailQueueService).sendNow(eq("admin@teste.com"), any(), any(), any());
+        verify(authEmailService).sendResetPasswordToken(eq("admin@teste.com"), eq("ABC123"));
     }
 
     @Test

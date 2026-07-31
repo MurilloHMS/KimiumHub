@@ -6,6 +6,7 @@ import com.proautokimium.api.Application.DTOs.user.AuthenticationDTO;
 import com.proautokimium.api.Application.DTOs.user.LinkEmployeeRequest;
 import com.proautokimium.api.Application.DTOs.user.RegisterDTO;
 import com.proautokimium.api.Application.DTOs.user.UserResponseDTO;
+import com.proautokimium.api.Infrastructure.exceptions.auth.UserBlockedException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.CredentialsIncorrectException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserAlreadyExistsException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.token.TokenExpiredException;
@@ -14,6 +15,7 @@ import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.TokenService;
+import com.proautokimium.api.Infrastructure.services.email.AuthEmailService;
 import com.proautokimium.api.Infrastructure.utils.UsernameSanitizer;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.FirstAcessToken;
@@ -44,8 +46,9 @@ public class AuthenticationService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final TokenService tokenService;
     private final Clock clock;
+    private final AuthEmailService authEmailService;
 
-    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository,TokenService tokenService, Clock clock) {
+    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository, TokenService tokenService, Clock clock, AuthEmailService authEmailService) {
         this.authenticationManager = authenticationManager;
         this.repository = repository;
         this.employeeRepository = employeeRepository;
@@ -53,6 +56,7 @@ public class AuthenticationService {
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.tokenService = tokenService;
         this.clock = clock;
+        this.authEmailService = authEmailService;
     }
 
     public String login(AuthenticationDTO dto){
@@ -66,8 +70,11 @@ public class AuthenticationService {
             throw new IllegalArgumentException();
         }
 
-        Object principal = authentication.getPrincipal();
-        return tokenService.generateToken((User) principal);
+        User user = (User) authentication.getPrincipal();
+        if(!user.isActive()){
+            throw new UserBlockedException();
+        }
+        return tokenService.generateToken(user);
     }
 
     public User signIn(RegisterDTO dto){
@@ -147,7 +154,8 @@ public class AuthenticationService {
                 u.getRoles(),
                 u.getEmployee() != null
                         ? u.getEmployee().getCodParceiro()
-                        : null)).toList();
+                        : null,
+                u.isActive())).toList();
     }
 
     @Transactional
@@ -166,6 +174,31 @@ public class AuthenticationService {
         passwordResetTokenRepository.save(resetToken);
 
         return "Senha redefinida com sucesso.";
+    }
+
+    @Transactional
+    public void blockUser(String login) {
+        User user = (User) repository.findByLogin(login);
+        if (user == null) throw new UserNotFoundException();
+        user.setActive(false);
+        repository.save(user);
+    }
+
+    @Transactional
+    public void unblockUser(String login) {
+        User user = (User) repository.findByLogin(login);
+        if (user == null) throw new UserNotFoundException();
+        user.setActive(true);
+        repository.save(user);
+    }
+
+    @Transactional
+    public void resetPasswordByAdmin(String login){
+        User user = (User) repository.findByLogin(login);
+        if(user == null) throw new UserNotFoundException();
+
+        String token = accessTokenService.createToken(user);
+        authEmailService.sendResetPasswordToken(user.getEmail(), token);
     }
 
     // Helpers
