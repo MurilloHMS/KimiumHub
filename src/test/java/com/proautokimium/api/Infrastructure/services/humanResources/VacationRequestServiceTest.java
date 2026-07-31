@@ -78,13 +78,16 @@ class VacationRequestServiceTest {
                 .thenReturn(List.of());
         when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
 
+        when(brazilianBussinessCalculator.countBusinessDays(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10)))
+                .thenReturn(6L);
+
         CreateVacationRequestDTO dto = new CreateVacationRequestDTO(
                 LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10), null
         );
 
         VacationRequestResponseDTO response = service.create(dto, LOGIN);
 
-        assertThat(response.daysRequested()).isEqualTo(10);
+        assertThat(response.daysRequested()).isEqualTo(6);
         assertThat(response.status().name()).isEqualTo("PENDING");
     }
 
@@ -93,6 +96,8 @@ class VacationRequestServiceTest {
     void naoDeveCriarSolicitacaoAlemDoSaldo() {
         employee.setVacationBalanceDays(5);
         mockAuthenticatedEmployee();
+        when(brazilianBussinessCalculator.countBusinessDays(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10)))
+                .thenReturn(6L);
 
         CreateVacationRequestDTO dto = new CreateVacationRequestDTO(
                 LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10), null
@@ -133,10 +138,12 @@ class VacationRequestServiceTest {
         when(userRepository.findByLoginWithEmployee(reviewerLogin)).thenReturn(Optional.empty());
         when(employeeRepository.findByUsername(reviewerLogin)).thenReturn(Optional.of(reviewer));
         when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(brazilianBussinessCalculator.countBusinessDays(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10)))
+                .thenReturn(6L);
 
         service.approve(requestId, new ReviewVacationRequestDTO("Aprovado"), reviewerLogin);
 
-        assertThat(employee.getVacationBalanceDays()).isEqualTo(2); // 12 - 10
+        assertThat(employee.getVacationBalanceDays()).isEqualTo(6); // 12 - 6 business days
         verify(employeeRepository).save(employee);
     }
 
