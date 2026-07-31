@@ -79,7 +79,7 @@ public class AuthenticationService {
 
     public User signIn(RegisterDTO dto){
         String encryptedPassword = new BCryptPasswordEncoder().encode(dto.password());
-        User newUser = new User(dto.login(), dto.login(), encryptedPassword, dto.roles());
+        User newUser = new User(dto.login(), dto.email(), encryptedPassword, dto.roles());
 
         employeeRepository.findByUsername(dto.login()).ifPresent(newUser::setEmployee);
 
