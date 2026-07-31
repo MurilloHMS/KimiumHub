@@ -6,6 +6,7 @@ import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.TokenService;
+import com.proautokimium.api.Infrastructure.services.email.AuthEmailService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.FirstAcessToken;
 import com.proautokimium.api.domain.entities.auth.User;
@@ -40,6 +41,7 @@ class AuthenticationServiceTest {
     private final TokenAuthService tokenAuthService = mock(TokenAuthService.class);
     private final PasswordResetTokenRepository passwordResetTokenRepository = mock(PasswordResetTokenRepository.class);
     private final TokenService tokenService = mock(TokenService.class);
+    private final AuthEmailService authEmailService = mock(AuthEmailService.class);
 
     private final AuthenticationService service = new AuthenticationService(
             authenticationManager,
@@ -48,7 +50,8 @@ class AuthenticationServiceTest {
             tokenAuthService,
             passwordResetTokenRepository,
             tokenService,
-            Clock.fixed(NOON, ZONE)
+            Clock.fixed(NOON, ZONE),
+            authEmailService
     );
 
     @Test

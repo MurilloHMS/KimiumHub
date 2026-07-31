@@ -114,6 +114,7 @@ public class AuthenticationController {
 
     @GetMapping("/users")
     @Operation(summary = "Retorna Usuários", description = "Obtém a lista de usuários")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<Object> getUsers(){
         return ResponseEntity.ok(authService.getUsers());
     }
@@ -122,19 +123,21 @@ public class AuthenticationController {
     @Operation(summary = "Recupera a senha", description = "Gera o token de recuperação e envia via email")
     public ResponseEntity<Object> forgotPassword(@RequestBody @Valid ForgotPasswordDTO dto) {
         User user = (User) repository.findByLogin(dto.login());
-
-        if(user == null){
+        if (user == null) {
             return ResponseEntity.ok().build();
         }
 
         String token = accessTokenService.createToken(user);
-        emailService.sendNow(
-                user.getEmail(),
-                "noreply@envios.proautokimium.com.br",
-                "Token de recuperação de senha",
-                "Use o seguinte token para redefinir sua senha: " + token);
-
+        authEmailService.sendResetPasswordToken(user.getEmail(), token);
         return ResponseEntity.ok("Token de recuperação de senha enviado para o e-mail cadastrado.");
+    }
+
+    @PostMapping("/users/{login}/reset-password")
+    @Operation(summary = "Reset de senha pelo Admin/RH", description = "Gera o token de recuperação e envia via email para o usuário")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    public ResponseEntity<Object> resetPasswordByAdmin(@PathVariable String login) {
+        authService.resetPasswordByAdmin(login);
+        return ResponseEntity.ok("Token de redefinição enviado para o e-mail do usuário.");
     }
 
     @PostMapping("/first-access")
@@ -218,5 +221,21 @@ public class AuthenticationController {
         user.setRoles(roles.roles());
         repository.save(user);
         return ResponseEntity.ok().body("Roles Atualizadas com sucesso!");
+    }
+
+    @PutMapping("/users/{login}/block")
+    @Operation(summary = "Bloqueia Usuário", description = "Bloqueia o acesso ao sistema pelo login")
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public ResponseEntity<Object> blockAccess(@PathVariable String login){
+        authService.blockUser(login);
+        return ResponseEntity.ok().body("Acesso do usuário foi bloqueado");
+    }
+
+    @PutMapping("/users/{login}/unblock")
+    @Operation(summary = "Libera Usuário", description = "Libera o acesso ao sistema pelo login")
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public ResponseEntity<Object> unblockAccess(@PathVariable String login){
+        authService.unblockUser(login);
+        return ResponseEntity.ok().body("Acesso do usuário foi liberado");
     }
 }

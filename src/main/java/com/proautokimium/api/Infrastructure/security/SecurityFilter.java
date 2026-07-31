@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.security;
 
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
+import com.proautokimium.api.domain.entities.auth.User;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,7 +40,7 @@ public class SecurityFilter extends OncePerRequestFilter {
             var login = tokenService.validateToken(token);
             if (login != null) {
                 UserDetails user = userRepository.findByLogin(login);
-                if (user != null) {
+                if (user != null && ((User) user).isActive()) {
                     var authentication =
                             new UsernamePasswordAuthenticationToken(
                                     user,

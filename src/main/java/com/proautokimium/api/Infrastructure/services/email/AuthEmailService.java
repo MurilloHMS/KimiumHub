@@ -19,6 +19,7 @@ public class AuthEmailService {
 
     private static final String FROM = "noreply@envios.proautokimium.com.br";
     private static final String FIRST_ACCESS_TEMPLATE = "html/first-access-token";
+    private static final String RESET_ACCESS_TEMPLATE = "html/reset-access-token";
 
     private final TemplateEngine templateEngine;
     private final EmailQueueService emailQueueService;
@@ -33,19 +34,28 @@ public class AuthEmailService {
     }
 
     public void sendFirstAccessToken(String to, String token) {
-        Context ctx = new Context(LocaleContextHolder.getLocale());
-        ctx.setVariable("token", token);
-        ctx.setVariable("ttlMinutes", TokenAuthService.TOKEN_TTL_MINUTES);
-        ctx.setVariable("actionUrl", buildFirstAccessUrl(to, token));
-
+        Context ctx = createContext(to, token, "/login/first-access");
         String html = templateEngine.process(FIRST_ACCESS_TEMPLATE, ctx);
         emailQueueService.sendNow(to, FROM, "Seu código de primeiro acesso", html);
     }
 
-    /** Deep link com token e e-mail: o front pula direto para a validação do código. */
-    private String buildFirstAccessUrl(String email, String token) {
-        return websiteBaseUrl + "/login/first-access"
+    public void sendResetPasswordToken(String to, String token){
+        Context ctx = createContext(to,token, "/login/forgot-password");
+        String html = templateEngine.process(RESET_ACCESS_TEMPLATE, ctx);
+        emailQueueService.sendNow(to, FROM, "Seu código de redefinição de senha", html);
+    }
+
+    private String buildDeepUrlWithToken(String email, String token, String url){
+        return websiteBaseUrl + url
                 + "?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8)
                 + "&email=" + URLEncoder.encode(email, StandardCharsets.UTF_8);
+    }
+
+    private Context createContext(String to, String token, String deepUrl){
+        Context ctx = new Context(LocaleContextHolder.getLocale());
+        ctx.setVariable("token", token);
+        ctx.setVariable("ttlMinutes", TokenAuthService.TOKEN_TTL_MINUTES);
+        ctx.setVariable("actionUrl", buildDeepUrlWithToken(to, token, deepUrl));
+        return ctx;
     }
 }
