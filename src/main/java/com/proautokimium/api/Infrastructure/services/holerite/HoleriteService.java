@@ -25,12 +25,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class HoleriteService {
@@ -79,14 +74,16 @@ public class HoleriteService {
             List<PdfPageInfoExtractorDTO> infos = extractor.extract(temp.getAbsolutePath());
             int vinculados = 0;
             List<String> naoEncontrados = new ArrayList<>();
-            Set<Employee> afetados = new LinkedHashSet<>();   // dedupe por id (Entity.equals)
+            Set<Employee> afetados = new LinkedHashSet<>();
 
             try (PDDocument doc = Loader.loadPDF(temp)) {
                 int total = doc.getNumberOfPages();
 
+                Map<Employee, List<Integer>> employeePages = new LinkedHashMap<>();
+
                 for (int i = 0; i < total; i++) {
                     String cpfRaw = i < infos.size() ? infos.get(i).cpf() : null;
-                    String nome = i < infos.size() ? infos.get(i).nome() : null;
+                    String nome   = i < infos.size() ? infos.get(i).nome() : null;
                     String cpfDigits = cpfRaw == null ? "" : cpfRaw.replaceAll("\\D", "");
 
                     Employee emp = cpfDigits.length() >= 11
@@ -99,11 +96,18 @@ public class HoleriteService {
                         continue;
                     }
 
-                    byte[] pageBytes = extractPage(doc, i);
-                    String storedPath = storage.save(pageBytes, emp.getCodParceiro(), competencia, tipo);
+                    employeePages.computeIfAbsent(emp, k -> new ArrayList<>()).add(i);
+                }
+
+                for (var entry : employeePages.entrySet()) {
+                    Employee emp = entry.getKey();
+                    List<Integer> pageIndices = entry.getValue();
+
+                    byte[] pdfBytes = extractPages(doc, pageIndices);
+                    String storedPath = storage.save(pdfBytes, emp.getCodParceiro(), competencia, tipo);
                     repository.save(new HoleriteDocumento(emp, competencia, tipo, file.getOriginalFilename(), storedPath));
                     afetados.add(emp);
-                    vinculados++;
+                    vinculados += pageIndices.size();
                 }
 
                 notificarFuncionarios(afetados, competencia, tipo);
@@ -135,6 +139,17 @@ public class HoleriteService {
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             single.importPage(source.getPage(index));
             single.save(baos);
+            return baos.toByteArray();
+        }
+    }
+
+    private byte[] extractPages(PDDocument source, List<Integer> indices) throws IOException{
+        try(PDDocument multi = new PDDocument();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream()){
+            for(int index : indices){
+                multi.importPage(source.getPage(index));
+            }
+            multi.save(baos);
             return baos.toByteArray();
         }
     }
