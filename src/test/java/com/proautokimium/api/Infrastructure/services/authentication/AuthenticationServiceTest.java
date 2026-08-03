@@ -1,7 +1,9 @@
 package com.proautokimium.api.Infrastructure.services.authentication;
 
 import com.proautokimium.api.Application.DTOs.authentication.NewAccessPasswordDTO;
+import com.proautokimium.api.Application.DTOs.user.AuthenticationDTO;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserAlreadyExistsException;
+import com.proautokimium.api.Infrastructure.exceptions.auth.UserBlockedException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
@@ -20,11 +22,13 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -128,6 +132,22 @@ class AuthenticationServiceTest {
         when(tokenAuthService.isValid("ABC123")).thenReturn(Optional.of(token));
 
         assertThat(service.firstAccessTokenIsValid("ABC123")).isFalse();
+    }
+
+    @Test
+    @DisplayName("Não deve permitir bloquear um usuário com role DEVELOPER")
+    void shouldBlockUserWhenNotActive() {
+        User user = mock(User.class);
+        when(user.getLogin()).thenReturn("murillo.henrique");
+        when(user.getRoles()).thenReturn(List.of(UserRole.DEVELOPER));
+        when(userRepository.findByLogin("murillo.henrique")).thenReturn(user);
+
+        assertThrows(
+                UserBlockedException.class,
+                () -> service.blockUser("murillo.henrique")
+        );
+
+        verify(userRepository, never()).save(any());
     }
 
     private FirstAcessToken tokenForEmployee(String employeeName) {
