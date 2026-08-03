@@ -35,6 +35,7 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -180,6 +181,7 @@ public class AuthenticationService {
     public void blockUser(String login) {
         User user = (User) repository.findByLogin(login);
         if (user == null) throw new UserNotFoundException();
+        if(user.getRoles().contains(UserRole.DEVELOPER)) throw new UserBlockedException("Não é possível bloquear um desenvolvedor.");
         user.setActive(false);
         repository.save(user);
     }
