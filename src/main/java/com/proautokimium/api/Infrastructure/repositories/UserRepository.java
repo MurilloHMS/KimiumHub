@@ -14,6 +14,7 @@ import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<User, String> {
     UserDetails findByLogin(String login);
+    UserDetails findByEmail(String email);
 
     /** Carrega o usuário já com o funcionário vinculado, evitando lazy loading fora da transação. */
     @Query("SELECT u FROM users u LEFT JOIN FETCH u.employee WHERE u.login = :login")
