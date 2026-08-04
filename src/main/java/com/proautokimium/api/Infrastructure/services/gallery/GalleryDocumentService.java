@@ -15,7 +15,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 public class GalleryDocumentService {
@@ -57,6 +61,44 @@ public class GalleryDocumentService {
             GalleryDocument response = repository.save(document);
             return toDto(response);
         } catch (IOException e) {
+            throw new FileStorageException();
+        }
+    }
+
+    public List<GalleryDocumentResponseDTO> list(){
+        return repository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    public GalleryDocument findById(UUID id) {
+        return repository.findById(id)
+                .orElseThrow(FileNotFoundException::new);
+    }
+
+    public byte[] getFile(UUID id){
+        GalleryDocument document = repository.findById(id)
+                .orElseThrow(FileNotFoundException::new);
+
+        Path path = storageService.searchFile(document.getStoragePath());
+        try{
+            return Files.readAllBytes(path);
+        }catch(IOException e){
+            throw new FileStorageException();
+        }
+    }
+
+    @Transactional
+    public void delete(UUID id){
+        GalleryDocument document = repository.findById(id)
+                .orElseThrow(FileNotFoundException::new);
+
+        Path path = storageService.searchFile(document.getStoragePath());
+        try{
+            Files.delete(path);
+            repository.delete(document);
+        }catch (IOException e){
             throw new FileStorageException();
         }
     }

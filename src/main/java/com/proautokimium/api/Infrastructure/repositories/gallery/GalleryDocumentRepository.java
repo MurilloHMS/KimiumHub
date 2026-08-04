@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface GalleryDocumentRepository extends JpaRepository<GalleryDocument, UUID> {
     List<GalleryDocument> findByCategory(Category caregory);
     List<GalleryDocument> findAllByOrderByCreatedAtDesc();
+
+    UUID id(UUID id);
 }
