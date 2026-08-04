@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.proautokimium.api.Infrastructure.interfaces.nfe.INfeProcessing;
+import com.proautokimium.api.Infrastructure.services.nfe.NfseRenameService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +23,9 @@ public class NfeController {
 
     @Autowired
     INfeProcessing nfeProcessing;
+
+    @Autowired
+    NfseRenameService nfseRenameService;
 
     @PostMapping( value = "/icms/upload", consumes = "multipart/form-data")
     public ResponseEntity<byte[]> processIcmsFiles(@RequestParam List<MultipartFile> files) throws Exception{
@@ -64,5 +69,14 @@ public class NfeController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=nfe_data.xlsx")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(excelFile);
+    }
+
+    @PostMapping(value = "/nfse/upload", consumes = "multipart/form-data")
+    public ResponseEntity<byte[]> renameNfseFileNames(@RequestParam List<MultipartFile> files) throws IOException {
+        byte[] zipFile = nfseRenameService.renameFiles(files);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=nfse_renomeadas.zip")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(zipFile);
     }
 }
