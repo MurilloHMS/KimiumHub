@@ -81,7 +81,8 @@ public class GalleryDocumentService {
         GalleryDocument document = repository.findById(id)
                 .orElseThrow(FileNotFoundException::new);
 
-        Path path = storageService.searchFile(document.getStoragePath());
+        String filename = Path.of(document.getStoragePath()).getFileName().toString();
+        Path path = storageService.searchFile(filename);
         try{
             return Files.readAllBytes(path);
         }catch(IOException e){
@@ -94,7 +95,8 @@ public class GalleryDocumentService {
         GalleryDocument document = repository.findById(id)
                 .orElseThrow(FileNotFoundException::new);
 
-        Path path = storageService.searchFile(document.getStoragePath());
+        String filename = Path.of(document.getStoragePath()).getFileName().toString();
+        Path path = storageService.searchFile(filename);
         try{
             Files.delete(path);
             repository.delete(document);
