@@ -35,7 +35,6 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -79,6 +78,9 @@ public class AuthenticationService {
     }
 
     public User signIn(RegisterDTO dto){
+        if(repository.findByLogin(dto.login()) != null)
+            throw new UserAlreadyExistsException();
+
         String encryptedPassword = new BCryptPasswordEncoder().encode(dto.password());
         User newUser = new User(dto.login(), dto.email(), encryptedPassword, dto.roles());
 

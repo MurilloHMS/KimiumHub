@@ -78,8 +78,6 @@ public class AuthenticationController {
     @PostMapping("/register")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Object> Register(@RequestBody @Valid RegisterDTO data){
-        if(this.repository.findByLogin(data.login()) != null) return ResponseEntity.status(HttpStatus.CONFLICT).body("O Usuário informado, já existe!");
-
         return authService.signIn(data) != null ?
                 ResponseEntity.status(HttpStatus.OK).body("Usuário criado com sucesso!")
                 : ResponseEntity.noContent().build();
