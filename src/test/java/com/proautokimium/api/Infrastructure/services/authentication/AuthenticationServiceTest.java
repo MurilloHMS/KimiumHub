@@ -2,6 +2,7 @@ package com.proautokimium.api.Infrastructure.services.authentication;
 
 import com.proautokimium.api.Application.DTOs.authentication.NewAccessPasswordDTO;
 import com.proautokimium.api.Application.DTOs.user.AuthenticationDTO;
+import com.proautokimium.api.Application.DTOs.user.RegisterDTO;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserAlreadyExistsException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserBlockedException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
@@ -145,6 +146,23 @@ class AuthenticationServiceTest {
         assertThrows(
                 UserBlockedException.class,
                 () -> service.blockUser("murillo.henrique")
+        );
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Não deve criar usuário quando login já existe")
+    void shouldRejectCreateUserIfAlreadyExists(){
+        RegisterDTO register = new RegisterDTO(
+                "usuario.existe", "email@mail.com", "Password@123", List.of(UserRole.USER));
+
+        when(userRepository.findByLogin("usuario.existe"))
+                .thenReturn(new User("usuario.existe", "outro@email.com", "hash", List.of(UserRole.USER)));
+
+        assertThrows(
+                UserAlreadyExistsException.class,
+                () -> service.signIn(register)
         );
 
         verify(userRepository, never()).save(any());
