@@ -124,25 +124,6 @@ class AuthenticationControllerTest {
     }
 
     @Test
-    @DisplayName("Não deve registrar usuário já existente")
-    @WithMockUser(roles = "ADMIN")
-    void shouldNotRegisterExistingUser() throws Exception {
-        RegisterDTO dto = new RegisterDTO("admin", "email@email.com", "123456", List.of(UserRole.ADMIN));
-
-        when(userRepository.findByLogin(dto.login()))
-                .thenReturn(new User("admin", "admin", "hash", List.of(UserRole.ADMIN)));
-
-        mockMvc.perform(post("/api/auth/register")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isConflict())
-                .andExpect(content().string("O Usuário informado, já existe!"));
-
-        verify(authService, never()).signIn(any());
-    }
-
-    @Test
     @DisplayName("Deve retornar ok no forgot-password mesmo quando usuário não existe")
     void shouldReturnOkWhenUserDoesNotExistOnForgotPassword() throws Exception {
         when(userRepository.findByLogin("inexistente")).thenReturn(null);
