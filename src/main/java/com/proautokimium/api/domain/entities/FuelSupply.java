@@ -71,4 +71,22 @@ public class FuelSupply extends Entity{
     public String getDepartmentName() {
         return department != null ? department.name() : "";
     }
+
+    public FuelSupplyDTO toDto(){
+        return new FuelSupplyDTO(
+                this.fuelSupplyDate,
+                this.uf,
+                this.plate,
+                this.driverName,
+                this.department,
+                this.actualHodometer,
+                this.lastHodometer,
+                this.diferenceHodometer,
+                this.averageKm,
+                this.fuelType,
+                this.liters,
+                this.price,
+                this.totalValue
+        );
+    }
 }
