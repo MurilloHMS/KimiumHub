@@ -6,6 +6,7 @@ import com.proautokimium.api.Application.DTOs.prostock.machine.MachineMovementDT
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.SecurityConfiguration;
 import com.proautokimium.api.Infrastructure.security.TokenService;
+import com.proautokimium.api.Infrastructure.services.machine.MachineAlertService;
 import com.proautokimium.api.Infrastructure.services.machine.MachineService;
 import com.proautokimium.api.Infrastructure.services.machine.RegisterService;
 import org.junit.jupiter.api.DisplayName;
@@ -42,6 +43,7 @@ class MachineControllerTest {
     @MockitoBean TokenService tokenService;
     @MockitoBean AuthenticationManager authenticationManager;
     @MockitoBean UserRepository userRepository;
+    @MockitoBean MachineAlertService alertService;
 
     private final UUID machineId = UUID.randomUUID();
     private final UUID movementId = UUID.randomUUID();

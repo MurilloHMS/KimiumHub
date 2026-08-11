@@ -4,7 +4,6 @@ import com.proautokimium.api.Application.DTOs.prostock.machine.CreateRegisterDTO
 import com.proautokimium.api.Application.DTOs.prostock.machine.ResponseRegisterDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.UpdateRegisterDTO;
 import com.proautokimium.api.domain.enums.MachineStatus;
-import com.proautokimium.api.domain.enums.MachineType;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
