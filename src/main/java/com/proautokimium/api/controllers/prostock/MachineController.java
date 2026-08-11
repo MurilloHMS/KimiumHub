@@ -1,9 +1,11 @@
 package com.proautokimium.api.controllers.prostock;
 
+import com.proautokimium.api.Application.DTOs.machine.MachineAlertConfigDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.CreateRegisterDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.MachineMovementDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.UpdateRegisterDTO;
+import com.proautokimium.api.Infrastructure.services.machine.MachineAlertService;
 import com.proautokimium.api.Infrastructure.services.machine.MachineService;
 import com.proautokimium.api.Infrastructure.services.machine.RegisterService;
 import jakarta.validation.Valid;
@@ -24,6 +26,9 @@ public class MachineController {
 
     @Autowired
     private RegisterService registerService;
+
+    @Autowired
+    private MachineAlertService alertService;
 
     @GetMapping
     public ResponseEntity<Object> getMachines(){
@@ -101,5 +106,23 @@ public class MachineController {
     @GetMapping("/register")
     public ResponseEntity<?> getAllRegisters(){
         return ResponseEntity.ok(registerService.listarRegistros());
+    }
+
+    @GetMapping("/alert-config")
+    public ResponseEntity<MachineAlertConfigDTO> getAlertConfig(){
+        return ResponseEntity.ok(alertService.get());
+    }
+
+    @PutMapping("/alert-config")
+    public ResponseEntity<MachineAlertConfigDTO> saveAlertConfig(@RequestBody @Valid MachineAlertConfigDTO dto){
+        return ResponseEntity.ok(alertService.save(dto));
+    }
+
+    @PostMapping("/alert-config/test")
+    public ResponseEntity<String> testAlerts(){
+        int sent = alertService.sendSampleAlert();
+        return sent > 0
+                ? ResponseEntity.ok(sent + " e-mail(s) de teste enfileirado(s).")
+                : ResponseEntity.badRequest().body("Selecione ao menos um destinatario e salve antes de testar.");
     }
 }

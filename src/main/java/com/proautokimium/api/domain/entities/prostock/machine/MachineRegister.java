@@ -4,7 +4,6 @@ import com.proautokimium.api.Application.DTOs.prostock.machine.CreateRegisterDTO
 import com.proautokimium.api.Application.DTOs.prostock.machine.ResponseRegisterDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.UpdateRegisterDTO;
 import com.proautokimium.api.domain.enums.MachineStatus;
-import com.proautokimium.api.domain.enums.MachineType;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -30,8 +29,21 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
     private LocalDateTime previsaoEntrega;
     @Column(name = "tecnico", length = 100)
     private String tecnico;
+    @Column(name = "regiao", length = 100)
+    private String regiao;
 
-    public MachineRegister(Machine machine, String nomeCliente, String solicitante, MachineStatus status, String observacao, LocalDateTime previsaoEntrega, String tecnico) {
+    @Column(name = "consultor", length = 100)
+    private String consultor;
+
+    public MachineRegister(Machine machine,
+                           String nomeCliente,
+                           String solicitante,
+                           MachineStatus status,
+                           String observacao,
+                           LocalDateTime previsaoEntrega,
+                           String tecnico,
+                           String regiao,
+                           String consultor) {
         this.machine = machine;
         this.nomeCliente = nomeCliente;
         this.solicitante = solicitante;
@@ -39,6 +51,8 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
         this.observacao = observacao;
         this.previsaoEntrega = previsaoEntrega;
         this.tecnico = tecnico;
+        this.regiao = regiao;
+        this.consultor = consultor;
     }
 
     public MachineRegister(Machine machine){
@@ -110,6 +124,12 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
         this.tecnico = tecnico;
     }
 
+    public String getRegiao() { return regiao; }
+    public void setRegiao(String regiao) { this.regiao = regiao; }
+
+    public String getConsultor() { return consultor; }
+    public void setConsultor(String consultor) { this.consultor = consultor; }
+
     // Methods
 
     public void fromDto(CreateRegisterDTO dto){
@@ -120,6 +140,8 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
         this.previsaoEntrega = dto.previsaoEntrega();
         this.solicitante = dto.solicitante();
         this.tecnico = dto.tecnico();
+        this.regiao = dto.regiao();
+        this.consultor = dto.consultor();
     }
 
     public void fromDto(UpdateRegisterDTO dto){
@@ -130,6 +152,8 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
         this.previsaoEntrega = dto.previsaoEntrega();
         this.solicitante = dto.solicitante();
         this.tecnico = dto.tecnico();
+        this.regiao = dto.regiao();
+        this.consultor = dto.consultor();
     }
 
     public ResponseRegisterDTO toDto(){
@@ -142,7 +166,9 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
                 this.status,
                 this.observacao,
                 this.previsaoEntrega,
-                this.tecnico
+                this.tecnico,
+                this.regiao,
+                this.consultor
         );
     }
 }

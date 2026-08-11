@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${assunto}">Alerta de saída de máquina</title>
+</head>
+<body style="margin:0; padding:0; font-family: Arial, sans-serif; background-color:#f4f4f4;">
+
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+        <td align="center" style="padding:30px 10px;">
+
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600"
+                   style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 3px 8px rgba(0,0,0,.12);">
+
+                <!-- Cabeçalho: vermelho quando atrasado, degradê da marca quando é aviso prévio -->
+                <tr>
+                    <td align="center"
+                        th:style="${atrasado}
+                                ? 'background:#c0392b; padding:32px 20px; color:#ffffff;'
+                                : 'background:linear-gradient(90deg, #232e61, #57c1ab); padding:32px 20px; color:#ffffff;'">
+                        <h1 style="margin:0; font-size:24px; font-weight:bold;"
+                            th:text="${atrasado} ? 'Entrega atrasada' : 'Saída programada'">Saída programada</h1>
+                        <p style="margin:10px 0 0; font-size:16px;" th:text="${chamada}">em 3 dias</p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding:30px 30px 6px; color:#444444; font-size:16px; line-height:24px;">
+                        <p style="margin:0 0 16px;">
+                            A máquina abaixo está programada para sair e ainda não foi entregue.
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- Dados do registro -->
+                <tr>
+                    <td style="padding:6px 30px 20px;">
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"
+                               style="border:1px solid #e6e9f0; border-radius:10px;">
+                            <tr>
+                                <td style="padding:14px 18px; color:#6b7492; font-size:13px; width:150px;">Cliente</td>
+                                <td style="padding:14px 18px; color:#232e61; font-size:15px; font-weight:bold;"
+                                    th:text="${cliente}">EXAL FRISIA</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:14px 18px; color:#6b7492; font-size:13px; border-top:1px solid #f0f1f6;">Máquina</td>
+                                <td style="padding:14px 18px; color:#444444; font-size:15px; border-top:1px solid #f0f1f6;"
+                                    th:text="${maquina}">CAPÔ NT 300</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:14px 18px; color:#6b7492; font-size:13px; border-top:1px solid #f0f1f6;">Previsão de saída</td>
+                                <td style="padding:14px 18px; font-size:15px; font-weight:bold; border-top:1px solid #f0f1f6;"
+                                    th:style="${atrasado} ? 'color:#c0392b;' : 'color:#444444;'"
+                                    th:text="${previsao}">10/08/2026</td>
+                            </tr>
+                            <tr th:if="${regiao}">
+                                <td style="padding:14px 18px; color:#6b7492; font-size:13px; border-top:1px solid #f0f1f6;">Região</td>
+                                <td style="padding:14px 18px; color:#444444; font-size:15px; border-top:1px solid #f0f1f6;"
+                                    th:text="${regiao}">SP</td>
+                            </tr>
+                            <tr th:if="${consultor}">
+                                <td style="padding:14px 18px; color:#6b7492; font-size:13px; border-top:1px solid #f0f1f6;">Consultor</td>
+                                <td style="padding:14px 18px; color:#444444; font-size:15px; border-top:1px solid #f0f1f6;"
+                                    th:text="${consultor}">Carmen</td>
+                            </tr>
+                            <tr th:if="${tecnico}">
+                                <td style="padding:14px 18px; color:#6b7492; font-size:13px; border-top:1px solid #f0f1f6;">Técnico</td>
+                                <td style="padding:14px 18px; color:#444444; font-size:15px; border-top:1px solid #f0f1f6;"
+                                    th:text="${tecnico}">Fábio</td>
+                            </tr>
+                            <tr th:if="${observacao}">
+                                <td style="padding:14px 18px; color:#6b7492; font-size:13px; border-top:1px solid #f0f1f6;">Observação</td>
+                                <td style="padding:14px 18px; color:#444444; font-size:15px; border-top:1px solid #f0f1f6;"
+                                    th:text="${observacao}">Aguardando peça</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Ação -->
+                <tr>
+                    <td align="center" style="padding:0 30px 30px;">
+                        <a th:href="${link}"
+                           style="display:inline-block; background:#232e61; color:#ffffff; text-decoration:none;
+                                      padding:14px 28px; border-radius:8px; font-size:15px; font-weight:bold;">
+                            Abrir a programação
+                        </a>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td align="center" style="background:#f7f8fc; padding:18px 30px; color:#9aa6bd; font-size:12px;">
+                        Aviso automático do Portal Proauto Kimium. Não responda a este e-mail.
+                    </td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

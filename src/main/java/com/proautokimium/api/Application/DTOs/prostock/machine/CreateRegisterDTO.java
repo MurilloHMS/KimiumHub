@@ -13,5 +13,7 @@ public record CreateRegisterDTO(
         MachineStatus status,
         String Observacao,
         LocalDateTime previsaoEntrega,
-        String tecnico
+        String tecnico,
+        String regiao,
+        String consultor
 ) { }
