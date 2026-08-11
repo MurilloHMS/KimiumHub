@@ -120,7 +120,9 @@ public class MachineController {
 
     @PostMapping("/alert-config/test")
     public ResponseEntity<String> testAlerts(){
-        int sent = alertService.runAlerts(true);
-        return ResponseEntity.ok(sent + " alerta(s) enfileirado(s).");
+        int sent = alertService.sendSampleAlert();
+        return sent > 0
+                ? ResponseEntity.ok(sent + " e-mail(s) de teste enfileirado(s).")
+                : ResponseEntity.badRequest().body("Selecione ao menos um destinatario e salve antes de testar.");
     }
 }

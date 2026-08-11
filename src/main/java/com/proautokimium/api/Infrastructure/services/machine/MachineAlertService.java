@@ -6,6 +6,7 @@ import com.proautokimium.api.Infrastructure.repositories.prostock.MachineAlertCo
 import com.proautokimium.api.Infrastructure.repositories.prostock.MachineAlertSentRepository;
 import com.proautokimium.api.Infrastructure.repositories.prostock.RegisterRepository;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
+import com.proautokimium.api.domain.entities.prostock.machine.Machine;
 import com.proautokimium.api.domain.entities.prostock.machine.MachineAlertConfig;
 import com.proautokimium.api.domain.entities.prostock.machine.MachineAlertSent;
 import com.proautokimium.api.domain.entities.prostock.machine.MachineRegister;
@@ -126,7 +127,45 @@ public class MachineAlertService {
         return sent;
     }
 
+    /**
+     * E-mail de exemplo para conferir a configuracao.
+     *
+     * Nao olha `active` nem procura registro de verdade, e nao grava no
+     * historico de enviados: quem clica em "enviar teste" quer saber se o
+     * e-mail chega, nao se a regra de datas esta certa. Sao duas perguntas
+     * diferentes e cada uma merece o seu proprio caminho.
+     */
+    public int sendSampleAlert() {
+        MachineAlertConfig config = configRepository.findAll().stream().findFirst().orElse(null);
+        if (config == null) return 0;
 
+        List<String> recipients = resolveRecipients(config);
+        if (recipients.isEmpty()) return 0;
+
+        String body = buildBody(sampleRegister(), 3);
+        String subject = "[TESTE] Exemplo de alerta de saida de maquina";
+
+        recipients.forEach(to -> emailQueueService.sendEmail(to, FROM, subject, body));
+        return recipients.size();
+    }
+
+    /** Registro ficticio, apenas para o template ter o que mostrar. */
+    private MachineRegister sampleRegister() {
+        Machine machine = new Machine();
+        machine.setName("CAPO NT 300");
+
+        MachineRegister sample = new MachineRegister(machine);
+        sample.setNomeCliente("Cliente de exemplo");
+        sample.setRegiao("SP");
+        sample.setSolicitante("Solicitante de exemplo");
+        sample.setStatus(MachineStatus.RESERVADA);
+        sample.setObservacao("Este e um e-mail de teste da configuracao de alertas.");
+        sample.setPrevisaoEntrega(LocalDate.now(clock).plusDays(3).atStartOfDay());
+        sample.setConsultor("Consultor de exemplo");
+        sample.setTecnico("Tecnico de exemplo");
+
+        return sample;
+    }
 
     private MachineAlertConfigDTO toDto(MachineAlertConfig config) {
         return new MachineAlertConfigDTO(
