@@ -1,10 +1,12 @@
 package com.proautokimium.api.controllers;
 
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.proautokimium.api.Application.DTOs.fuelsupply.FuelSupplyDTO;
 import com.proautokimium.api.Application.DTOs.fuelsupply.FuelSupplyReportFilterDTO;
 import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyReaderService;
 import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyReportService;
@@ -13,6 +15,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -103,4 +106,12 @@ public class FuelSupplyController {
 		return reportService.generateReport(dto);
 	}
 
+	@GetMapping
+	@Operation(summary = "Listar abastecimentos", description = "Abastecimentos de um período")
+	public ResponseEntity<List<FuelSupplyDTO>> list(
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+
+		return ResponseEntity.ok(service.listByPeriod(start, end));
+	}
 }

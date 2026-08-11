@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.fuelsupply;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,5 +42,12 @@ public class FuelSupplyService {
 	        return ResponseEntity.internalServerError()
 	            .body("Erro ao inserir abastecimentos: " + e.getMessage());
 	    }
+	}
+
+	public List<FuelSupplyDTO> listByPeriod(LocalDate start, LocalDate end) {
+		return repository.findByFuelSupplyDateBetween(start, end)
+				.stream()
+				.map(FuelSupply::toDto)
+				.toList();
 	}
 }
