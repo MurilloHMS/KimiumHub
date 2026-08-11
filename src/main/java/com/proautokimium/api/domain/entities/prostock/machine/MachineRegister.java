@@ -5,11 +5,17 @@ import com.proautokimium.api.Application.DTOs.prostock.machine.ResponseRegisterD
 import com.proautokimium.api.Application.DTOs.prostock.machine.UpdateRegisterDTO;
 import com.proautokimium.api.domain.enums.MachineStatus;
 import jakarta.persistence.*;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "machine_registers")
+@EntityListeners(AuditingEntityListener.class)
 public class MachineRegister extends com.proautokimium.api.domain.abstractions.Entity{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "machine_id", nullable = false)
@@ -34,6 +40,22 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
 
     @Column(name = "consultor", length = 100)
     private String consultor;
+
+    @CreatedBy
+    @Column(name = "created_by", length = 120, updatable = false)
+    private String createdBy;
+
+    @CreatedDate
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedBy
+    @Column(name = "updated_by", length = 120)
+    private String updatedBy;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     public MachineRegister(Machine machine,
                            String nomeCliente,
@@ -130,6 +152,11 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
     public String getConsultor() { return consultor; }
     public void setConsultor(String consultor) { this.consultor = consultor; }
 
+    public String getCreatedBy() { return createdBy; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getUpdatedBy() { return updatedBy; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+
     // Methods
 
     public void fromDto(CreateRegisterDTO dto){
@@ -168,7 +195,11 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
                 this.previsaoEntrega,
                 this.tecnico,
                 this.regiao,
-                this.consultor
+                this.consultor,
+                this.createdBy,
+                this.createdAt,
+                this.updatedBy,
+                this.updatedAt
         );
     }
 }

@@ -31,4 +31,7 @@ public interface UserRepository extends JpaRepository<User, String> {
     List<User> findByRolesIn(@Param("roles") Collection<UserRole> roles);
 
     boolean existsByLogin(String username);
+
+    @Query("select coalesce(e.name, u.login) from users u left join u.employee e where u.login = :login")
+    Optional<String> findDisplayName(@Param("login") String login);
 }

@@ -16,5 +16,9 @@ public record ResponseRegisterDTO(
         LocalDateTime previsaoEntrega,
         String tecnico,
         String regiao,
-        String consultor
+        String consultor,
+        String createdBy,
+        LocalDateTime createdAt,
+        String updatedBy,
+        LocalDateTime updatedAt
 ) { }
