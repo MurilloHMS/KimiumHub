@@ -1,0 +1,3 @@
+ALTER TABLE machine_registers
+ADD COLUMN regiao VARCHAR(100),
+ADD COLUMN consultor VARCHAR(100)
