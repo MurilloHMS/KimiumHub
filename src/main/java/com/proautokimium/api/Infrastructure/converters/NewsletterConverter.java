@@ -18,6 +18,7 @@ public class NewsletterConverter{
                 entity.getQuantidadeDeProdutos(),
                 entity.getQuantidadeDeLitros(),
                 entity.getQuantidadeNotasEmitidas(),
+                entity.getQuantidadeDeVisitas(),
                 entity.getMediaDiasAtendimento(),
                 entity.getProdutoEmDestaque(),
                 entity.getFaturamentoTotal(),

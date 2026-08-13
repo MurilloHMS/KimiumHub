@@ -10,11 +10,9 @@ import org.springframework.stereotype.Service;
 public class NewsletterOneFileReaderService extends ExcelReader<Newsletter> {
 
     @Override
-    protected int getFirstDataRow(){ return 1;}
-
-    @Override
     protected Newsletter mapRow(Row row){
         Newsletter newsletter = new Newsletter();
+        Integer indicadorMauUso = getInteger(row, 16);
 
         newsletter.setCodigoCliente(getString(row, 0));
         newsletter.setMatrizCode(getString(row, 1));
@@ -32,6 +30,7 @@ public class NewsletterOneFileReaderService extends ExcelReader<Newsletter> {
         newsletter.setValorDePecasTrocadas(getDouble(row, 13));
         newsletter.setValorTotalDeHoras(getDouble(row, 14));
         newsletter.setValorTotalCobradoHoras(getDouble(row, 15));
+        newsletter.setMauUso(indicadorMauUso != null && indicadorMauUso == 1);
         newsletter.setValorTotalCobradoHorasMauUso(getDouble(row, 17));
         newsletter.setValorTotalDeHorasMauUso(getDouble(row, 18));
         newsletter.setEmailCliente(getString(row, 19));
