@@ -36,4 +36,8 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     @Query("select coalesce(e.name, u.login) from users u left join u.employee e where u.login = :login")
     Optional<String> findDisplayName(@Param("login") String login);
+
+    /** Carrega o usuário já com o cliente, evitando lazy loading fora da transação. */
+    @Query("SELECT u FROM users u LEFT JOIN FETCH u.customer WHERE u.login = :login")
+    Optional<User> findByLoginWithCustomer(@Param("login") String login);
 }
