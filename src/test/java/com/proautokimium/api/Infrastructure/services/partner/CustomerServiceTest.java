@@ -45,7 +45,7 @@ class CustomerServiceTest {
 
     @BeforeEach
     void setUp() {
-        dto = new CustomerRequestDTO("COD001", "12345678000100", "Cliente Teste", "cliente@teste.com", "user", true, true, "MAT001");
+        dto = new CustomerRequestDTO("COD001", "12345678000100", "Cliente Teste", "cliente@teste.com", "user", true, true, "MAT001", true);
         customer = Customer.fromDTO(dto);
     }
 

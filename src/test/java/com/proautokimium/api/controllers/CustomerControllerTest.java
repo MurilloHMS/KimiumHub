@@ -45,7 +45,7 @@ class CustomerControllerTest {
     @MockitoBean UserRepository userRepository;
 
     private CustomerRequestDTO buildDto() {
-        return new CustomerRequestDTO("COD001", "12345678000100", "Cliente Teste", "cliente@teste.com", "user", true, true, "MAT001");
+        return new CustomerRequestDTO("COD001", "12345678000100", "Cliente Teste", "cliente@teste.com", "user", true, true, "MAT001", true);
     }
 
     @Test

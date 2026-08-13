@@ -17,4 +17,7 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
          WHERE function('regexp_replace', c.documento, '[^0-9]', '', 'g') = :digits
     """)
     Optional<Customer> findByCnpjDigits(@Param("digits") String digits);
+
+    /** Unidades de um grupo: filhas apontam para o cod_parceiro da matriz. */
+    List<Customer> findByCodigoMatriz(String codigoMatriz);
 }

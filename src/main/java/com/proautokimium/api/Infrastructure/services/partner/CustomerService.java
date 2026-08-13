@@ -6,7 +6,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Application.DTOs.client.ClientUserDTO;
 import com.proautokimium.api.Application.DTOs.partners.PartnerRecipientDTO;
+import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.domain.exceptions.customer.CustomerAlreadyExistsException;
 import com.proautokimium.api.domain.exceptions.customer.CustomerNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +36,10 @@ public class CustomerService {
 
     @Autowired
     ObjectMapper mapper;
-	
+
+	@Autowired
+	UserRepository userRepository;
+
 	@Transactional
 	public void createCustomer(CustomerRequestDTO dto){
         repository.findByCodParceiro(dto.codParceiro()).ifPresent(c -> { throw new CustomerAlreadyExistsException(); });
@@ -99,7 +104,8 @@ public class CustomerService {
 				c.getUsername(),
 				c.isAtivo(),
 				c.isRecebeEmail(),
-				c.getCodigoMatriz())).toList();
+				c.getCodigoMatriz(),
+				c.isMatriz())).toList();
 		return customerList.isEmpty() 
 				? ResponseEntity.noContent().build() 
 				: ResponseEntity.ok(customerList);
@@ -128,6 +134,7 @@ public class CustomerService {
         customer.setDocumento(dto.documento());
         customer.setRecebeEmail(dto.recebeEmail());
         customer.setName(dto.nome());
+		customer.setMatriz(dto.isMatriz());
 
         this.repository.save(customer);
     }
@@ -139,4 +146,14 @@ public class CustomerService {
 
         this.repository.delete(customer);
     }
+
+	public List<ClientUserDTO> listAccess(String codParceiro) {
+		Customer customer = repository.findByCodParceiro(codParceiro)
+				.orElseThrow(CustomerNotFoundException::new);
+
+		return userRepository.findByCustomer_Id(customer.getId())
+				.stream()
+				.map(user -> new ClientUserDTO(user.getLogin(), user.getEmail(), user.isActive()))
+				.toList();
+	}
 }
