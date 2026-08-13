@@ -1,39 +1,37 @@
 package com.proautokimium.api.Infrastructure.services.email.newsletter.reader;
 
-import com.proautokimium.api.Infrastructure.abstractions.excel.ExcelReader;
+import com.proautokimium.api.Infrastructure.abstractions.excel.SheetRow;
 import com.proautokimium.api.domain.entities.Newsletter;
 import com.proautokimium.api.domain.enums.EmailStatus;
-import org.apache.poi.ss.usermodel.Row;
 import org.springframework.stereotype.Service;
 
 @Service
-public class NewsletterOneFileReaderService extends ExcelReader<Newsletter> {
+public class NewsletterOneFileReaderService{
 
-    @Override
-    protected Newsletter mapRow(Row row){
+
+    public Newsletter mapRow(SheetRow row){
         Newsletter newsletter = new Newsletter();
-        Integer indicadorMauUso = getInteger(row, 16);
 
-        newsletter.setCodigoCliente(getString(row, 0));
-        newsletter.setMatrizCode(getString(row, 1));
-        newsletter.setNomeDoCliente(getString(row, 2));
-        newsletter.setMatrizName(getString(row, 3));
-        newsletter.setData(getDate(row, 4));
-        newsletter.setMes(getString(row, 5));
-        newsletter.setQuantidadeDeProdutos(getInteger(row, 6));
-        newsletter.setQuantidadeDeLitros(getDouble(row, 7));
-        newsletter.setQuantidadeDeVisitas(getInteger(row, 8));
-        newsletter.setQuantidadeNotasEmitidas(getInteger(row, 9));
-        newsletter.setMediaDiasAtendimento(getInteger(row, 10));
-        newsletter.setProdutoEmDestaque(getString(row, 11));
-        newsletter.setFaturamentoTotal(getDouble(row, 12));
-        newsletter.setValorDePecasTrocadas(getDouble(row, 13));
-        newsletter.setValorTotalDeHoras(getDouble(row, 14));
-        newsletter.setValorTotalCobradoHoras(getDouble(row, 15));
-        newsletter.setMauUso(indicadorMauUso != null && indicadorMauUso == 1);
-        newsletter.setValorTotalCobradoHorasMauUso(getDouble(row, 17));
-        newsletter.setValorTotalDeHorasMauUso(getDouble(row, 18));
-        newsletter.setEmailCliente(getString(row, 19));
+        newsletter.setCodigoCliente(row.string(0));
+        newsletter.setMatrizCode(row.string(1));
+        newsletter.setNomeDoCliente(row.string(2));
+        newsletter.setMatrizName(row.string(3));
+        newsletter.setData(row.date(4));
+        newsletter.setMes(row.string(5));
+        newsletter.setQuantidadeDeProdutos(row.integer(6));
+        newsletter.setQuantidadeDeLitros(row.number(7));
+        newsletter.setQuantidadeDeVisitas(row.integer(8));
+        newsletter.setQuantidadeNotasEmitidas(row.integer(9));
+        newsletter.setMediaDiasAtendimento(row.integer(10));
+        newsletter.setProdutoEmDestaque(row.string(11));
+        newsletter.setFaturamentoTotal(row.number(12));
+        newsletter.setValorDePecasTrocadas(row.number(13));
+        newsletter.setValorTotalDeHoras(row.number(14));
+        newsletter.setValorTotalCobradoHoras(row.number(15));
+        newsletter.setMauUso(row.integer(16) == 1);
+        newsletter.setValorTotalCobradoHorasMauUso(row.number(17));
+        newsletter.setValorTotalDeHorasMauUso(row.number(18));
+        newsletter.setEmailCliente(row.string(19));
         newsletter.setStatus(EmailStatus.PENDING);
 
         return newsletter;
