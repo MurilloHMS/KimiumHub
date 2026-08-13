@@ -7,4 +7,10 @@ public record CustomerRequestDTO(String codParceiro,
 		String username,
 		boolean ativo,
 		boolean recebeEmail,
-		String codMatriz){}
+		String codMatriz){
+
+	/** CNPJ entra só com dígitos: a coluna tem 14 e o formatado tem 18. */
+	public CustomerRequestDTO {
+		documento = documento == null ? null : documento.replaceAll("[^0-9]", "");
+	}
+}
