@@ -13,6 +13,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -37,7 +38,8 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, SecurityPaths.PUBLIC_POST).permitAll()
                         .requestMatchers(HttpMethod.GET, SecurityPaths.PUBLIC_GET).permitAll()
                         .requestMatchers(SecurityPaths.SWAGGER).permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("api/client/**").hasRole("CLIENTE")
+                        .anyRequest().access(new WebExpressionAuthorizationManager("isAuthenticated() and !hasRole('CLIENTE')"))
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
