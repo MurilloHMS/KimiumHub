@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 
+import com.proautokimium.api.Infrastructure.abstractions.excel.SheetSource;
+import com.proautokimium.api.Infrastructure.abstractions.excel.SheetSourceFactory;
 import com.proautokimium.api.Infrastructure.exceptions.newsletter.NewsletterFileNotValidException;
 import com.proautokimium.api.Infrastructure.exceptions.newsletter.NewsletterNullException;
 import com.proautokimium.api.Infrastructure.services.email.newsletter.reader.NewsletterExchangedPartsReaderService;
@@ -46,6 +48,7 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
     private final CustomerRepository customerRepository;
     private final NewsletterService service;
     private static final Logger LOGGER = LoggerFactory.getLogger(NewsletterOrchestratorService.class);
+    private final SheetSourceFactory sheetSourceFactory;
 
     public NewsletterOrchestratorService(NewsletterBuilderService builder,
                                          NewsLetterReaderService reader,
@@ -55,7 +58,7 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
                                          CustomerRepository customerRepository,
                                          NewsletterRepository repository,
                                          NewsletterExchangedPartsReaderService newsletterExchangedPartsReaderService,
-                                         NewsletterService service                                         ) {
+                                         NewsletterService service, SheetSourceFactory sheetSourceFactory) {
         this.builder = builder;
         this.reader = reader;
         this.newsletterOneFileReaderService = newsletterOneFileReaderService;
@@ -65,6 +68,7 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
         this.repository = repository;
         this.newsletterExchangedPartsReaderService = newsletterExchangedPartsReaderService;
         this.service = service;
+        this.sheetSourceFactory = sheetSourceFactory;
     }
 	
     @Transactional
@@ -117,8 +121,15 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
                 throw new NewsletterFileNotValidException("Arquivo não encontrado");
 
         try {
-            List<Newsletter> newsletters = newsletterOneFileReaderService.getDataByExcel(file.getInputStream());
-            if (newsletters == null || newsletters.isEmpty()) {
+            SheetSource source = sheetSourceFactory.forFile(file.getOriginalFilename());
+
+            List<Newsletter> newsletters = source.read(file.getInputStream())
+                    .stream()
+                    .map(newsletterOneFileReaderService::mapRow)
+                    .filter(n -> n.getCodigoCliente() != null && n.getCodigoCliente().matches("\\d+"))
+                    .toList();
+
+            if (newsletters.isEmpty()) {
                 throw new NewsletterNullException("Nenhum dado válido encontrado na planilha.");
             }
             repository.saveAll(newsletters);
