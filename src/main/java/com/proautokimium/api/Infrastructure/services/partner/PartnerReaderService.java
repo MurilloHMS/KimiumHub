@@ -22,9 +22,14 @@ public class PartnerReaderService extends ExcelReader<Customer> {
 
 		customer.setCodParceiro(getString(row, 0));
 		customer.setCodigoMatriz(getString(row, 1));
+		customer.setDocumento(onlyDigits(getString(row, 2)));
 		customer.setName(getString(row, 3));
 		customer.setEmail(new Email(getString(row, 4)));
 
 		return customer;
+	}
+
+	private String onlyDigits(String value) {
+		return value == null ? null : value.replaceAll("[^0-9]", "");
 	}
 }

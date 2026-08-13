@@ -69,6 +69,9 @@ public class CustomerService {
 	                
 	                Customer existing = existingMap.get(c.getCodParceiro());
 	                existing.setEmail(c.getEmail());
+					existing.setDocumento(c.getDocumento());
+					existing.setName(c.getName());
+					existing.setCodigoMatriz(c.getCodigoMatriz());
 	                toUpdate.add(existing);
 	            } else {
 	                toInsert.add(c);
