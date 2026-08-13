@@ -74,6 +74,13 @@ public class AuthenticationService {
         if(!user.isActive()){
             throw new UserBlockedException();
         }
+
+        // Conta ativa não basta: cliente inativo perde o acesso ao portal no
+        // mesmo instante em que sai do cadastro, sem ninguém lembrar de
+        // bloquear o usuário dele.
+        if(user.getCustomer() != null && !user.getCustomer().isAtivo()){
+            throw new UserBlockedException();
+        }
         return tokenService.generateToken(user);
     }
 

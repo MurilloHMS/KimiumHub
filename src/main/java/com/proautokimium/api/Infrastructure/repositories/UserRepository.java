@@ -26,6 +26,8 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     Optional<User> findByEmployee_Id(UUID employeeId);
 
+    List<User> findByCustomer_Id(UUID customerId);
+
     /** Usuários que possuem qualquer uma das roles informadas (DISTINCT: usuário com mais de uma role vem uma vez só). */
     @Query("SELECT DISTINCT u FROM users u JOIN u.roles r WHERE r IN :roles")
     List<User> findByRolesIn(@Param("roles") Collection<UserRole> roles);

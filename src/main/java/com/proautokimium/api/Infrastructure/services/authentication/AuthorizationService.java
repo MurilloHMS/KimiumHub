@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.authentication;
 
+import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.domain.entities.Employee;
@@ -11,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -21,6 +23,9 @@ public class AuthorizationService implements UserDetailsService {
 
     @Autowired
     EmployeeRepository employeeRepository;
+
+    @Autowired
+    CustomerRepository customerRepository;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -33,17 +38,36 @@ public class AuthorizationService implements UserDetailsService {
             return (User) repository.findByEmail(identifier);
         }
 
-        if(isCPF(identifier)){
-            User user = null;
+        if(isDocument(identifier)){
             String digits = identifier.replaceAll("[^0-9]", "");
-            Optional<Employee> employee = employeeRepository.findByCpfDigits(digits);
-            if(employee.isPresent()){
-                user = repository.findByEmployee_Id(employee.get().getId()).orElse(null);
-            }
-            return user;
+
+            // 11 dígitos é CPF de funcionário, 14 é CNPJ de cliente. Sem essa
+            // separação o CNPJ era procurado entre os CPFs e nunca achava.
+            if(digits.length() == 14) return findClientUser(digits);
+            if(digits.length() == 11) return findEmployeeUser(digits);
+
+            return null;
         }
 
         return (User) repository.findByLogin(identifier);
+    }
+
+    private User findEmployeeUser(String digits){
+        return employeeRepository.findByCpfDigits(digits)
+                .flatMap(employee -> repository.findByEmployee_Id(employee.getId()))
+                .orElse(null);
+    }
+
+    private User findClientUser(String digits){
+        return customerRepository.findByCnpjDigits(digits)
+                .map(customer -> repository.findByCustomer_Id(customer.getId()))
+                .filter(users -> users.size() == 1)
+                .map(List::getFirst)
+                .orElse(null);
+    }
+
+    protected boolean isDocument(String value){
+        return Pattern.compile("[0-9./-]+").matcher(value).matches();
     }
 
     protected boolean isEmail(String email){
