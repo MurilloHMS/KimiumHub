@@ -11,17 +11,20 @@ import com.proautokimium.api.Infrastructure.exceptions.auth.CredentialsIncorrect
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserAlreadyExistsException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.token.TokenExpiredException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.token.TokenInvalidException;
+import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.TokenService;
 import com.proautokimium.api.Infrastructure.services.email.AuthEmailService;
 import com.proautokimium.api.Infrastructure.utils.UsernameSanitizer;
+import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.FirstAcessToken;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.enums.UserRole;
 import com.proautokimium.api.domain.exceptions.auth.UserNotFoundException;
+import com.proautokimium.api.domain.exceptions.customer.CustomerNotFoundException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeHasAlreadyLinkedException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import jakarta.transaction.Transactional;
@@ -47,8 +50,9 @@ public class AuthenticationService {
     private final TokenService tokenService;
     private final Clock clock;
     private final AuthEmailService authEmailService;
+    private final CustomerRepository customerRepository;
 
-    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository, TokenService tokenService, Clock clock, AuthEmailService authEmailService) {
+    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository, TokenService tokenService, Clock clock, AuthEmailService authEmailService, CustomerRepository customerRepository) {
         this.authenticationManager = authenticationManager;
         this.repository = repository;
         this.employeeRepository = employeeRepository;
@@ -57,6 +61,7 @@ public class AuthenticationService {
         this.tokenService = tokenService;
         this.clock = clock;
         this.authEmailService = authEmailService;
+        this.customerRepository = customerRepository;
     }
 
     public String login(AuthenticationDTO dto){
@@ -212,10 +217,41 @@ public class AuthenticationService {
         authEmailService.sendResetPasswordToken(user.getEmail(), token);
     }
 
+    @Transactional
+    public void linkCustomer(String login, String codParceiro) {
+        User user = repository.findByLoginWithCustomer(login)
+                .orElseThrow(UserNotFoundException::new);
+
+        Customer customer = customerRepository.findByCodParceiro(codParceiro)
+                .orElseThrow(CustomerNotFoundException::new);
+
+        user.setCustomer(customer);
+
+        // O acesso ao portal é a role, não o vínculo: sem ela o @PreAuthorize
+        // de /api/client recusa e a pessoa entra numa tela vazia.
+        if (!user.getRoles().contains(UserRole.CLIENTE)) {
+            user.getRoles().add(UserRole.CLIENTE);
+        }
+
+        repository.save(user);
+    }
+
+    @Transactional
+    public void unlinkCustomer(String login) {
+        User user = repository.findByLoginWithCustomer(login)
+                .orElseThrow(UserNotFoundException::new);
+
+        user.setCustomer(null);
+        user.getRoles().remove(UserRole.CLIENTE);
+        repository.save(user);
+    }
+
     // Helpers
 
     @Transactional
     protected void updatePassword(User user, String newPassword){
         user.setPassword(new BCryptPasswordEncoder().encode(newPassword));
     }
+
+
 }

@@ -5,6 +5,7 @@ import com.proautokimium.api.Application.DTOs.user.AuthenticationDTO;
 import com.proautokimium.api.Application.DTOs.user.RegisterDTO;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserAlreadyExistsException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserBlockedException;
+import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
@@ -47,6 +48,7 @@ class AuthenticationServiceTest {
     private final PasswordResetTokenRepository passwordResetTokenRepository = mock(PasswordResetTokenRepository.class);
     private final TokenService tokenService = mock(TokenService.class);
     private final AuthEmailService authEmailService = mock(AuthEmailService.class);
+    private final CustomerRepository customerRepository = mock(CustomerRepository.class);
 
     private final AuthenticationService service = new AuthenticationService(
             authenticationManager,
@@ -56,7 +58,8 @@ class AuthenticationServiceTest {
             passwordResetTokenRepository,
             tokenService,
             Clock.fixed(NOON, ZONE),
-            authEmailService
+            authEmailService,
+            customerRepository
     );
 
     @Test

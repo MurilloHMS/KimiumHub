@@ -236,4 +236,21 @@ public class AuthenticationController {
         authService.unblockUser(login);
         return ResponseEntity.ok().body("Acesso do usuário foi liberado");
     }
+
+    @PutMapping("/users/{login}/customer")
+    @PreAuthorize("hasAnyRole('ADMIN','MARKETING')")
+    @Operation(summary = "Vincula o usuário a um cliente")
+    public ResponseEntity<Object> linkCustomer(@PathVariable String login,
+                                               @RequestParam String codParceiro) {
+        authService.linkCustomer(login, codParceiro);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/users/{login}/customer")
+    @PreAuthorize("hasAnyRole('ADMIN','MARKETING')")
+    @Operation(summary = "Remove o acesso do usuário ao cliente")
+    public ResponseEntity<Object> unlinkCustomer(@PathVariable String login) {
+        authService.unlinkCustomer(login);
+        return ResponseEntity.ok().build();
+    }
 }

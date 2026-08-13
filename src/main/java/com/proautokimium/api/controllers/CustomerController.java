@@ -1,5 +1,6 @@
 package com.proautokimium.api.controllers;
 
+import com.proautokimium.api.Application.DTOs.client.ClientUserDTO;
 import com.proautokimium.api.Application.DTOs.partners.CustomerRequestDTO;
 import com.proautokimium.api.Infrastructure.services.partner.CustomerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  * Controller para gerenciar cadastros dos clientes
@@ -90,6 +93,13 @@ public class CustomerController {
     public ResponseEntity<String> DeleteCustomer(@RequestBody @NotNull @Valid String codParceiro){
     	 service.DeleteCustomer(codParceiro);
     	 return ResponseEntity.status(HttpStatus.OK).body("Cliente deletado com sucesso!");
+    }
+
+    /** Quem tem acesso ao portal por este cliente. */
+    @GetMapping("{codParceiro}/users")
+    @Operation(summary = "Acessos do cliente")
+    public ResponseEntity<List<ClientUserDTO>> users(@PathVariable String codParceiro) {
+        return ResponseEntity.ok(service.listAccess(codParceiro));
     }
     
 }

@@ -25,10 +25,11 @@ public class Customer extends Partner {
     @Column(name = "is_matriz")
     private boolean isMatriz;
 
-    public Customer(String systemCode, String documento, String nome, String username, Email email, boolean ativo, boolean recebeEmail, String codigoMatriz){
+    public Customer(String systemCode, String documento, String nome, String username, Email email, boolean ativo, boolean recebeEmail, String codigoMatriz, boolean isMatriz) {
         super(systemCode, documento, nome, email, username ,ativo);
         this.recebeEmail = recebeEmail;
         this.codigoMatriz = codigoMatriz;
+        this.isMatriz = isMatriz;
     }
     public static Customer fromDTO(CustomerRequestDTO dto){
         return new Customer(
@@ -39,6 +40,7 @@ public class Customer extends Partner {
                 new Email(dto.email()),
                 dto.ativo(),
                 dto.recebeEmail(),
-                dto.codMatriz());
+                dto.codMatriz(),
+                dto.isMatriz());
     }
 }
