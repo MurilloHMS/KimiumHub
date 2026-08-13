@@ -92,8 +92,8 @@ public class CustomerService {
 				c.getCodParceiro(),
 				c.getDocumento(),
 				c.getName(),
-				c.getUsername(),
 				c.getEmail().getAddress(),
+				c.getUsername(),
 				c.isAtivo(),
 				c.isRecebeEmail(),
 				c.getCodigoMatriz())).toList();
