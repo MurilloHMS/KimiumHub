@@ -177,6 +177,7 @@ public class AuthenticationController {
 
     /** Aviso a RH/Desenvolvedores é melhor esforço: falha na entrega não pode desfazer nem esconder a criação do usuário. */
     private void notifyStaffAboutFirstAccess(User user){
+        if(user.getEmployee() == null) return;
         try{
             List<User> recipients = repository.findByRolesIn(List.of(UserRole.RH, UserRole.DEVELOPER));
             for(User recipient : recipients){

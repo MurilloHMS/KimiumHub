@@ -1,10 +1,8 @@
 package com.proautokimium.api.domain.entities.auth;
 
 import com.proautokimium.api.domain.entities.Employee;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import com.proautokimium.api.domain.entities.Partner;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,12 +16,15 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class FirstAcessToken extends com.proautokimium.api.domain.abstractions.Entity{
+public class FirstAccessToken extends com.proautokimium.api.domain.abstractions.Entity{
     @Column(nullable = false, unique = true)
     private String token;
 
     @ManyToOne
-    private Employee employee;
+    @JoinColumn(name = "partner_id")
+    private Partner partner;
+
+    private String email;
 
     @Column(name = "expires_at")
     private LocalDateTime expiration;
