@@ -7,6 +7,7 @@ import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.Infrastructure.security.TokenService;
 import com.proautokimium.api.Infrastructure.services.authentication.AuthenticationService;
+import com.proautokimium.api.Infrastructure.services.authentication.AuthorizationService;
 import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
 import com.proautokimium.api.Infrastructure.services.email.AuthEmailService;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
@@ -45,6 +46,7 @@ public class AuthenticationController {
     private final AuthEmailService authEmailService;
     private final AuthenticationService authService;
     private final NotificationService notificationService;
+    private final AuthorizationService authorizationService;
 
     public AuthenticationController(
             UserRepository repository,
@@ -55,7 +57,7 @@ public class AuthenticationController {
             EmailQueueService emailQueueService,
             AuthEmailService authEmailService,
             AuthenticationService authService,
-            NotificationService notificationService
+            NotificationService notificationService, AuthorizationService authorizationService
     ){
         this.repository = repository;
         this.employeeRepository = employeeRepository;
@@ -66,6 +68,7 @@ public class AuthenticationController {
         this.authEmailService = authEmailService;
         this.authService = authService;
         this.notificationService = notificationService;
+        this.authorizationService = authorizationService;
     }
 
 
@@ -120,13 +123,7 @@ public class AuthenticationController {
     @PostMapping("/forgot-password")
     @Operation(summary = "Recupera a senha", description = "Gera o token de recuperação e envia via email")
     public ResponseEntity<Object> forgotPassword(@RequestBody @Valid ForgotPasswordDTO dto) {
-        User user = (User) repository.findByLogin(dto.login());
-        if (user == null) {
-            return ResponseEntity.ok().build();
-        }
-
-        String token = accessTokenService.createToken(user);
-        authEmailService.sendResetPasswordToken(user.getEmail(), token);
+        authorizationService.forgotPassword(dto.login());
         return ResponseEntity.ok("Token de recuperação de senha enviado para o e-mail cadastrado.");
     }
 
