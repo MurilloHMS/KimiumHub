@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.partner;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.proautokimium.api.Application.DTOs.client.ClientUserDTO;
 import com.proautokimium.api.Application.DTOs.partners.PartnerRecipientDTO;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserAlreadyExistsException;
+import com.proautokimium.api.Infrastructure.repositories.FirstAccessTokenRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
 import com.proautokimium.api.Infrastructure.services.email.AuthEmailService;
@@ -49,6 +51,8 @@ public class CustomerService {
 
 	@Autowired
 	AuthEmailService authEmailService;
+    @Autowired
+    private FirstAccessTokenRepository firstAccessTokenRepository;
 
 	@Transactional
 	public void createCustomer(CustomerRequestDTO dto){
@@ -161,10 +165,20 @@ public class CustomerService {
 		Customer customer = repository.findByCodParceiro(codParceiro)
 				.orElseThrow(CustomerNotFoundException::new);
 
-		return userRepository.findByCustomer_Id(customer.getId())
+		List<ClientUserDTO> access = new ArrayList<>(userRepository.findByCustomer_Id(customer.getId())
 				.stream()
-				.map(user -> new ClientUserDTO(user.getLogin(), user.getEmail(), user.isActive()))
-				.toList();
+				.map(user -> new ClientUserDTO(user.getLogin(), user.getEmail(), user.isActive(), false))
+				.toList());
+
+		// Convite não aceito ainda não tem usuário. Sem ele na lista, quem
+		// convidou não vê nada acontecer e convida a mesma pessoa de novo.
+		firstAccessTokenRepository.findByPartner_IdAndUsedFalse(customer.getId())
+				.stream()
+				.filter(invite -> invite.isValid(LocalDateTime.now()))
+				.map(invite -> new ClientUserDTO(null, invite.getEmail(), false, true))
+				.forEach(access::add);
+
+		return access;
 	}
 
 	/**
