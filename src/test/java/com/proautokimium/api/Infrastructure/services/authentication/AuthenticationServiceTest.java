@@ -1,7 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.authentication;
 
 import com.proautokimium.api.Application.DTOs.authentication.NewAccessPasswordDTO;
-import com.proautokimium.api.Application.DTOs.user.AuthenticationDTO;
 import com.proautokimium.api.Application.DTOs.user.RegisterDTO;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserAlreadyExistsException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserBlockedException;
@@ -12,7 +11,7 @@ import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.TokenService;
 import com.proautokimium.api.Infrastructure.services.email.AuthEmailService;
 import com.proautokimium.api.domain.entities.Employee;
-import com.proautokimium.api.domain.entities.auth.FirstAcessToken;
+import com.proautokimium.api.domain.entities.auth.FirstAccessToken;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.enums.UserRole;
 import org.junit.jupiter.api.DisplayName;
@@ -65,11 +64,11 @@ class AuthenticationServiceTest {
     @Test
     @DisplayName("Não deve criar usuário no primeiro acesso quando o funcionário já possui usuário vinculado")
     void shouldRejectFirstAccessSignInWhenEmployeeAlreadyHasUser() {
-        FirstAcessToken token = tokenForEmployee("João Silva");
+        FirstAccessToken token = tokenForEmployee("João Silva");
         User existing = new User("joao.silva", "joao@teste.com", "hash", java.util.List.of(UserRole.USER));
 
         when(tokenAuthService.getToken("ABC123")).thenReturn(Optional.of(token));
-        when(userRepository.findByEmployee_Id(token.getEmployee().getId())).thenReturn(Optional.of(existing));
+        when(userRepository.findByEmployee_Id(token.getPartner().getId())).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(() -> service.signInFirstAccess("ABC123", new NewAccessPasswordDTO("Senha@123", "novo@teste.com")))
                 .isInstanceOf(UserAlreadyExistsException.class)
@@ -82,10 +81,10 @@ class AuthenticationServiceTest {
     @Test
     @DisplayName("Deve criar usuário e marcar o token como usado no primeiro acesso")
     void shouldCreateUserAndMarkTokenUsedOnFirstAccessSignIn() {
-        FirstAcessToken token = tokenForEmployee("João Silva");
+        FirstAccessToken token = tokenForEmployee("João Silva");
 
         when(tokenAuthService.getToken("ABC123")).thenReturn(Optional.of(token));
-        when(userRepository.findByEmployee_Id(token.getEmployee().getId())).thenReturn(Optional.empty());
+        when(userRepository.findByEmployee_Id(token.getPartner().getId())).thenReturn(Optional.empty());
         when(userRepository.existsByLogin(anyString())).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -96,7 +95,7 @@ class AuthenticationServiceTest {
         User saved = captor.getValue();
 
         assertThat(saved.getRoles()).containsExactly(UserRole.USER);
-        assertThat(saved.getEmployee()).isEqualTo(token.getEmployee());
+        assertThat(saved.getEmployee()).isEqualTo(token.getPartner());
         assertThat(saved.getLogin()).isNotBlank();
         assertThat(saved.getPassword()).isNotEqualTo("Senha@123");
         assertThat(created).isEqualTo(saved);
@@ -107,7 +106,7 @@ class AuthenticationServiceTest {
     @Test
     @DisplayName("Token dentro do prazo e não usado deve ser considerado válido")
     void shouldConsiderTokenValidWhenNotExpiredAndNotUsed() {
-        FirstAcessToken token = tokenForEmployee("João Silva");
+        FirstAccessToken token = tokenForEmployee("João Silva");
         token.setExpiration(NOON_LOCAL.plusMinutes(1));
 
         when(tokenAuthService.isValid("ABC123")).thenReturn(Optional.of(token));
@@ -118,7 +117,7 @@ class AuthenticationServiceTest {
     @Test
     @DisplayName("Token expirado deve ser considerado inválido")
     void shouldConsiderTokenInvalidWhenExpired() {
-        FirstAcessToken token = tokenForEmployee("João Silva");
+        FirstAccessToken token = tokenForEmployee("João Silva");
         token.setExpiration(NOON_LOCAL.minusMinutes(1));
 
         when(tokenAuthService.isValid("ABC123")).thenReturn(Optional.of(token));
@@ -129,7 +128,7 @@ class AuthenticationServiceTest {
     @Test
     @DisplayName("Token já usado deve ser considerado inválido mesmo dentro do prazo")
     void shouldConsiderTokenInvalidWhenAlreadyUsed() {
-        FirstAcessToken token = tokenForEmployee("João Silva");
+        FirstAccessToken token = tokenForEmployee("João Silva");
         token.setExpiration(NOON_LOCAL.plusMinutes(30));
         token.markUsed();
 
@@ -171,14 +170,14 @@ class AuthenticationServiceTest {
         verify(userRepository, never()).save(any());
     }
 
-    private FirstAcessToken tokenForEmployee(String employeeName) {
+    private FirstAccessToken tokenForEmployee(String employeeName) {
         Employee employee = new Employee();
         employee.id = UUID.randomUUID();
         employee.setName(employeeName);
 
-        FirstAcessToken token = new FirstAcessToken();
+        FirstAccessToken token = new FirstAccessToken();
         token.setToken("ABC123");
-        token.setEmployee(employee);
+        token.setPartner(employee);
         token.setExpiration(NOON_LOCAL.plusMinutes(30));
         return token;
     }

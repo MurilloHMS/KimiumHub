@@ -3,7 +3,7 @@ package com.proautokimium.api.Infrastructure.services.authentication;
 import com.proautokimium.api.Infrastructure.repositories.FirstAccessTokenRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.domain.entities.Employee;
-import com.proautokimium.api.domain.entities.auth.FirstAcessToken;
+import com.proautokimium.api.domain.entities.auth.FirstAccessToken;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -32,7 +32,7 @@ class TokenAuthServiceTest {
 
         service.createTokenByEmployee(new Employee());
 
-        ArgumentCaptor<FirstAcessToken> captor = ArgumentCaptor.forClass(FirstAcessToken.class);
+        ArgumentCaptor<FirstAccessToken> captor = ArgumentCaptor.forClass(FirstAccessToken.class);
         verify(firstAccessTokenRepository).save(captor.capture());
 
         assertThat(captor.getValue().getExpiration())
@@ -50,7 +50,7 @@ class TokenAuthServiceTest {
         service.createTokenByEmployee(new Employee());
         service.createTokenByEmployee(new Employee());
 
-        ArgumentCaptor<FirstAcessToken> captor = ArgumentCaptor.forClass(FirstAcessToken.class);
+        ArgumentCaptor<FirstAccessToken> captor = ArgumentCaptor.forClass(FirstAccessToken.class);
         verify(firstAccessTokenRepository, times(2)).save(captor.capture());
 
         assertThat(captor.getAllValues().get(0).getExpiration())
@@ -63,12 +63,12 @@ class TokenAuthServiceTest {
     @DisplayName("Deve marcar o token como usado e persistir")
     void shouldMarkTokenUsedAndPersist() {
         TokenAuthService service = new TokenAuthService(passwordResetTokenRepository, firstAccessTokenRepository, Clock.fixed(NOON, ZONE));
-        FirstAcessToken token = new FirstAcessToken();
+        FirstAccessToken token = new FirstAccessToken();
         token.setToken("ABC123");
 
         service.markTokenUsed(token);
 
-        ArgumentCaptor<FirstAcessToken> captor = ArgumentCaptor.forClass(FirstAcessToken.class);
+        ArgumentCaptor<FirstAccessToken> captor = ArgumentCaptor.forClass(FirstAccessToken.class);
         verify(firstAccessTokenRepository).save(captor.capture());
         assertThat(captor.getValue().isUsed()).isTrue();
     }

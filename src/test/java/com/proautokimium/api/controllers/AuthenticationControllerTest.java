@@ -10,6 +10,7 @@ import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.SecurityConfiguration;
 import com.proautokimium.api.Infrastructure.security.TokenService;
 import com.proautokimium.api.Infrastructure.services.authentication.AuthenticationService;
+import com.proautokimium.api.Infrastructure.services.authentication.AuthorizationService;
 import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
 import com.proautokimium.api.Infrastructure.services.email.AuthEmailService;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
@@ -89,6 +90,9 @@ class AuthenticationControllerTest {
     @MockitoBean
     private AuthEmailService authEmailService;
 
+    @MockitoBean
+    private AuthorizationService authorizationService;
+
     @Test
     @DisplayName("Deve fazer login com sucesso e retornar token")
     void shouldLoginSuccessfully() throws Exception {
@@ -121,46 +125,6 @@ class AuthenticationControllerTest {
                 .andExpect(content().string("Usuário criado com sucesso!"));
 
         verify(authService).signIn(dto);
-    }
-
-    @Test
-    @DisplayName("Deve retornar ok no forgot-password mesmo quando usuário não existe")
-    void shouldReturnOkWhenUserDoesNotExistOnForgotPassword() throws Exception {
-        when(userRepository.findByLogin("inexistente")).thenReturn(null);
-
-        mockMvc.perform(post("/api/auth/forgot-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "login": "inexistente"
-                                }
-                                """))
-                .andExpect(status().isOk());
-
-        verify(tokenAuthService, never()).createToken(any());
-        verify(authEmailService, never()).sendResetPasswordToken(any(), any());
-    }
-
-    @Test
-    @DisplayName("Deve criar token e enviar email no forgot-password")
-    void shouldCreateTokenAndSendEmailOnForgotPassword() throws Exception {
-        User user = new User("admin", "admin@teste.com", "hash", List.of(UserRole.ADMIN));
-
-        when(userRepository.findByLogin("admin")).thenReturn(user);
-        when(tokenAuthService.createToken(user)).thenReturn("ABC123");
-
-        mockMvc.perform(post("/api/auth/forgot-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "login": "admin"
-                                }
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Token de recuperação de senha enviado para o e-mail cadastrado."));
-
-        verify(tokenAuthService).createToken(user);
-        verify(authEmailService).sendResetPasswordToken(eq("admin@teste.com"), eq("ABC123"));
     }
 
     @Test
@@ -345,5 +309,20 @@ class AuthenticationControllerTest {
                 .andExpect(content().string("Roles Atualizadas com sucesso!"));
 
         verify(userRepository).save(user);
+    }
+
+    @Test
+    @DisplayName("Deve delegar a recuperação de senha e responder sempre igual")
+    void shouldDelegateForgotPassword() throws Exception {
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "login": "12.345.678/0001-90"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        verify(authorizationService).forgotPassword("12.345.678/0001-90");
     }
 }

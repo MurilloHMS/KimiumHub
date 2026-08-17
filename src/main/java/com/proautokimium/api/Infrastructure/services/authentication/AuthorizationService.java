@@ -3,9 +3,11 @@ package com.proautokimium.api.Infrastructure.services.authentication;
 import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
+import com.proautokimium.api.Infrastructure.services.email.AuthEmailService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.valueObjects.Email;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -26,6 +28,13 @@ public class AuthorizationService implements UserDetailsService {
 
     @Autowired
     CustomerRepository customerRepository;
+
+
+    @Autowired
+    AuthEmailService authEmailService;
+
+    @Autowired
+    private TokenAuthService accessTokenService;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -77,5 +86,21 @@ public class AuthorizationService implements UserDetailsService {
     protected boolean isCPF(String cpf){
         Pattern documentPattern = Pattern.compile("[0-9.-]+");
         return documentPattern.matcher(cpf).matches();
+    }
+
+    /**
+     * O identificador é o mesmo do login: e-mail, CPF, CNPJ ou usuário. O
+     * cliente conhece o CNPJ da empresa e o próprio e-mail; o login dele é
+     * gerado pelo sistema e ele pode nunca ter visto.
+     *
+     * O silêncio quando não encontra é intencional — ver o controller.
+     */
+    @Transactional
+    public void forgotPassword(String identifier) {
+        User user = getUserByIdentifier(identifier);
+        if (user == null) return;
+
+        String token = accessTokenService.createToken(user);
+        authEmailService.sendResetPasswordToken(user, token);
     }
 }

@@ -20,7 +20,7 @@ import com.proautokimium.api.Infrastructure.services.email.AuthEmailService;
 import com.proautokimium.api.Infrastructure.utils.UsernameSanitizer;
 import com.proautokimium.api.domain.entities.Customer;
 import com.proautokimium.api.domain.entities.Employee;
-import com.proautokimium.api.domain.entities.auth.FirstAcessToken;
+import com.proautokimium.api.domain.entities.auth.FirstAccessToken;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.enums.UserRole;
 import com.proautokimium.api.domain.exceptions.auth.UserNotFoundException;
@@ -28,6 +28,7 @@ import com.proautokimium.api.domain.exceptions.customer.CustomerNotFoundExceptio
 import com.proautokimium.api.domain.exceptions.partners.EmployeeHasAlreadyLinkedException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import jakarta.transaction.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -103,31 +104,85 @@ public class AuthenticationService {
 
     @Transactional
     public User signInFirstAccess(String token, NewAccessPasswordDTO dto) {
-        String encryptedPassword = new BCryptPasswordEncoder().encode(dto.password());
-
-        FirstAcessToken firstAccessToken = accessTokenService.getToken(token)
+        FirstAccessToken firstAccessToken = accessTokenService.getToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("Token inválido ou expirado."));
 
-        repository.findByEmployee_Id(firstAccessToken.getEmployee().getId())
+
+        // O convite sabe para quem ele é. Funcionário e cliente compartilham a
+        // tabela, mas não as regras: um só pode ter um usuário, o outro pode
+        // ter vários; um escolhe o próprio e-mail, o outro o recebe de quem
+        // convidou.
+
+        User newUser = switch(firstAccessToken.getPartner()){
+            case Employee employee -> employeeFirstAccess(employee, dto);
+            case Customer customer -> clientFirstAccess(customer, firstAccessToken);
+            case null, default -> throw new IllegalStateException("Convite sem parceiro válido");
+        };
+
+        newUser.setPassword(new BCryptPasswordEncoder().encode(dto.password()));
+        accessTokenService.markTokenUsed(firstAccessToken);
+        return repository.save(newUser);
+    }
+
+    private User employeeFirstAccess(Employee employee, NewAccessPasswordDTO dto) {
+        repository.findByEmployee_Id(employee.getId())
                 .ifPresent(existing -> {
                     throw new UserAlreadyExistsException("Este funcionário já possui o usuário '" + existing.getLogin() + "'. Utilize a recuperação de senha.");
                 });
 
-        String username = UsernameSanitizer.generateUnique(
-                firstAccessToken.getEmployee().getName(),
-                repository::existsByLogin
-        );
+        User user = new User();
+        user.setLogin(UsernameSanitizer.generateUnique(employee.getName(), repository::existsByLogin));
+        user.setEmail(dto.email());
+        user.setEmployee(employee);
+        user.setRoles(List.of(UserRole.USER));
 
-        User newUser = new User();
-        newUser.setLogin(username);
-        newUser.setEmail(dto.email());
-        newUser.setPassword(encryptedPassword);
-        newUser.setEmployee(firstAccessToken.getEmployee());
-        newUser.setRoles(List.of(UserRole.USER));
+        return user;
+    }
 
-        accessTokenService.markTokenUsed(firstAccessToken);
+    /**
+     * Vários acessos por CNPJ são normais — a empresa tem mais de uma pessoa.
+     * O que não pode repetir é o e-mail, que é por onde cada uma entra.
+     *
+     * O endereço vem do convite e não do corpo da requisição: quem escolhe
+     * para onde o acesso vai é quem convidou. Aceitar outro aqui deixaria o
+     * convite trocar de dono entre o envio e o clique.
+     */
+    private User clientFirstAccess(Customer customer, FirstAccessToken invite) {
+        if (!customer.isAtivo()) {
+            throw new AccessDeniedException("Cliente inativo.");
+        }
 
-        return repository.save(newUser);
+        String email = invite.getEmail();
+        if (email == null || email.isBlank()) {
+            throw new IllegalStateException("Convite de cliente sem e-mail.");
+        }
+
+        if (repository.findByEmail(email) != null) {
+            throw new UserAlreadyExistsException("Já existe um acesso com o e-mail " + email + ". Utilize a recuperação de senha.");
+        }
+
+        User user = new User();
+        user.setLogin(loginFromEmail(email, customer));
+        user.setEmail(email);
+        user.setCustomer(customer);
+        user.setRoles(List.of(UserRole.CLIENTE));
+
+        return user;
+    }
+
+    /**
+     * joao.silva@empresa.com.br → joao.silva. O cliente entra por e-mail ou por
+     * CNPJ, então o login é sobretudo o que a equipe lê na lista de acessos.
+     * Endereço sem letra nenhuma cai no nome da empresa: o sanitizador recusa
+     * um nome que sobra vazio, e `123@empresa.com` sobraria.
+     */
+    private String loginFromEmail(String email, Customer customer) {
+        String localPart = email.substring(0, email.indexOf('@')).replace('.', ' ');
+        boolean hasLetter = localPart.chars().anyMatch(Character::isLetter);
+
+        return UsernameSanitizer.generateUnique(
+                hasLetter ? localPart : customer.getName(),
+                repository::existsByLogin);
     }
 
     public User linkEmployee(String login, LinkEmployeeRequest employeeRequest) {
@@ -157,7 +212,7 @@ public class AuthenticationService {
     }
 
     public boolean firstAccessTokenIsValid(String token){
-        Optional<FirstAcessToken> valid = accessTokenService.isValid(token);
+        Optional<FirstAccessToken> valid = accessTokenService.isValid(token);
         return valid.map(t -> t.isValid(LocalDateTime.now(clock))).orElse(false);
     }
 
@@ -214,7 +269,7 @@ public class AuthenticationService {
         if(user == null) throw new UserNotFoundException();
 
         String token = accessTokenService.createToken(user);
-        authEmailService.sendResetPasswordToken(user.getEmail(), token);
+        authEmailService.sendResetPasswordToken(user, token);
     }
 
     @Transactional
