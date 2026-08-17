@@ -269,7 +269,7 @@ public class AuthenticationService {
         if(user == null) throw new UserNotFoundException();
 
         String token = accessTokenService.createToken(user);
-        authEmailService.sendResetPasswordToken(user.getEmail(), token);
+        authEmailService.sendResetPasswordToken(user, token);
     }
 
     @Transactional

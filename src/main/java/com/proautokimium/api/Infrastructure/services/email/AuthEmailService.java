@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.email;
 
 import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
+import com.proautokimium.api.domain.entities.auth.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
@@ -40,10 +41,14 @@ public class AuthEmailService {
         emailQueueService.sendNow(to, FROM, "Seu código de primeiro acesso", html);
     }
 
-    public void sendResetPasswordToken(String to, String token){
-        Context ctx = createContext(to,token, "/login/forgot-password");
+    public void sendResetPasswordToken(User user, String token){
+        String deepUrl = user.getCustomer() != null
+                ? "/cliente/redefinir-senha"
+                : "/login/forgot-password";
+
+        Context ctx = createContext(user.getEmail(), token, deepUrl);
         String html = templateEngine.process(RESET_ACCESS_TEMPLATE, ctx);
-        emailQueueService.sendNow(to, FROM, "Seu código de redefinição de senha", html);
+        emailQueueService.sendNow(user.getEmail(), FROM, "Seu código de redefinição de senha", html);
     }
 
     private String buildDeepUrlWithToken(String email, String token, String url){

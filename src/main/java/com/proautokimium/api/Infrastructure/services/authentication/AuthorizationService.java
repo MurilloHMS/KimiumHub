@@ -101,6 +101,6 @@ public class AuthorizationService implements UserDetailsService {
         if (user == null) return;
 
         String token = accessTokenService.createToken(user);
-        authEmailService.sendResetPasswordToken(user.getEmail(), token);
+        authEmailService.sendResetPasswordToken(user, token);
     }
 }
