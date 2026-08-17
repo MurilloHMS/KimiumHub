@@ -1,5 +1,6 @@
 package com.proautokimium.api.controllers;
 
+import com.proautokimium.api.Application.DTOs.client.ClientInviteDTO;
 import com.proautokimium.api.Application.DTOs.client.ClientUserDTO;
 import com.proautokimium.api.Application.DTOs.partners.CustomerRequestDTO;
 import com.proautokimium.api.Infrastructure.services.partner.CustomerService;
@@ -11,6 +12,7 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -100,6 +102,16 @@ public class CustomerController {
     @Operation(summary = "Acessos do cliente")
     public ResponseEntity<List<ClientUserDTO>> users(@PathVariable String codParceiro) {
         return ResponseEntity.ok(service.listAccess(codParceiro));
+    }
+
+    /** Convida uma pessoa desta empresa para o portal do cliente. */
+    @PostMapping("{codParceiro}/users")
+    @Operation(summary = "Convida um acesso", description = "Cria o convite de primeiro acesso e envia o link por e-mail")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH', 'MARKETING')")
+    public ResponseEntity<String> invite(@PathVariable String codParceiro,
+                                         @RequestBody @Valid ClientInviteDTO dto) {
+        service.inviteAccess(codParceiro, dto.email());
+        return ResponseEntity.ok("Convite enviado para " + dto.email() + ".");
     }
     
 }
