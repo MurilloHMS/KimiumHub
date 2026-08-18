@@ -1,14 +1,13 @@
 package com.proautokimium.api.Infrastructure.exceptions.file;
 
-import com.proautokimium.api.domain.exceptions.DomainException;
-import org.springframework.http.HttpStatus;
+import com.proautokimium.api.Infrastructure.exceptions.InfrastructureException;
 
-public class FileStorageException extends DomainException {
+public class FileStorageException extends InfrastructureException {
     public FileStorageException(String message) {
-        super(message, HttpStatus.FORBIDDEN);
+        super(message);
     }
 
     public FileStorageException() {
-        super("Erro ao salvar o arquivo.", HttpStatus.FORBIDDEN);
+        super("Erro ao salvar o arquivo.");
     }
 }

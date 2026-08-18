@@ -1,10 +1,8 @@
 package com.proautokimium.api.Infrastructure.exceptions.certificate;
 
-import com.proautokimium.api.domain.exceptions.DomainException;
-import org.springframework.http.HttpStatus;
+import com.proautokimium.api.Infrastructure.exceptions.InfrastructureException;
 
-public class FailedToCreateCertificate extends DomainException {
-    public FailedToCreateCertificate(String message) {
-        super(message, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
+public class FailedToCreateCertificate extends InfrastructureException {
+    public FailedToCreateCertificate(String message, Throwable cause) { super(message,cause);}
+    public FailedToCreateCertificate(String message) { super(message);}
 }

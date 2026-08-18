@@ -85,7 +85,7 @@ public class FuelSupplyReportService {
                     .body(xlsx);
 
         } catch (Exception e) {
-            throw new GenerateReportErrorException(e.getMessage());
+            throw new GenerateReportErrorException(e.getMessage(), e);
         }
     }
 

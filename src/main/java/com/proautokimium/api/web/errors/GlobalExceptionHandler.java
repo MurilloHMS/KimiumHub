@@ -1,5 +1,6 @@
 package com.proautokimium.api.web.errors;
 
+import com.proautokimium.api.Infrastructure.exceptions.InfrastructureException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,16 @@ public class GlobalExceptionHandler {
                 .orElse("Dados inválidos.");
 
         return build(HttpStatus.BAD_REQUEST, message, request);
+    }
+
+    /**
+     * Falha técnica: 503, mensagem genérica, stack trace no log. O que quebrou
+     * é assunto de quem mantém o sistema, não de quem usou a tela.
+     */
+    @ExceptionHandler(InfrastructureException.class)
+    public ResponseEntity<ErrorResponse> handleInfrastructure(InfrastructureException ex, HttpServletRequest request) {
+        log.error("Falha de infraestrutura em {}", request.getRequestURI(), ex);
+        return build(HttpStatus.SERVICE_UNAVAILABLE, "Serviço temporariamente indisponível. Tente novamente em alguns minutos.", request);
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatusCode status, String message, HttpServletRequest request) {
