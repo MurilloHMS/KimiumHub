@@ -3,6 +3,7 @@ package com.proautokimium.api.domain.entities.prostock.machine;
 import com.proautokimium.api.Application.DTOs.prostock.machine.CreateRegisterDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.ResponseRegisterDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.UpdateRegisterDTO;
+import com.proautokimium.api.domain.entities.prostock.ProductInventory;
 import com.proautokimium.api.domain.enums.MachineStatus;
 import jakarta.persistence.*;
 import org.springframework.data.annotation.CreatedBy;
@@ -17,9 +18,14 @@ import java.time.LocalDateTime;
 @Table(name = "machine_registers")
 @EntityListeners(AuditingEntityListener.class)
 public class MachineRegister extends com.proautokimium.api.domain.abstractions.Entity{
+    /**
+     * A máquina é um produto marcado com `is_machine`. A coluna continua sendo
+     * `machine_id` apontando para `products(id)` — o que mudou foi o tipo Java,
+     * não o banco.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "machine_id", nullable = false)
-    private Machine machine;
+    private ProductInventory machine;
     @Column(name = "nome_cliente", length = 200)
     private String nomeCliente;
     @Column(name = "tag")
@@ -57,7 +63,7 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public MachineRegister(Machine machine,
+    public MachineRegister(ProductInventory machine,
                            String nomeCliente,
                            String solicitante,
                            MachineStatus status,
@@ -77,7 +83,7 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
         this.consultor = consultor;
     }
 
-    public MachineRegister(Machine machine){
+    public MachineRegister(ProductInventory machine){
         this.machine = machine;
     }
 
@@ -86,11 +92,11 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
     // Getters and Setters
 
 
-    public Machine getMachine() {
+    public ProductInventory getMachine() {
         return machine;
     }
 
-    public void setMachine(Machine machine) {
+    public void setMachine(ProductInventory machine) {
         this.machine = machine;
     }
 

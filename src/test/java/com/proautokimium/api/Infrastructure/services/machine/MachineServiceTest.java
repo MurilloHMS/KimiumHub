@@ -1,16 +1,10 @@
 package com.proautokimium.api.Infrastructure.services.machine;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDTO;
-import com.proautokimium.api.Application.DTOs.prostock.machine.MachineMovementDTO;
-import com.proautokimium.api.Infrastructure.repositories.prostock.MachineMovementRepository;
-import com.proautokimium.api.Infrastructure.repositories.prostock.MachineRepository;
-import com.proautokimium.api.domain.entities.prostock.machine.Machine;
-import com.proautokimium.api.domain.entities.prostock.machine.MachineMovement;
-import com.proautokimium.api.domain.exceptions.machine.MachineAlreadyExistsException;
-import com.proautokimium.api.domain.exceptions.machine.MachineMovementNotFoundException;
-import com.proautokimium.api.domain.exceptions.machine.MachineNotFoundException;
-import org.junit.jupiter.api.BeforeEach;
+import com.proautokimium.api.Infrastructure.repositories.prostock.ProductInventoryRepository;
+import com.proautokimium.api.domain.entities.prostock.ProductInventory;
+import com.proautokimium.api.domain.enums.MachineStatus;
+import com.proautokimium.api.domain.enums.MachineType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,208 +12,74 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+/**
+ * Máquina deixou de ter cadastro próprio: o que sobrou é uma leitura sobre
+ * produtos. Os testes de criar, alterar, excluir e movimentar sumiram junto com
+ * o código — inclusive os dois que documentavam o `delete()` de condição
+ * invertida, que nunca apagou nada.
+ */
 @ExtendWith(MockitoExtension.class)
 class MachineServiceTest {
 
     @Mock
-    private MachineRepository machineRepository;
-
-    @Mock
-    private MachineMovementRepository machineMovementRepository;
-
-    @Mock
-    private ObjectMapper mapper;
+    ProductInventoryRepository productInventoryRepository;
 
     @InjectMocks
-    private MachineService machineService;
+    MachineService service;
 
-    private UUID machineId;
-    private UUID movementId;
-    private Machine machine;
-    private MachineDTO dto;
-
-    @BeforeEach
-    void setUp() {
-        machineId = UUID.randomUUID();
-        movementId = UUID.randomUUID();
-        machine = mock(Machine.class);
-        dto = new MachineDTO(machineId, "SYS001", "Máquina Teste", "Marca A", null, null, 10, true);
+    private ProductInventory machine() {
+        ProductInventory product = new ProductInventory();
+        product.setSystemCode("SYS001");
+        product.setName("CAPO NT 300");
+        product.setActive(true);
+        product.setMinimumStock(2);
+        product.setMachine(true);
+        product.setBrand("Kimium");
+        product.setMachineType(MachineType.CAPO);
+        product.setMachineStatus(MachineStatus.DISPONIVEL);
+        return product;
     }
 
     @Test
-    @DisplayName("Deve salvar máquina nova com sucesso")
-    void deveSalvarMaquinaComSucesso() {
-        when(machineRepository.existsById(machineId)).thenReturn(false);
-        when(mapper.convertValue(dto, Machine.class)).thenReturn(machine);
-        when(machineRepository.save(machine)).thenReturn(machine);
+    @DisplayName("Deve listar apenas os produtos marcados como máquina")
+    void deveListarApenasProdutosMarcadosComoMaquina() {
+        when(productInventoryRepository.findByIsMachineTrue()).thenReturn(List.of(machine()));
 
-        assertThatCode(() -> machineService.save(dto)).doesNotThrowAnyException();
-        verify(machineRepository).save(machine);
+        List<MachineDTO> machines = service.getAllMachines();
+
+        // O filtro é da consulta, não do serviço: é o que substitui o
+        // `WHERE type='MACHINE'` que o discriminador dava de graça.
+        verify(productInventoryRepository).findByIsMachineTrue();
+        assertThat(machines).hasSize(1);
     }
 
     @Test
-    @DisplayName("Deve lançar MachineAlreadyExistsException ao salvar máquina duplicada")
-    void deveLancarExcecaoAoSalvarMaquinaDuplicada() {
-        when(machineRepository.existsById(machineId)).thenReturn(true);
+    @DisplayName("Deve levar os atributos do modelo para o DTO")
+    void deveLevarAtributosDoModeloParaODto() {
+        when(productInventoryRepository.findByIsMachineTrue()).thenReturn(List.of(machine()));
 
-        assertThatThrownBy(() -> machineService.save(dto))
-                .isInstanceOf(MachineAlreadyExistsException.class);
+        MachineDTO dto = service.getAllMachines().getFirst();
 
-        verify(machineRepository, never()).save(any());
+        assertThat(dto.systemCode()).isEqualTo("SYS001");
+        assertThat(dto.name()).isEqualTo("CAPO NT 300");
+        assertThat(dto.brand()).isEqualTo("Kimium");
+        assertThat(dto.machineType()).isEqualTo(MachineType.CAPO);
+        assertThat(dto.machineStatus()).isEqualTo(MachineStatus.DISPONIVEL);
+        assertThat(dto.minimum_stock()).isEqualTo(2);
+        assertThat(dto.active()).isTrue();
     }
 
     @Test
-    @DisplayName("Deve salvar máquina sem ID sem verificar existência")
-    void deveSalvarMaquinaSemId() {
-        MachineDTO dtoSemId = new MachineDTO(null, "SYS001", "Máquina Teste", "Marca A", null, null, 10, true);
-        when(mapper.convertValue(dtoSemId, Machine.class)).thenReturn(machine);
-        when(machineRepository.save(machine)).thenReturn(machine);
+    @DisplayName("Sem máquina cadastrada, devolve lista vazia em vez de estourar")
+    void devolveListaVaziaQuandoNaoHaMaquina() {
+        when(productInventoryRepository.findByIsMachineTrue()).thenReturn(List.of());
 
-        assertThatCode(() -> machineService.save(dtoSemId)).doesNotThrowAnyException();
-        verify(machineRepository, never()).existsById(any());
-    }
-
-    @Test
-    @DisplayName("Deve atualizar máquina com sucesso")
-    void deveAtualizarMaquinaComSucesso() {
-        when(machineRepository.findById(machineId)).thenReturn(Optional.of(machine));
-        when(machineRepository.save(machine)).thenReturn(machine);
-
-        assertThatCode(() -> machineService.update(dto)).doesNotThrowAnyException();
-        verify(machineRepository).save(machine);
-    }
-
-    @Test
-    @DisplayName("Deve lançar MachineNotFoundException ao atualizar máquina inexistente")
-    void deveLancarExcecaoAoAtualizarMaquinaInexistente() {
-        when(machineRepository.findById(machineId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> machineService.update(dto))
-                .isInstanceOf(MachineNotFoundException.class);
-
-        verify(machineRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("Deve retornar lista de todas as máquinas")
-    void deveRetornarTodasAsMaquinas() {
-        when(machineRepository.findAll()).thenReturn(List.of(machine));
-        when(mapper.convertValue(machine, MachineDTO.class)).thenReturn(dto);
-
-        List<MachineDTO> result = machineService.getAllMachines();
-
-        assertThat(result).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("Deve lançar MachineNotFoundException ao deletar máquina existente (bug invertido)")
-    void deveLancarExcecaoAoDeletarMaquinaExistente() {
-        // Bug: delete() lança exceção quando a máquina EXISTE (condição invertida)
-        when(machineRepository.existsById(machineId)).thenReturn(true);
-
-        assertThatThrownBy(() -> machineService.delete(machineId))
-                .isInstanceOf(MachineNotFoundException.class);
-
-        verify(machineRepository, never()).deleteById(any());
-    }
-
-    @Test
-    @DisplayName("Deve deletar máquina quando ID não existe no repositório (comportamento atual)")
-    void deveDeletarQuandoMaquinaNaoExiste() {
-        // Comportamento atual: deleta quando existsById retorna false (bug invertido)
-        when(machineRepository.existsById(machineId)).thenReturn(false);
-
-        assertThatCode(() -> machineService.delete(machineId)).doesNotThrowAnyException();
-        verify(machineRepository).deleteById(machineId);
-    }
-
-    @Test
-    @DisplayName("Deve lançar MachineNotFoundException ao deletar com ID null")
-    void deveLancarExcecaoAoDeletarComIdNull() {
-        assertThatThrownBy(() -> machineService.delete(null))
-                .isInstanceOf(MachineNotFoundException.class);
-    }
-
-    @Test
-    @DisplayName("Deve retornar movimentos de uma máquina")
-    void deveRetornarMovimentosDaMaquina() {
-        MachineMovement movement = mock(MachineMovement.class);
-        MachineMovementDTO movDto = new MachineMovementDTO(movementId, LocalDateTime.now(), 5);
-        when(machineMovementRepository.findMovementsByMachineId(machineId)).thenReturn(List.of(movement));
-        when(mapper.convertValue(movement, MachineMovementDTO.class)).thenReturn(movDto);
-
-        List<MachineMovementDTO> result = machineService.getMovementsByMachineId(machineId);
-
-        assertThat(result).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("Deve criar movimentação de máquina com sucesso")
-    void deveCriarMovimentacaoComSucesso() {
-        MachineMovementDTO movDto = new MachineMovementDTO(null, LocalDateTime.now(), 5);
-        when(machineRepository.findById(machineId)).thenReturn(Optional.of(machine));
-        when(machineMovementRepository.save(any(MachineMovement.class))).thenReturn(mock(MachineMovement.class));
-
-        assertThatCode(() -> machineService.createMovement(movDto, machineId)).doesNotThrowAnyException();
-        verify(machineMovementRepository).save(any(MachineMovement.class));
-    }
-
-    @Test
-    @DisplayName("Deve lançar MachineNotFoundException ao criar movimentação para máquina inexistente")
-    void deveLancarExcecaoAoCriarMovimentacaoParaMaquinaInexistente() {
-        MachineMovementDTO movDto = new MachineMovementDTO(null, LocalDateTime.now(), 5);
-        when(machineRepository.findById(machineId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> machineService.createMovement(movDto, machineId))
-                .isInstanceOf(MachineNotFoundException.class);
-    }
-
-    @Test
-    @DisplayName("Deve atualizar movimentação com sucesso")
-    void deveAtualizarMovimentacaoComSucesso() {
-        MachineMovementDTO movDto = new MachineMovementDTO(movementId, LocalDateTime.now(), 5);
-        MachineMovement movement = mock(MachineMovement.class);
-        when(machineMovementRepository.findById(movementId)).thenReturn(Optional.of(movement));
-        when(machineMovementRepository.save(movement)).thenReturn(movement);
-
-        assertThatCode(() -> machineService.updateMovement(movDto, machineId)).doesNotThrowAnyException();
-        verify(machineMovementRepository).save(movement);
-    }
-
-    @Test
-    @DisplayName("Deve lançar MachineMovementNotFoundException ao atualizar movimentação inexistente")
-    void deveLancarExcecaoAoAtualizarMovimentacaoInexistente() {
-        MachineMovementDTO movDto = new MachineMovementDTO(movementId, LocalDateTime.now(), 5);
-        when(machineMovementRepository.findById(movementId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> machineService.updateMovement(movDto, machineId))
-                .isInstanceOf(MachineMovementNotFoundException.class);
-    }
-
-    @Test
-    @DisplayName("Deve deletar movimentação com sucesso")
-    void deveDeletarMovimentacaoComSucesso() {
-        when(machineMovementRepository.existsById(movementId)).thenReturn(true);
-
-        assertThatCode(() -> machineService.deleteMovement(movementId)).doesNotThrowAnyException();
-        verify(machineMovementRepository).deleteById(movementId);
-    }
-
-    @Test
-    @DisplayName("Deve lançar MachineMovementNotFoundException ao deletar movimentação inexistente")
-    void deveLancarExcecaoAoDeletarMovimentacaoInexistente() {
-        when(machineMovementRepository.existsById(movementId)).thenReturn(false);
-
-        assertThatThrownBy(() -> machineService.deleteMovement(movementId))
-                .isInstanceOf(MachineMovementNotFoundException.class);
+        assertThat(service.getAllMachines()).isEmpty();
     }
 }

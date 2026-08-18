@@ -6,6 +6,7 @@ import com.proautokimium.api.Infrastructure.repositories.prostock.ProductInvento
 import com.proautokimium.api.Infrastructure.repositories.prostock.ProductMovementRepository;
 import com.proautokimium.api.domain.entities.prostock.MovementInventory;
 import com.proautokimium.api.domain.entities.prostock.ProductInventory;
+import com.proautokimium.api.Infrastructure.exceptions.product.ProductNotFoundException;
 import jakarta.transaction.Transactional;
 
 
@@ -54,6 +55,7 @@ public class ProductInventoryService {
         product.setName(dto.name());
         product.setMinimumStock(dto.minimumStock());
         product.setActive(dto.active());
+        applyMachineFields(product, dto);
 
         productInventoryRepository.save(product);
     }
@@ -61,6 +63,9 @@ public class ProductInventoryService {
     @Transactional
     public void includeMovement(ProductMovementDTO dto){
         ProductInventory productInventory = productInventoryRepository.findBySystemCode(dto.systemCode());
+        // Sem isto o movimento era gravado com product_id nulo: um lançamento
+        // órfão, invisível em qualquer tela e sem erro para quem lançou.
+        if(productInventory == null) throw new ProductNotFoundException();
 
         MovementInventory movement = new MovementInventory();
         movement.setMovementDate(dto.movementDate());
@@ -103,10 +108,12 @@ public class ProductInventoryService {
     @Transactional
     public void updateProduct(ProductInventoryDTO dto){
         var product = productInventoryRepository.findBySystemCode(dto.systemCode());
+        if(product == null) throw new ProductNotFoundException();
 
         product.setName(dto.name());
         product.setMinimumStock(dto.minimumStock());
         product.setActive(dto.active());
+        applyMachineFields(product, dto);
 
         productInventoryRepository.save(product);
     }
@@ -124,7 +131,7 @@ public class ProductInventoryService {
     		
     		List<ProductInventory> existingProducts = productInventoryRepository.findBySystemCodeIn(systemCodes);
     		
-    		Map<String, ProductInventory> existingMap = existingProducts.stream().collect(Collectors.toMap(ProductInventory::getSystemCode, c -> c));
+    		Map<String, ProductInventory> existingMap = existingProducts.stream().collect(Collectors.toMap(ProductInventory::getSystemCode, c -> c, (a, b) -> a));
     		
     		List<ProductInventory> toInsert = new ArrayList<>();
     		List<ProductInventory> toUpdate = new ArrayList<>();
@@ -201,6 +208,18 @@ public class ProductInventoryService {
 		}catch (Exception e) {
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ocorreu um erro ao coletar os dados: " + e.getMessage());
 		}   	
+    }
+
+    /**
+     * Marca de máquina e os atributos do modelo. Produto que não é máquina
+     * grava os três nulos — a planilha de produtos, que só traz código e nome,
+     * não passa por aqui e por isso nunca desmarca nada.
+     */
+    private void applyMachineFields(ProductInventory product, ProductInventoryDTO dto){
+        product.setMachine(dto.isMachine());
+        product.setBrand(dto.isMachine() ? dto.brand() : null);
+        product.setMachineType(dto.isMachine() ? dto.machineType() : null);
+        product.setMachineStatus(dto.isMachine() ? dto.machineStatus() : null);
     }
 
     public ResponseEntity<?> getProductWithLowStock(){

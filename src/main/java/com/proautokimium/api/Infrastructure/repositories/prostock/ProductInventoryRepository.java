@@ -11,6 +11,9 @@ public interface ProductInventoryRepository extends JpaRepository<ProductInvento
     ProductInventory findBySystemCode(String systemCode);
     List<ProductInventory> findBySystemCodeIn(List<String> systemCode);
 
+    /** Os produtos que também são máquina — o que antes era `type='MACHINE'`. */
+    List<ProductInventory> findByIsMachineTrue();
+
     @Query("""
         SELECT p
         FROM ProductInventory p
