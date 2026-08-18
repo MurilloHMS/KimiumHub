@@ -3,9 +3,9 @@ package com.proautokimium.api.Infrastructure.services.machine;
 import com.proautokimium.api.Application.DTOs.prostock.machine.CreateRegisterDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.ResponseRegisterDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.UpdateRegisterDTO;
-import com.proautokimium.api.Infrastructure.repositories.prostock.MachineRepository;
+import com.proautokimium.api.Infrastructure.repositories.prostock.ProductInventoryRepository;
 import com.proautokimium.api.Infrastructure.repositories.prostock.RegisterRepository;
-import com.proautokimium.api.domain.entities.prostock.machine.Machine;
+import com.proautokimium.api.domain.entities.prostock.ProductInventory;
 import com.proautokimium.api.domain.entities.prostock.machine.MachineRegister;
 import com.proautokimium.api.domain.exceptions.machine.MachineNotFoundException;
 import com.proautokimium.api.domain.exceptions.machine.MachineRegisterNotFoundException;
@@ -18,17 +18,31 @@ import java.util.UUID;
 @Service
 public class RegisterService {
     private final RegisterRepository registerRepository;
-    private final MachineRepository machineRepository;
+    private final ProductInventoryRepository productRepository;
 
-    public RegisterService(RegisterRepository registerRepository, MachineRepository machineRepository) {
+    public RegisterService(RegisterRepository registerRepository, ProductInventoryRepository productRepository) {
         this.registerRepository = registerRepository;
-        this.machineRepository = machineRepository;
+        this.productRepository = productRepository;
+    }
+
+    /**
+     * Só produto marcado como máquina entra numa programação.
+     *
+     * Antes essa checagem vinha de graça do discriminador — o repositório de
+     * máquina só enxergava `type='MACHINE'`. Com a flag, ela precisa ser dita.
+     */
+    private ProductInventory machineById(UUID id){
+        ProductInventory product = productRepository.findById(id)
+                .orElseThrow(MachineNotFoundException::new);
+
+        if (!product.isMachine()) throw new MachineNotFoundException();
+
+        return product;
     }
 
     @Transactional
     public MachineRegister create(CreateRegisterDTO dto){
-        Machine machine = machineRepository.findById(dto.machineId())
-                .orElseThrow(MachineNotFoundException::new);
+        ProductInventory machine = machineById(dto.machineId());
 
         MachineRegister register = new MachineRegister(machine);
         register.fromDto(dto);
@@ -50,8 +64,7 @@ public class RegisterService {
     }
 
     public List<ResponseRegisterDTO> listarRegistrosPorMaquina(UUID maquinaId){
-        Machine machine = machineRepository.findById(maquinaId)
-                .orElseThrow(MachineNotFoundException::new);
+        ProductInventory machine = machineById(maquinaId);
 
         return registerRepository.findAllByMachine(machine)
                 .stream().map(MachineRegister::toDto).toList();

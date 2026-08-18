@@ -6,7 +6,7 @@ import com.proautokimium.api.Infrastructure.repositories.prostock.MachineAlertCo
 import com.proautokimium.api.Infrastructure.repositories.prostock.MachineAlertSentRepository;
 import com.proautokimium.api.Infrastructure.repositories.prostock.RegisterRepository;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
-import com.proautokimium.api.domain.entities.prostock.machine.Machine;
+import com.proautokimium.api.domain.entities.prostock.ProductInventory;
 import com.proautokimium.api.domain.entities.prostock.machine.MachineAlertConfig;
 import com.proautokimium.api.domain.entities.prostock.machine.MachineAlertSent;
 import com.proautokimium.api.domain.entities.prostock.machine.MachineRegister;
@@ -151,7 +151,7 @@ public class MachineAlertService {
 
     /** Registro ficticio, apenas para o template ter o que mostrar. */
     private MachineRegister sampleRegister() {
-        Machine machine = new Machine();
+        ProductInventory machine = new ProductInventory();
         machine.setName("CAPO NT 300");
 
         MachineRegister sample = new MachineRegister(machine);
