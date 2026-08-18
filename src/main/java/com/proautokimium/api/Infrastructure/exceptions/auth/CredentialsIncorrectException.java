@@ -5,6 +5,6 @@ import org.springframework.http.HttpStatus;
 
 public class CredentialsIncorrectException extends DomainException {
     public CredentialsIncorrectException(String message) {
-        super(message, HttpStatus.BAD_REQUEST);
+        super(message, HttpStatus.UNAUTHORIZED);
     }
 }
