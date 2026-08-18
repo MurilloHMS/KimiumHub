@@ -1,11 +1,9 @@
 package com.proautokimium.api.Infrastructure.exceptions.machine;
 
-import com.proautokimium.api.domain.exceptions.DomainException;
-import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
-import org.springframework.http.HttpStatus;
+import com.proautokimium.api.Infrastructure.exceptions.InfrastructureException;
 
-public class MachineContractErrorException extends DomainException {
+public class MachineContractErrorException extends InfrastructureException {
     public MachineContractErrorException(String message) {
-        super(message, HttpStatus.INTERNAL_SERVER_ERROR);
+        super(message);
     }
 }

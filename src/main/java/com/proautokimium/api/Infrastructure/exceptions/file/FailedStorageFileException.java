@@ -1,14 +1,13 @@
 package com.proautokimium.api.Infrastructure.exceptions.file;
 
-import com.proautokimium.api.domain.exceptions.DomainException;
-import org.springframework.http.HttpStatus;
+import com.proautokimium.api.Infrastructure.exceptions.InfrastructureException;
 
-public class FailedStorageFileException extends DomainException {
-    public FailedStorageFileException(String message) {
-        super(message, HttpStatus.INTERNAL_SERVER_ERROR);
+public class FailedStorageFileException extends InfrastructureException {
+    public FailedStorageFileException(String message, Throwable cause) {
+        super(message, cause);
     }
 
     public FailedStorageFileException() {
-        super("Ocorreu um erro ao salvar o arquivo", HttpStatus.INTERNAL_SERVER_ERROR);
+        super("Ocorreu um erro ao salvar o arquivo");
     }
 }

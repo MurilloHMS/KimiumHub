@@ -42,7 +42,7 @@ public class CertificateController {
      * @return Arquivo do certificado finalizado.
      *
      * @throws CertificateAlreadyExistsException Retorna conflict se o cliente já gerou um certificado.
-     * @throws FailedToCreateCertificate Retorna Bad Request (500) caso ocorra um erro ao gerar o certificado.
+     * @throws FailedToCreateCertificate Retorna Bad Request (503) caso ocorra um erro ao gerar o certificado.
      */
     @PostMapping
     @Operation(summary = "Cria certificado", description = "Cria o certificado do cliente e gera o registro")
@@ -63,7 +63,7 @@ public class CertificateController {
             return ResponseEntity.status(HttpStatus.CREATED).headers(headers).body(certificate);
 
         }catch (Exception e){
-            throw new FailedToCreateCertificate("Erro ao criar o certificado: " + e.getMessage());
+            throw new FailedToCreateCertificate(e.getMessage(), e);
         }
     }
 
@@ -84,7 +84,7 @@ public class CertificateController {
             return ResponseEntity.status(HttpStatus.CREATED).headers(headers).body(certificate);
 
         }catch (Exception e){
-            throw new FailedToCreateCertificate("Erro ao criar o certificado: " + e.getMessage());
+            throw new FailedToCreateCertificate(e.getMessage(), e);
         }
     }
 }
