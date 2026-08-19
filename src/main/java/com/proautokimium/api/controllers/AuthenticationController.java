@@ -105,14 +105,6 @@ public class AuthenticationController {
                 : ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/app-token")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Gera token acesso", description = "Gera o token de acesso ao app ProStock")
-    public ResponseEntity<Object> generateAppToken() {
-        String appToken = tokenService.generateAppToken();
-        return ResponseEntity.ok(new LoginResponseDTO(appToken));
-    }
-
     @GetMapping("/users")
     @Operation(summary = "Retorna Usuários", description = "Obtém a lista de usuários")
     @PreAuthorize("hasAnyRole('ADMIN')")
