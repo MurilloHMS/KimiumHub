@@ -23,7 +23,6 @@ public final class SecurityPaths {
 
     public static final String[] PUBLIC_POST ={
             "/api/auth/login",
-            "/api/auth/login/android",
             "/api/contact",
             "/api/certificate",
             "/api/certificate/no-validation",
