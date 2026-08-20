@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.holerite;
 
+import com.proautokimium.api.Application.DTOs.holerite.HoleritePreviewItemDTO;
 import com.proautokimium.api.Application.DTOs.holerite.HoleriteResponseDTO;
 import com.proautokimium.api.Application.DTOs.holerite.VincularHoleriteResultDTO;
 import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfoExtractorDTO;
@@ -13,7 +14,7 @@ import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.HoleriteDocumento;
 import com.proautokimium.api.domain.enums.HoleriteTipo;
 import com.proautokimium.api.domain.enums.NotificationType;
-import jakarta.transaction.Transactional;
+import com.proautokimium.api.domain.enums.humanResources.HoleritePreviewStatus;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.springframework.stereotype.Service;
@@ -65,7 +66,10 @@ public class HoleriteService {
     }
 
     /** Separa o PDF por página, casa cada holerite ao funcionário (por CPF) e armazena o vínculo. */
-    @Transactional
+    // Sem @Transactional de propósito: não existe invariante entre funcionários,
+    // e o arquivo vai para o disco ANTES do registro ir para o banco. Com a
+    // transação no lote inteiro, um erro na página 137 desfazia 136 registros e
+    // deixava os 136 PDFs órfãos no disco.
     public VincularHoleriteResultDTO vincular(MultipartFile file, LocalDate competencia, HoleriteTipo tipo) throws IOException {
         File temp = File.createTempFile("holerite_", ".pdf");
         file.transferTo(temp);
@@ -75,6 +79,8 @@ public class HoleriteService {
             int vinculados = 0;
             List<String> naoEncontrados = new ArrayList<>();
             Set<Employee> afetados = new LinkedHashSet<>();
+            Set<UUID> jaTem = repository.findEmployeeIdsByCompetenciaAndTipo(competencia, tipo);
+            List<String> jaExistiam = new ArrayList<>();
 
             try (PDDocument doc = Loader.loadPDF(temp)) {
                 int total = doc.getNumberOfPages();
@@ -86,13 +92,22 @@ public class HoleriteService {
                     String nome   = i < infos.size() ? infos.get(i).nome() : null;
                     String cpfDigits = cpfRaw == null ? "" : cpfRaw.replaceAll("\\D", "");
 
-                    Employee emp = cpfDigits.length() >= 11
-                            ? employeeRepository.findByCpfDigits(cpfDigits).orElse(null)
-                            : null;
+                    List<Employee> encontrados = cpfDigits.length() >= 11
+                            ? employeeRepository.findAllByCpfDigits(cpfDigits)
+                            : List.of();
+
+                    // CPF repetido no cadastro não pode derrubar o lote: a página
+                    // fica de fora com o motivo, e as outras seguem.
+                    if (encontrados.size() > 1) {
+                        naoEncontrados.add(ref(nome, i) + " — CPF em mais de um cadastro");
+                        continue;
+                    }
+
+                    Employee emp = encontrados.size() == 1 ? encontrados.getFirst() : null;
 
                     if (emp == null) {
-                        String ref = nome != null && !nome.isBlank() ? nome : "Página " + (i + 1);
-                        naoEncontrados.add(cpfRaw != null ? ref + " (" + cpfRaw + ")" : ref);
+                        String rotulo = ref(nome, i);
+                        naoEncontrados.add(cpfRaw != null ? rotulo + " (" + cpfRaw + ")" : rotulo);
                         continue;
                     }
 
@@ -103,6 +118,11 @@ public class HoleriteService {
                     Employee emp = entry.getKey();
                     List<Integer> pageIndices = entry.getValue();
 
+                    if(jaTem.contains(emp.getId())) {
+                        jaExistiam.add(emp.getName());
+                        continue;
+                    }
+
                     byte[] pdfBytes = extractPages(doc, pageIndices);
                     String storedPath = storage.save(pdfBytes, emp.getCodParceiro(), competencia, tipo);
                     repository.save(new HoleriteDocumento(emp, competencia, tipo, file.getOriginalFilename(), storedPath));
@@ -111,8 +131,68 @@ public class HoleriteService {
                 }
 
                 notificarFuncionarios(afetados, competencia, tipo);
-                return new VincularHoleriteResultDTO(total, vinculados, naoEncontrados);
+                return new VincularHoleriteResultDTO(total, vinculados, naoEncontrados, jaExistiam);
             }
+        } finally {
+            temp.delete();
+        }
+    }
+
+    /**
+     * Mesma análise do envio, sem escrever nada.
+     *
+     * O PDF é lido de novo de propósito. Guardar o arquivo entre a prévia e o
+     * envio exigiria estado no servidor — e já existe um vazamento desses no
+     * PdfController, com um mapa estático que nunca é limpo. Além disso reler é
+     * uma funcionalidade: entre conferir e enviar, o RH cadastra quem faltava, e
+     * o status precisa mudar.
+     */
+    public List<HoleritePreviewItemDTO> preview(MultipartFile file, LocalDate competencia, HoleriteTipo tipo) throws IOException {
+        File temp = File.createTempFile("holerite_preview_", ".pdf");
+        file.transferTo(temp);
+
+        try {
+            List<PdfPageInfoExtractorDTO> infos = extractor.extract(temp.getAbsolutePath());
+            Set<UUID> jaTem = repository.findEmployeeIdsByCompetenciaAndTipo(competencia, tipo);
+            List<HoleritePreviewItemDTO> itens = new ArrayList<>();
+
+            for (int i = 0; i < infos.size(); i++) {
+                String cpfRaw = infos.get(i).cpf();
+                String nome = infos.get(i).nome();
+                String cpfDigits = cpfRaw == null ? "" : cpfRaw.replaceAll("\\D", "");
+
+                if (cpfDigits.length() < 11) {
+                    itens.add(new HoleritePreviewItemDTO(i + 1, nome, cpfRaw, null, null, null,
+                            HoleritePreviewStatus.CPF_ILEGIVEL));
+                    continue;
+                }
+
+                List<Employee> encontrados = employeeRepository.findAllByCpfDigits(cpfDigits);
+
+                if (encontrados.size() > 1) {
+                    itens.add(new HoleritePreviewItemDTO(i + 1, nome, cpfRaw, null, null, null,
+                            HoleritePreviewStatus.CPF_DUPLICADO));
+                    continue;
+                }
+
+                if (encontrados.isEmpty()) {
+                    itens.add(new HoleritePreviewItemDTO(i + 1, nome, cpfRaw, null, null, null,
+                            HoleritePreviewStatus.NAO_CADASTRADO));
+                    continue;
+                }
+
+                Employee emp = encontrados.getFirst();
+
+                HoleritePreviewStatus status =
+                        jaTem.contains(emp.getId())                          ? HoleritePreviewStatus.JA_ENVIADO
+                                : userRepository.findByEmployee_Id(emp.getId()).isEmpty() ? HoleritePreviewStatus.SEM_USUARIO
+                                : HoleritePreviewStatus.PRONTO;
+
+                itens.add(new HoleritePreviewItemDTO(i + 1, nome, cpfRaw,
+                        emp.getId(), emp.getName(), emp.getCodParceiro(), status));
+            }
+
+            return itens;
         } finally {
             temp.delete();
         }
@@ -177,5 +257,9 @@ public class HoleriteService {
 
     public byte[] lerArquivo(HoleriteDocumento doc) throws IOException {
         return Files.readAllBytes(storage.resolve(doc.getStoragePath()));
+    }
+
+    private String ref(String nome, int pagina) {
+        return nome != null && !nome.isBlank() ? nome : "Página " + (pagina + 1);
     }
 }

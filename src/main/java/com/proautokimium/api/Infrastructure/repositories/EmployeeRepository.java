@@ -22,5 +22,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
     @Query("SELECT e FROM Employee e WHERE function('regexp_replace', e.documento, '[^0-9]', '', 'g') = :cpf")
     Optional<Employee> findByCpfDigits(@Param("cpf") String cpfDigits);
 
+    @Query("SELECT e FROM Employee e WHERE function('regexp_replace', e.documento, '[^0-9]', '', 'g') = :cpf")
+    List<Employee> findAllByCpfDigits(@Param("cpf") String cpfDigits);
+
     List<Employee> findByTransportTypeAndAtivoTrue(TransportType transportType);
 }

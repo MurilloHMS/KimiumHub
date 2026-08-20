@@ -1,5 +1,6 @@
 package com.proautokimium.api.controllers;
 
+import com.proautokimium.api.Application.DTOs.holerite.HoleritePreviewItemDTO;
 import com.proautokimium.api.Application.DTOs.holerite.HoleriteResponseDTO;
 import com.proautokimium.api.Application.DTOs.holerite.VincularHoleriteResultDTO;
 import com.proautokimium.api.Infrastructure.services.holerite.HoleriteService;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,6 +42,7 @@ public class HoleriteController {
      * @param tipo Tipo de holerite (SALÁRIO ou ADIANTAMENTO)
      */
     @PostMapping(value = "/vincular", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
     @Operation(summary = "Vincula Holerite", description = "Vincula um holerite ao funcionário")
     public ResponseEntity<?> vincular(@RequestParam("file") MultipartFile file,
                                       @RequestParam("competencia") String competencia,
@@ -98,5 +101,15 @@ public class HoleriteController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"holerite.pdf\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(bytes);
+    }
+
+    @PostMapping("/vincular/preview")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @Operation(summary = "Confere antes de enviar", description = "Analisa o PDF e diz o que aconteceria, sem gravar nada")
+    public ResponseEntity<List<HoleritePreviewItemDTO>> preview(
+            @RequestParam MultipartFile file,
+            @RequestParam String competencia,
+            @RequestParam HoleriteTipo tipo) throws IOException {
+        return ResponseEntity.ok(service.preview(file, LocalDate.parse(competencia + "-01"), tipo));
     }
 }

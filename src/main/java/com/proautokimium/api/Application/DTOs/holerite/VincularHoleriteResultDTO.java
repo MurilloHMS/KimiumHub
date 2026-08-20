@@ -5,6 +5,7 @@ import java.util.List;
 public record VincularHoleriteResultDTO(
         int totalPaginas,
         int vinculados,
-        List<String> naoEncontrados
+        List<String> naoEncontrados,
+        List<String> jaExistiam
 ) {
 }

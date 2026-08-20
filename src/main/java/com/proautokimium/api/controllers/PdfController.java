@@ -8,6 +8,7 @@ import com.proautokimium.api.Infrastructure.services.pdf.holerith.HolerithExtrac
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,6 +39,7 @@ public class PdfController {
     }
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
     public ResponseEntity<?> upload(@RequestParam MultipartFile file){
         if(file == null || file.isEmpty()){
             return ResponseEntity.badRequest().body("Nenhum arquivo ou arquivo inválido enviado");
@@ -66,6 +68,7 @@ public class PdfController {
     }
 
     @PostMapping("/save/{uploadId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
     public ResponseEntity<?> save(@PathVariable String uploadId, @RequestBody List<PdfPageInfoDTO> pages){
         if (pages == null || pages.isEmpty()) {
             return ResponseEntity.badRequest().body("Nenhuma página fornecida para salvar.");
@@ -108,6 +111,7 @@ public class PdfController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
     @PostMapping(path = "/holerith/extract", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> extract(@RequestParam("file") MultipartFile file) {
 
