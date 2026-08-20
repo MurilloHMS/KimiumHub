@@ -203,9 +203,9 @@ public class HoleriteService {
         if (afetados.isEmpty()) return;
 
         String compLabel = competencia.format(DateTimeFormatter.ofPattern("MM/yyyy"));
-        String tipoLabel = tipo == HoleriteTipo.ADIANTAMENTO ? "adiantamento" : "salário";
+        String tipoLabel = tipo.getLabel();
         String title = "Novo holerite disponível";
-        String message = "Seu " + tipoLabel + " de " + compLabel + " já está disponível para download.";
+        String message = "Seu holerite de " + tipoLabel + " (" + compLabel + ") já está disponível para download.";
 
         for (Employee emp : afetados) {
             userRepository.findByEmployee_Id(emp.getId()).ifPresent(user ->
