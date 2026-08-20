@@ -26,4 +26,20 @@ public interface HoleriteDocumentoRepository extends JpaRepository<HoleriteDocum
     @Query("SELECT h.employee.id FROM HoleriteDocumento h WHERE h.competencia = :competencia AND h.tipo = :tipo")
     Set<UUID> findEmployeeIdsByCompetenciaAndTipo(@Param("competencia") LocalDate competencia,
                                                   @Param("tipo") HoleriteTipo tipo);
+
+    /** A tela do funcionário não mostra cancelado. Ele continua na auditoria. */
+    List<HoleriteDocumento> findByEmployeeAndCanceledAtIsNullOrderByCompetenciaDesc(Employee employee);
+
+    /**
+     * A grade da auditoria. O join fetch evita N+1: sem ele, cada linha faria
+     * uma consulta para ler o nome do funcionário.
+     */
+    @Query("""
+        SELECT h FROM HoleriteDocumento h
+        JOIN FETCH h.employee e
+        WHERE h.competencia = :competencia AND h.tipo = :tipo
+        ORDER BY e.name
+    """)
+    List<HoleriteDocumento> findParaAuditoria(@Param("competencia") LocalDate competencia,
+                                              @Param("tipo") HoleriteTipo tipo);
 }

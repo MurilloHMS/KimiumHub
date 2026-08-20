@@ -1,9 +1,11 @@
 package com.proautokimium.api.Infrastructure.services.holerite;
 
+import com.proautokimium.api.Application.DTOs.holerite.HoleriteAuditoriaDTO;
 import com.proautokimium.api.Application.DTOs.holerite.HoleritePreviewItemDTO;
 import com.proautokimium.api.Application.DTOs.holerite.HoleriteResponseDTO;
 import com.proautokimium.api.Application.DTOs.holerite.VincularHoleriteResultDTO;
 import com.proautokimium.api.Application.DTOs.pdf.PdfPageInfoExtractorDTO;
+import com.proautokimium.api.Infrastructure.exceptions.file.FileNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.HoleriteDocumentoRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
@@ -12,11 +14,14 @@ import com.proautokimium.api.Infrastructure.services.pdf.holerith.HolerithExtrac
 import com.proautokimium.api.Infrastructure.services.storage.HoleriteStorageService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.HoleriteDocumento;
+import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.enums.HoleriteTipo;
 import com.proautokimium.api.domain.enums.NotificationType;
 import com.proautokimium.api.domain.enums.humanResources.HoleritePreviewStatus;
+import jakarta.transaction.Transactional;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,7 +29,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -37,19 +44,21 @@ public class HoleriteService {
     private final HoleriteDocumentoRepository repository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final Clock clock;
 
     public HoleriteService(HolerithExtractorService extractor,
                            HoleriteStorageService storage,
                            EmployeeRepository employeeRepository,
                            HoleriteDocumentoRepository repository,
                            UserRepository userRepository,
-                           NotificationService notificationService) {
+                           NotificationService notificationService, Clock clock) {
         this.extractor = extractor;
         this.storage = storage;
         this.employeeRepository = employeeRepository;
         this.repository = repository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.clock = clock;
     }
 
     /**
@@ -239,8 +248,11 @@ public class HoleriteService {
         Employee emp = resolveEmployee(login);
         if (emp == null) return List.of();
 
-        return repository.findByEmployeeOrderByCompetenciaDesc(emp).stream()
-                .map(h -> new HoleriteResponseDTO(h.getId(), h.getCompetencia(), h.getTipo(), h.getOriginalFilename(), h.getCreatedAt()))
+        return repository.findByEmployeeAndCanceledAtIsNullOrderByCompetenciaDesc(emp).stream()
+                .map(h -> new HoleriteResponseDTO(
+                        h.getId(), h.getCompetencia(), h.getTipo(),
+                        h.getOriginalFilename(), h.getCreatedAt(),
+                        h.getOpenedAt(), h.getConfirmedAt()))
                 .toList();
     }
 
@@ -248,12 +260,6 @@ public class HoleriteService {
         return repository.findById(id);
     }
 
-    /** Permite o dono do holerite ou um usuário de RH/ADMIN. */
-    public boolean podeAcessar(HoleriteDocumento doc, String login, boolean isRh) {
-        if (isRh) return true;
-        Employee emp = resolveEmployee(login);
-        return emp != null && doc.getEmployee().getId().equals(emp.getId());
-    }
 
     public byte[] lerArquivo(HoleriteDocumento doc) throws IOException {
         return Files.readAllBytes(storage.resolve(doc.getStoragePath()));
@@ -261,5 +267,96 @@ public class HoleriteService {
 
     private String ref(String nome, int pagina) {
         return nome != null && !nome.isBlank() ? nome : "Página " + (pagina + 1);
+    }
+
+    /**
+     * Resolve o dono ANTES do papel: um ADMIN que também é funcionário baixando
+     * o próprio holerite precisa ser reconhecido como dono, senão a abertura
+     * dele nunca é registrada.
+     */
+    public boolean ehDono(HoleriteDocumento doc, String login) {
+        Employee emp = resolveEmployee(login);
+        return emp != null && doc.getEmployee().getId().equals(emp.getId());
+    }
+
+    public boolean podeAcessar(HoleriteDocumento doc, String login, boolean isRh) {
+        return isRh || ehDono(doc, login);
+    }
+
+    /** Marca a abertura só para o dono: o RH conferindo não conta como visualizado. */
+    @Transactional
+    public void registrarAbertura(HoleriteDocumento doc, String login) {
+        if (!ehDono(doc, login)) return;
+        doc.marcarAberto(LocalDateTime.now(clock));
+        repository.save(doc);
+    }
+
+    @Transactional
+    public void confirmarRecebimento(UUID id, String login) {
+        HoleriteDocumento doc = repository.findById(id).orElseThrow(FileNotFoundException::new);
+
+        // Recibo confirmado pelo RH não vale nada: só o dono confirma.
+        if (!ehDono(doc, login)) throw new AccessDeniedException("Só o próprio funcionário confirma o recebimento.");
+
+        doc.confirmar(LocalDateTime.now(clock));
+        repository.save(doc);
+    }
+
+    /**
+     * Cancela sem apagar. O registro fica para a auditoria e some da tela do
+     * funcionário — e o índice único ignora cancelado, então o holerite certo
+     * pode ser enviado no lugar.
+     */
+    @Transactional
+    public void cancelar(UUID id, String motivo, String loginRh) {
+        HoleriteDocumento doc = repository.findById(id).orElseThrow(FileNotFoundException::new);
+
+        if (doc.getCanceledAt() != null) return;   // idempotente: recancelar não muda quem cancelou
+
+        User quem = userRepository.findByLoginWithEmployee(loginRh).orElse(null);
+        doc.cancelar(quem, motivo, LocalDateTime.now(clock));
+        repository.save(doc);
+    }
+
+    /**
+     * Troca o PDF de um holerite já enviado, quando o arquivo subiu errado.
+     *
+     * É a válvula de escape do índice único: sem ela, um PDF errado ficaria
+     * para sempre, porque o reenvio seria recusado como duplicata.
+     *
+     * O arquivo antigo não é apagado de propósito — se a substituição estiver
+     * errada, ele ainda está lá.
+     */
+    @Transactional
+    public void substituirArquivo(UUID id, MultipartFile file, String loginRh) throws IOException {
+        HoleriteDocumento doc = repository.findById(id).orElseThrow(FileNotFoundException::new);
+
+        String novoPath = storage.save(file.getBytes(), doc.getEmployee().getCodParceiro(),
+                doc.getCompetencia(), doc.getTipo());
+
+        User quem = userRepository.findByLoginWithEmployee(loginRh).orElse(null);
+        doc.substituirArquivo(novoPath, file.getOriginalFilename(), quem, LocalDateTime.now(clock));
+        repository.save(doc);
+    }
+
+    public List<HoleriteAuditoriaDTO> auditoria(LocalDate competencia, HoleriteTipo tipo) {
+        return repository.findParaAuditoria(competencia, tipo).stream()
+                .map(h -> new HoleriteAuditoriaDTO(
+                        h.getId(),
+                        h.getEmployee().getId(),
+                        h.getEmployee().getName(),
+                        h.getEmployee().getCodParceiro(),
+                        h.getCompetencia(),
+                        h.getTipo(),
+                        h.getOriginalFilename(),
+                        h.getCreatedAt(),
+                        h.getOpenedAt(),
+                        h.getConfirmedAt(),
+                        h.getCanceledAt(),
+                        h.getCanceledBy() != null ? h.getCanceledBy().getLogin() : null,
+                        h.getCancelReason(),
+                        h.getReplacedAt(),
+                        userRepository.findByEmployee_Id(h.getEmployee().getId()).isPresent()))
+                .toList();
     }
 }

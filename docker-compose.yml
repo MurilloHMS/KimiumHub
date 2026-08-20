@@ -9,6 +9,7 @@ services:
       - .env
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+      - TZ=America/Sao_Paulo
     volumes:
       - /var/proauto/curriculos:/app/curriculos
       - /var/proauto/upload/images:/app/upload/images

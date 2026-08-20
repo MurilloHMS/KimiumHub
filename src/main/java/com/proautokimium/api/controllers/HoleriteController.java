@@ -1,8 +1,6 @@
 package com.proautokimium.api.controllers;
 
-import com.proautokimium.api.Application.DTOs.holerite.HoleritePreviewItemDTO;
-import com.proautokimium.api.Application.DTOs.holerite.HoleriteResponseDTO;
-import com.proautokimium.api.Application.DTOs.holerite.VincularHoleriteResultDTO;
+import com.proautokimium.api.Application.DTOs.holerite.*;
 import com.proautokimium.api.Infrastructure.services.holerite.HoleriteService;
 import com.proautokimium.api.domain.entities.HoleriteDocumento;
 import com.proautokimium.api.domain.enums.HoleriteTipo;
@@ -97,6 +95,10 @@ public class HoleriteController {
         }
 
         byte[] bytes = service.lerArquivo(docOpt.get());
+
+        // Marca a primeira abertura. O serviço ignora quando quem baixa é o RH:
+        // conferir um holerite não é a pessoa tê-lo visto.
+        service.registrarAbertura(docOpt.get(), auth.getName());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"holerite.pdf\"")
                 .contentType(MediaType.APPLICATION_PDF)
@@ -111,5 +113,39 @@ public class HoleriteController {
             @RequestParam String competencia,
             @RequestParam HoleriteTipo tipo) throws IOException {
         return ResponseEntity.ok(service.preview(file, LocalDate.parse(competencia + "-01"), tipo));
+    }
+
+    @GetMapping("/auditoria")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @Operation(summary = "Auditoria dos holerites", description = "Quem recebeu, quem abriu e quem confirmou")
+    public ResponseEntity<List<HoleriteAuditoriaDTO>> auditoria(
+            @RequestParam String competencia,
+            @RequestParam HoleriteTipo tipo) {
+        return ResponseEntity.ok(service.auditoria(LocalDate.parse(competencia + "-01"), tipo));
+    }
+
+    @PutMapping("/{id}/cancelar")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    public ResponseEntity<Object> cancelar(@PathVariable UUID id,
+                                           @RequestBody CancelarHoleriteDTO dto,
+                                           Authentication auth) {
+        service.cancelar(id, dto.motivo(), auth.getName());
+        return ResponseEntity.ok("Holerite cancelado.");
+    }
+
+    @PutMapping(value = "/{id}/arquivo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    public ResponseEntity<Object> substituirArquivo(@PathVariable UUID id,
+                                                    @RequestParam MultipartFile file,
+                                                    Authentication auth) throws IOException {
+        service.substituirArquivo(id, file, auth.getName());
+        return ResponseEntity.ok("Arquivo substituído. O registro de visualização foi zerado.");
+    }
+
+    /** Sem @PreAuthorize de propósito: quem confirma é o dono, e o serviço recusa o resto. */
+    @PostMapping("/{id}/confirmar")
+    public ResponseEntity<Object> confirmar(@PathVariable UUID id, Authentication auth) {
+        service.confirmarRecebimento(id, auth.getName());
+        return ResponseEntity.ok("Recebimento confirmado.");
     }
 }
