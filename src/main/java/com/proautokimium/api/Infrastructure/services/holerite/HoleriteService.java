@@ -249,7 +249,10 @@ public class HoleriteService {
         if (emp == null) return List.of();
 
         return repository.findByEmployeeAndCanceledAtIsNullOrderByCompetenciaDesc(emp).stream()
-                .map(h -> new HoleriteResponseDTO(h.getId(), h.getCompetencia(), h.getTipo(), h.getOriginalFilename(), h.getCreatedAt()))
+                .map(h -> new HoleriteResponseDTO(
+                        h.getId(), h.getCompetencia(), h.getTipo(),
+                        h.getOriginalFilename(), h.getCreatedAt(),
+                        h.getOpenedAt(), h.getConfirmedAt()))
                 .toList();
     }
 

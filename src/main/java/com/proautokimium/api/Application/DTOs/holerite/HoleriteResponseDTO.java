@@ -11,6 +11,8 @@ public record HoleriteResponseDTO(
         LocalDate competencia,
         HoleriteTipo tipo,
         String originalFilename,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        LocalDateTime openedAt,
+        LocalDateTime confirmedAt
 ) {
 }
