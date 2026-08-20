@@ -83,6 +83,8 @@ public class GalleryDocumentService {
 
         String filename = Path.of(document.getStoragePath()).getFileName().toString();
         Path path = storageService.searchFile(filename);
+
+        if(!Files.exists(path)) throw new FileNotFoundException();
         try{
             return Files.readAllBytes(path);
         }catch(IOException e){
@@ -98,7 +100,7 @@ public class GalleryDocumentService {
         String filename = Path.of(document.getStoragePath()).getFileName().toString();
         Path path = storageService.searchFile(filename);
         try{
-            Files.delete(path);
+            Files.deleteIfExists(path);
             repository.delete(document);
         }catch (IOException e){
             throw new FileStorageException();
