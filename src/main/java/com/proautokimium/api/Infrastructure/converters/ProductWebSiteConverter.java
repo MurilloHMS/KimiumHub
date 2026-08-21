@@ -50,7 +50,13 @@ public class ProductWebSiteConverter implements DtoConverter<ProductWebsite, Pro
         entity.setCores(dto.cores());
         entity.setFinalidade(dto.finalidade());
         entity.setSystemCode(dto.systemCode());
-        entity.setActive(dto.active());
+        // `Boolean` e não `boolean` para distinguir "não mandou" de "mandou
+        // false". Com primitivo os dois chegavam idênticos, e o formulário —
+        // que não tinha o campo — publicava `false` sem ninguém escolher.
+        //
+        // A ausência mantém o produto fora da vitrine. É proposital: `active`
+        // decide só o site público, e produto oculto continua valendo no guia.
+        entity.setActive(dto.active() != null && dto.active());
         entity.setDiluicao(dto.diluicao());
         entity.setConcentracao(dto.concentracao());
         entity.setLocalUso(dto.localUso());
