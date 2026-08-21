@@ -7,8 +7,10 @@ import com.proautokimium.api.Application.DTOs.product.ProductWebSiteUpdateDTO;
 import com.proautokimium.api.Infrastructure.converters.ProductWebSiteConverter;
 import com.proautokimium.api.Infrastructure.exceptions.product.ProductNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.ProductWebSiteRepository;
+import com.proautokimium.api.Infrastructure.services.gallery.GalleryDocumentService;
 import com.proautokimium.api.Infrastructure.services.storage.ProductImageStorageService;
 import com.proautokimium.api.domain.entities.ProductWebsite;
+import com.proautokimium.api.domain.entities.gallery.GalleryDocument;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
@@ -39,6 +42,9 @@ class ProductWebsiteServiceTest {
     @Mock
     private ProductImageStorageService storage;
 
+    @Mock
+    private GalleryDocumentService galleryService;
+
     @InjectMocks
     private ProductWebsiteService productWebsiteService;
 
@@ -51,8 +57,8 @@ class ProductWebsiteServiceTest {
     void setUp() {
         productId = UUID.randomUUID();
         entity = mock(ProductWebsite.class);
-        createDto = new ProductWebSiteCreateDTO("SYS001", "Produto Teste", true, List.of("Azul"), "Limpeza", "1:10", "100%", "Cozinha", "Descrição", null, null);
-        updateDto = new ProductWebSiteUpdateDTO("Produto Atualizado", true, List.of("Verde"), "Industrial", "1:20", "50%", "Geral", "Nova descrição", null, null);
+        createDto = new ProductWebSiteCreateDTO("SYS001", "Produto Teste", true, List.of("Azul"), "Limpeza", "1:10", "100%", "Cozinha", "Descrição", null, null, null);
+        updateDto = new ProductWebSiteUpdateDTO("Produto Atualizado", true, List.of("Verde"), "Industrial", "1:20", "50%", "Geral", "Nova descrição", null, null, null);
     }
 
     @Test
@@ -78,6 +84,70 @@ class ProductWebsiteServiceTest {
         verify(storage).save(imagem, "SYS001");
         verify(entity).setImagem("produto.jpg");
         verify(repository).save(entity);
+    }
+
+    /**
+     * Escolher da galeria copia os bytes para o acervo do produto.
+     *
+     * O que o teste trava é o **caminho gravado**: tem que ser o de
+     * /upload/images, não o da galeria. Apontar para a galeria quebraria a
+     * vitrine pública (a pasta dela não é servida sem autenticação) e o guia
+     * (que lê a imagem do disco pelo ProductImageStorageService, não por URL) —
+     * o guia em silêncio, com a célula vazia e sem log.
+     */
+    @Test
+    @DisplayName("Escolher da galeria copia os bytes para o acervo do produto")
+    void deveCopiarImagemDaGaleriaQuandoNaoHouverUpload() throws IOException {
+        UUID galleryId = UUID.randomUUID();
+        ProductWebSiteCreateDTO dtoComGaleria = new ProductWebSiteCreateDTO(
+                "SYS001", "Produto Teste", true, List.of("Azul"), "Limpeza", "1:10",
+                "100%", "Cozinha", "Descrição", null, null, galleryId);
+
+        byte[] bytes = "conteudo-da-arte".getBytes();
+        GalleryDocument documento = mock(GalleryDocument.class);
+        when(documento.getOriginalFileName()).thenReturn("arte-produto.png");
+        when(galleryService.findById(galleryId)).thenReturn(documento);
+        when(galleryService.getFile(galleryId)).thenReturn(bytes);
+        when(converter.fromCreateDto(dtoComGaleria)).thenReturn(entity);
+        when(storage.save(bytes, "arte-produto.png", "SYS001")).thenReturn("/upload/images/SYS001-abc-png");
+        when(repository.save(entity)).thenReturn(entity);
+
+        assertThatCode(() -> productWebsiteService.create(dtoComGaleria, null)).doesNotThrowAnyException();
+
+        verify(entity).setImagem("/upload/images/SYS001-abc-png");
+        verify(repository).save(entity);
+    }
+
+    @Test
+    @DisplayName("Vindo arquivo e galeria juntos, o arquivo enviado ganha")
+    void deveDarPrecedenciaAoUploadSobreAGaleria() throws IOException {
+        UUID galleryId = UUID.randomUUID();
+        ProductWebSiteCreateDTO dtoComOsDois = new ProductWebSiteCreateDTO(
+                "SYS001", "Produto Teste", true, List.of("Azul"), "Limpeza", "1:10",
+                "100%", "Cozinha", "Descrição", null, null, galleryId);
+
+        MockMultipartFile imagem = new MockMultipartFile("imagem", "enviada.jpg", "image/jpeg", "dados".getBytes());
+        when(converter.fromCreateDto(dtoComOsDois)).thenReturn(entity);
+        when(storage.save(imagem, "SYS001")).thenReturn("/upload/images/enviada.jpg");
+        when(repository.save(entity)).thenReturn(entity);
+
+        assertThatCode(() -> productWebsiteService.create(dtoComOsDois, imagem)).doesNotThrowAnyException();
+
+        verify(entity).setImagem("/upload/images/enviada.jpg");
+        // A galeria não chega nem a ser lida: o upload corta o caminho antes.
+        verifyNoInteractions(galleryService);
+    }
+
+    @Test
+    @DisplayName("Sem arquivo e sem galeria, a imagem que já estava fica")
+    void naoDeveTocarNaImagemQuandoNaoVierNenhumaDasDuas() throws IOException {
+        when(repository.findById(productId)).thenReturn(Optional.of(entity));
+        when(repository.save(entity)).thenReturn(entity);
+
+        assertThatCode(() -> productWebsiteService.update(updateDto, productId, null)).doesNotThrowAnyException();
+
+        verify(entity, never()).setImagem(any());
+        verifyNoInteractions(galleryService);
     }
 
     @Test

@@ -17,7 +17,11 @@ public abstract class FileStorage {
     protected abstract String getReturnPath();
 
     protected String buildFileName(MultipartFile file, String prefix){
-        String extension = StringUtils.getFilenameExtension(file.getOriginalFilename());
+        return buildFileName(file.getOriginalFilename(), prefix);
+    }
+
+    protected String buildFileName(String originalFileName, String prefix){
+        String extension = StringUtils.getFilenameExtension(originalFileName);
 
         if(extension == null || extension.isBlank()){
             extension = "bin";
@@ -32,6 +36,24 @@ public abstract class FileStorage {
         Path destination = Paths.get(getStoragePath()).resolve(filename);
         Files.createDirectories(destination.getParent());
         Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+
+        return getReturnPath() + filename;
+    }
+
+    /**
+     * Grava bytes que já estão em memória.
+     *
+     * Existe porque a foto de produto passou a poder vir da galeria, e lá o
+     * arquivo é lido do disco como `byte[]` — não existe `MultipartFile` no
+     * caminho. As duas entradas produzem o mesmo nome e o mesmo destino, então
+     * nada a jusante precisa saber de onde a imagem veio.
+     */
+    public String save(byte[] content, String originalFilename, String prefix) throws IOException{
+        String filename = buildFileName(originalFilename, prefix);
+
+        Path destination = Paths.get(getStoragePath()).resolve(filename);
+        Files.createDirectories(destination.getParent());
+        Files.write(destination, content);
 
         return getReturnPath() + filename;
     }
