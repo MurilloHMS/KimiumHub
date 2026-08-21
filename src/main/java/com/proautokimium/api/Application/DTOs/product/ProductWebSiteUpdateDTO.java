@@ -13,6 +13,7 @@ public record ProductWebSiteUpdateDTO(
         String localUso,
         String descricao,
         String descricaoGuia,
-        UUID equipmentId
+        UUID equipmentId,
+        UUID galleryDocumentId
 ) {
 }

@@ -14,6 +14,7 @@ public record ProductWebSiteCreateDTO(
         String localUso,
         String descricao,
         String descricaoGuia,
-        UUID equipmentId
+        UUID equipmentId,
+        UUID galleryDocumentId
 ) {
 }

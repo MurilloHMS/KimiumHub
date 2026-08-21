@@ -49,7 +49,7 @@ class ProductWebsiteControllerTest {
                 "dados", "", MediaType.APPLICATION_JSON_VALUE,
                 objectMapper.writeValueAsBytes(new ProductWebSiteCreateDTO(
                         "SYS001", "Produto", true, List.of(),
-                        "Limpeza", "1:10", "100%", "Cozinha", "Descrição", null, null)));
+                        "Limpeza", "1:10", "100%", "Cozinha", "Descrição", null, null, null)));
     }
 
     @Test
