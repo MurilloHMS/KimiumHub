@@ -6,7 +6,7 @@ import java.util.UUID;
 public record ProductWebSiteCreateDTO(
         String systemCode,
         String name,
-        boolean active,
+        Boolean active,
         List<String> cores,
         String finalidade,
         String diluicao,
