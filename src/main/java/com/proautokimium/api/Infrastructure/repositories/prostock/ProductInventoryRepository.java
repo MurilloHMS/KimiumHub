@@ -5,10 +5,18 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ProductInventoryRepository extends JpaRepository<ProductInventory, UUID> {
-    ProductInventory findBySystemCode(String systemCode);
+    /**
+     * `Optional` e não a entidade crua.
+     *
+     * Com o retorno cru dá para esquecer o nulo, e foi o que aconteceu: três
+     * dos quatro chamadores checavam, e `findAllMovementsByProduct` chamava
+     * `.getId()` direto. Aqui o compilador cobra.
+     */
+    Optional<ProductInventory> findBySystemCode(String systemCode);
     List<ProductInventory> findBySystemCodeIn(List<String> systemCode);
 
     /** Os produtos que também são máquina — o que antes era `type='MACHINE'`. */

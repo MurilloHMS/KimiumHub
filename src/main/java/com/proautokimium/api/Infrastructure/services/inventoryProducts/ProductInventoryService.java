@@ -62,10 +62,11 @@ public class ProductInventoryService {
 
     @Transactional
     public void includeMovement(ProductMovementDTO dto){
-        ProductInventory productInventory = productInventoryRepository.findBySystemCode(dto.systemCode());
         // Sem isto o movimento era gravado com product_id nulo: um lançamento
         // órfão, invisível em qualquer tela e sem erro para quem lançou.
-        if(productInventory == null) throw new ProductNotFoundException();
+        ProductInventory productInventory = productInventoryRepository
+                .findBySystemCode(dto.systemCode())
+                .orElseThrow(ProductNotFoundException::new);
 
         MovementInventory movement = new MovementInventory();
         movement.setMovementDate(dto.movementDate());
@@ -86,8 +87,13 @@ public class ProductInventoryService {
     }
 
     public List<ProductMovementDTO> findAllMovementsByProduct(String systemCode){
-        UUID id = productInventoryRepository.findBySystemCode(systemCode).getId();
-        var movements = productMovementRepository.findMovementByProductId(id);
+        // Era `.getId()` direto no retorno. Com código inexistente dava NPE, e
+        // com código duplicado dava NonUniqueResultException — as duas viravam
+        // 500 na tela de movimentações.
+        ProductInventory product = productInventoryRepository.findBySystemCode(systemCode)
+                .orElseThrow(ProductNotFoundException::new);
+
+        var movements = productMovementRepository.findMovementByProductId(product.getId());
         return movements.stream()
                 .sorted(Comparator.comparing(MovementInventory::getMovementDate))
                 .map(m -> new ProductMovementDTO(
@@ -99,16 +105,14 @@ public class ProductInventoryService {
 
     @Transactional
     public void deleteProductBySystemCode(String systemCode){
-        var product = productInventoryRepository.findBySystemCode(systemCode);
-        if(product != null){
-            productInventoryRepository.deleteById(product.id);
-        }
+        productInventoryRepository.findBySystemCode(systemCode)
+                .ifPresent(product -> productInventoryRepository.deleteById(product.getId()));
     }
 
     @Transactional
     public void updateProduct(ProductInventoryDTO dto){
-        var product = productInventoryRepository.findBySystemCode(dto.systemCode());
-        if(product == null) throw new ProductNotFoundException();
+        var product = productInventoryRepository.findBySystemCode(dto.systemCode())
+                .orElseThrow(ProductNotFoundException::new);
 
         product.setName(dto.name());
         product.setMinimumStock(dto.minimumStock());
@@ -135,28 +139,50 @@ public class ProductInventoryService {
     		
     		List<ProductInventory> toInsert = new ArrayList<>();
     		List<ProductInventory> toUpdate = new ArrayList<>();
-    		
+
+    		// A planilha é digitada à mão e repete código. Nada olhava o que já
+    		// tinha entrado em `toInsert`, então o mesmo código duas vezes no
+    		// arquivo virava dois produtos — e `findBySystemCode`, que devolve
+    		// um só, passava a estourar. Foi assim que nasceram os duplicados de
+    		// 2026-08-11 e de 2026-08-24.
+    		Set<String> codigosJaNaFila = new HashSet<>();
+    		List<String> repetidosNaPlanilha = new ArrayList<>();
+
     		for(ProductInventory p : products) {
-    			if(existingMap.containsKey(p.getSystemCode())) {
-    				
-    				ProductInventory existing = existingMap.get(p.getSystemCode());
+    			String codigo = p.getSystemCode();
+
+    			if(existingMap.containsKey(codigo)) {
+    				ProductInventory existing = existingMap.get(codigo);
     				existing.setName(p.getName());
     				toUpdate.add(existing);
-    			}else {
-					toInsert.add(p);
-				}
+    				continue;
+    			}
+
+    			if(!codigosJaNaFila.add(codigo)) {
+    				repetidosNaPlanilha.add(codigo);
+    				continue;
+    			}
+
+    			toInsert.add(p);
     		}
-    		
+
     		if(!toInsert.isEmpty())
     			productInventoryRepository.saveAll(toInsert);
-    		
+
     		if(!toUpdate.isEmpty())
     			productInventoryRepository.saveAll(toUpdate);
-    		
-    		return ResponseEntity.ok(String.format(
-    				"%d produtos adicionados, %d atualizados",
-    				toInsert.size(), toUpdate.size()
-				));
+
+    		// Dizer quais foram: planilha suja é problema de quem a mantém, e
+    		// descartar em silêncio esconde o erro em vez de corrigi-lo.
+    		String mensagem = String.format("%d produtos adicionados, %d atualizados",
+    				toInsert.size(), toUpdate.size());
+
+    		if(!repetidosNaPlanilha.isEmpty()) {
+    			mensagem += String.format(". %d código(s) repetido(s) na planilha, ignorados: %s",
+    					repetidosNaPlanilha.size(), String.join(", ", repetidosNaPlanilha));
+    		}
+
+    		return ResponseEntity.ok(mensagem);
     	}catch (Exception e) {
     		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 	                .body("Erro ao processar arquivo: " + e.getMessage());
