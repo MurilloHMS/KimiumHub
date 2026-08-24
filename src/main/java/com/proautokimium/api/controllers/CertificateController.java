@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Application.DTOs.certificate.CertificateBatchDTO;
 import com.proautokimium.api.Application.DTOs.certificate.CertificateHolderDTO;
 import com.proautokimium.api.Infrastructure.exceptions.certificate.FailedToCreateCertificate;
 import com.proautokimium.api.Infrastructure.helpers.HttpHelper;
@@ -14,6 +15,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
@@ -86,5 +88,15 @@ public class CertificateController {
         }catch (Exception e){
             throw new FailedToCreateCertificate(e.getMessage(), e);
         }
+    }
+
+    @PostMapping("/batch")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Cria certificados em lote", description = "Gera um certificado por nome e devolve um ZIP")
+    public ResponseEntity<?> createCertificatesBatch(@RequestBody @NotNull @Valid CertificateBatchDTO dto){
+        byte[] zip = generator.generateCertificatesZip(dto.names());
+        HttpHeaders headers = HttpHelper.createZipHeader("certificados.zip", zip.length);
+
+        return ResponseEntity.ok().headers(headers).body(zip);
     }
 }

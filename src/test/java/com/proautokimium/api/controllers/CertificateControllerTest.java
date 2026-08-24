@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Application.DTOs.certificate.CertificateBatchDTO;
 import com.proautokimium.api.Application.DTOs.certificate.CertificateHolderDTO;
 import com.proautokimium.api.Infrastructure.interfaces.certificate.CertificateGenerator;
 import com.proautokimium.api.Infrastructure.repositories.CertificateHolderRepository;
@@ -21,7 +22,10 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -100,5 +104,101 @@ class CertificateControllerTest {
                 ).andExpect(status().isCreated())
                 .andExpect(content().contentType(MediaType.APPLICATION_PDF))
                 .andExpect(content().bytes(pdf));
+    }
+
+    // --- Lote (/batch) -------------------------------------------------------
+
+    /**
+     * Os outros dois endpoints de certificado sao publicos, e este nao e.
+     *
+     * Uma rota publica que aceita lista aceita tambem dez mil nomes, e cada
+     * nome preenche um PDF. Seria derrubar o servidor com um `curl`.
+     */
+    @Test
+    @DisplayName("POST /batch - usuario sem ADMIN nao gera lote")
+    @WithMockUser(roles = "VENDEDOR")
+    void batchDeveRecusarQuemNaoEhAdmin() throws Exception {
+        mockMvc.perform(post("/api/certificate/batch")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(
+                                new CertificateBatchDTO(List.of("Ana")))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("POST /batch - sem autenticacao devolve 403")
+    void batchDeveRecusarSemAutenticacao() throws Exception {
+        mockMvc.perform(post("/api/certificate/batch")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(
+                                new CertificateBatchDTO(List.of("Ana")))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("POST /batch - ADMIN recebe o ZIP")
+    @WithMockUser(roles = "ADMIN")
+    void batchDeveDevolverOZipParaAdmin() throws Exception {
+        when(generator.generateCertificatesZip(any())).thenReturn("zip".getBytes());
+
+        mockMvc.perform(post("/api/certificate/batch")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(
+                                new CertificateBatchDTO(List.of("Ana", "Bruno")))))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition",
+                        org.hamcrest.Matchers.containsString("certificados.zip")));
+    }
+
+    /**
+     * O teto de 200 existe porque o ZIP e montado em memoria e PDF com imagem
+     * de fundo nao comprime -- o arquivo final e a soma dos PDFs.
+     */
+    @Test
+    @DisplayName("POST /batch - acima de 200 nomes devolve 400")
+    @WithMockUser(roles = "ADMIN")
+    void batchDeveRecusarListaAcimaDoTeto() throws Exception {
+        List<String> duzentosEUm = IntStream.rangeClosed(1, 201)
+                .mapToObj(i -> "Pessoa " + i)
+                .toList();
+
+        mockMvc.perform(post("/api/certificate/batch")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(
+                                new CertificateBatchDTO(duzentosEUm))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /batch - lista vazia devolve 400")
+    @WithMockUser(roles = "ADMIN")
+    void batchDeveRecusarListaVazia() throws Exception {
+        mockMvc.perform(post("/api/certificate/batch")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(
+                                new CertificateBatchDTO(Collections.emptyList()))))
+                .andExpect(status().isBadRequest())
+                // A mensagem da anotacao tem que chegar. Um handler que responde
+                // 400 com "Dados invalidos." passaria no status e nao serviria
+                // para nada -- e o formulario publico de contato depende disso.
+                .andExpect(jsonPath("$.message").value("Envie pelo menos um nome"));
+    }
+
+    /** Linha em branco e erro de quem chamou, nao algo para o servidor adivinhar. */
+    @Test
+    @DisplayName("POST /batch - nome em branco na lista devolve 400")
+    @WithMockUser(roles = "ADMIN")
+    void batchDeveRecusarNomeEmBranco() throws Exception {
+        mockMvc.perform(post("/api/certificate/batch")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(
+                                new CertificateBatchDTO(List.of("Ana", "   ")))))
+                .andExpect(status().isBadRequest());
     }
 }

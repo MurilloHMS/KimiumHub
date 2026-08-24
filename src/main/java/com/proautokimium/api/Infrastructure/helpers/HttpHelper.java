@@ -23,4 +23,16 @@ public class HttpHelper {
         );
         return headers;
     }
+
+    public static HttpHeaders createZipHeader(String filename, int length){
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentLength(length);
+        headers.setContentDisposition(
+                ContentDisposition.attachment()
+                        .filename(filename)
+                        .build()
+        );
+        return headers;
+    }
 }
