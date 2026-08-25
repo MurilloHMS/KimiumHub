@@ -68,6 +68,12 @@ public class MachineController {
         return ResponseEntity.ok(registerService.listarRegistrosPorMaquina(id));
     }
 
+    /** Histórico de adiamentos de uma programação. */
+    @GetMapping("/register/{id}/schedule-changes")
+    public ResponseEntity<?> getScheduleChanges(@PathVariable UUID id){
+        return ResponseEntity.ok(registerService.listarAlteracoesDePrevisao(id));
+    }
+
     @GetMapping("/register")
     public ResponseEntity<?> getAllRegisters(){
         return ResponseEntity.ok(registerService.listarRegistros());
