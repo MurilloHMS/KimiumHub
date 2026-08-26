@@ -31,4 +31,23 @@ public interface ProductMovementRepository extends JpaRepository<MovementInvento
      * meia-noite — arbitrário, mas ao menos estável entre consultas.
      */
     Optional<MovementInventory> findTopByProductOrderByCreatedAtDescIdDesc(ProductInventory product);
+
+    /**
+     * O estoque atual de **todos** os produtos, numa consulta só.
+     *
+     * `DISTINCT ON` é do Postgres e devolve a primeira linha de cada grupo na
+     * ordem pedida — aqui, o movimento mais recente de cada produto. A
+     * alternativa seria chamar `findTopBy...` numa laço por máquina, e o Hub
+     * abriria com dezenas de consultas.
+     *
+     * Devolve `[product_id, quantity]`. Produto sem movimento nenhum não
+     * aparece: quem chama trata a ausência como zero, que é o mesmo que a
+     * conciliação faz.
+     */
+    @Query(value = """
+        SELECT DISTINCT ON (product_id) product_id, quantity
+        FROM products_movements
+        ORDER BY product_id, created_at DESC, id DESC
+        """, nativeQuery = true)
+    List<Object[]> findLatestQuantityByProduct();
 }

@@ -1,5 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.machine;
 
+import com.proautokimium.api.Application.DTOs.prostock.machine.AlignResultDTO;
+import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDivergenceDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.ReconcileDTO;
 import com.proautokimium.api.Infrastructure.exceptions.product.ProductNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.prostock.ProductInventoryRepository;
@@ -15,8 +17,11 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -68,6 +73,92 @@ public class MachineReconciliationService {
         }
 
         saveMovement(machine, resulting, dto.movementDate());
+    }
+
+    /**
+     * As duas contagens de cada máquina, lado a lado.
+     *
+     * **Este método existe por causa de uma decisão de projeto.** O estoque de
+     * máquina é contado por dois caminhos — `products_movements` e as linhas de
+     * programação em estoque — e a escolha foi manter os dois sincronizados em
+     * vez de derivar um do outro. O custo assumido: todo caminho novo precisa
+     * lembrar de conciliar, e no dia em que alguém esquecer, os números separam
+     * em silêncio.
+     *
+     * É esse silêncio que isto quebra.
+     *
+     * Duas consultas agregadas, não uma por máquina: o Hub abre com isto, e um
+     * `findTop` por máquina viraria dezenas de idas ao banco.
+     */
+    @Transactional
+    public List<MachineDivergenceDTO> divergences() {
+        Map<UUID, Integer> stockByMachine = new HashMap<>();
+        for (Object[] row : movementRepository.findLatestQuantityByProduct()) {
+            stockByMachine.put((UUID) row[0], ((Number) row[1]).intValue());
+        }
+
+        Map<UUID, Integer> scheduledByMachine = new HashMap<>();
+        for (Object[] row : registerRepository.countInStockByMachine(IN_STOCK)) {
+            scheduledByMachine.put((UUID) row[0], ((Number) row[1]).intValue());
+        }
+
+        // Máquina sem movimento e sem programação conta zero dos dois lados —
+        // não é divergência, é máquina que nunca foi usada.
+        return productRepository.findByIsMachineTrue().stream()
+                .map(machine -> new MachineDivergenceDTO(
+                        machine.getId(),
+                        machine.getSystemCode(),
+                        machine.getName(),
+                        stockByMachine.getOrDefault(machine.getId(), 0),
+                        scheduledByMachine.getOrDefault(machine.getId(), 0)))
+                // Quem diverge primeiro, e entre os que divergem, a maior
+                // diferença no topo: é a ordem em que alguém vai querer resolver.
+                .sorted(Comparator
+                        .comparing(MachineDivergenceDTO::diverges).reversed()
+                        .thenComparing(dto -> Math.abs(dto.difference()), Comparator.reverseOrder())
+                        .thenComparing(MachineDivergenceDTO::name))
+                .toList();
+    }
+
+    /**
+     * Acerta os dois números de uma máquina.
+     *
+     * **A programação é a verdade sobre quantas máquinas existem**, porque uma
+     * linha É uma máquina física. Então o acerto tem dois sentidos, e nenhum
+     * dos dois é escolha:
+     *
+     * - Estoque **maior**: faltam linhas. Nascem vazias, `DISPONIVEL`, e caem
+     *   em "Sem previsão" — que é onde alguém vai encontrá-las para programar.
+     * - Estoque **menor**: o movimento é que está atrasado. Lança um até o
+     *   número que a programação diz.
+     *
+     * Isto existe porque a conciliação normal exige um delta e recusa zero: ela
+     * serve para quem está lançando estoque agora, e não tinha como consertar
+     * uma divergência que já estava lá.
+     */
+    @Transactional
+    public AlignResultDTO align(String systemCode) {
+        ProductInventory machine = productRepository.findBySystemCode(systemCode)
+                .orElseThrow(ProductNotFoundException::new);
+
+        int stock = currentStock(machine);
+        int scheduled = registerRepository.countByMachineAndStatusIn(machine, IN_STOCK);
+        int gap = stock - scheduled;
+
+        if (gap == 0) {
+            throw new ReconciliationMismatchException("Os dois números já batem.");
+        }
+
+        if (gap > 0) {
+            createSchedules(machine, gap);
+            return new AlignResultDTO(systemCode, machine.getName(), stock, scheduled, gap, stock);
+        }
+
+        // Estoque atrás da programação: o movimento sobe até o que existe de
+        // verdade. Não apagamos linha — ela é máquina, e sumir com uma leva o
+        // histórico de adiamentos junto.
+        saveMovement(machine, scheduled, LocalDateTime.now());
+        return new AlignResultDTO(systemCode, machine.getName(), stock, scheduled, 0, scheduled);
     }
 
     /**
