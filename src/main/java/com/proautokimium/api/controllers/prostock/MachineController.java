@@ -135,6 +135,18 @@ public class MachineController {
      * de máquina — para isso continuam as telas de sempre. Este existe para os
      * dois acontecerem juntos ou nenhum acontecer.
      */
+    /**
+     * Acerta os dois números de uma máquina que já estava divergente.
+     *
+     * `POST` e não `GET` porque escreve — cria programação ou lança movimento.
+     * A tela mostra o que vai acontecer antes de chamar; aqui não há escolha a
+     * fazer, só a conta.
+     */
+    @PostMapping("/{systemCode}/align")
+    public ResponseEntity<?> align(@PathVariable String systemCode){
+        return ResponseEntity.ok(reconciliationService.align(systemCode));
+    }
+
     @PostMapping("/reconcile")
     public ResponseEntity<?> reconcile(@RequestBody @Valid ReconcileDTO dto){
         reconciliationService.reconcile(dto);

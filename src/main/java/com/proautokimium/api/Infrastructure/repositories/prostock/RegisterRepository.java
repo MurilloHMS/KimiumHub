@@ -31,4 +31,7 @@ public interface RegisterRepository extends JpaRepository<MachineRegister, UUID>
         GROUP BY r.machine.id
         """)
     List<Object[]> countInStockByMachine(@Param("statuses") Collection<MachineStatus> statuses);
+
+    /** O mesmo número da consulta acima, para uma máquina só. */
+    int countByMachineAndStatusIn(ProductInventory machine, Collection<MachineStatus> statuses);
 }

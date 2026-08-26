@@ -363,6 +363,74 @@ class MachineReconciliationServiceTest {
         assertThat(service.divergences().get(0).difference()).isEqualTo(-1);
     }
 
+    // ─── O acerto de uma divergência que já existia ──────────────────────────
+
+    /**
+     * **O caso real dele, em 2026-08-26.**
+     *
+     * CAPÔ NT 300 com 52 no estoque e 17 linhas em estoque. Uma linha É uma
+     * máquina física, então faltam 35 — e elas nascem vazias, que é o que as
+     * coloca em "Sem previsão", onde alguém vai encontrá-las para programar.
+     */
+    @Test
+    @DisplayName("Estoque maior que a programação cria as linhas que faltam")
+    void estoqueMaiorCriaAsLinhasQueFaltam() {
+        machineExists();
+        currentStockIs(52);
+        when(registerRepository.countByMachineAndStatusIn(machine, MachineReconciliationService.IN_STOCK))
+                .thenReturn(17);
+
+        var resultado = service.align(CODE);
+
+        verify(registerRepository, times(35)).save(any());
+        assertThat(resultado.created()).isEqualTo(35);
+        // O estoque não se mexe: ele já estava certo.
+        assertThat(resultado.stockAfter()).isEqualTo(52);
+        verify(movementRepository, never()).save(any());
+    }
+
+    /**
+     * O outro sentido. A programação é a verdade sobre quantas máquinas
+     * existem, então quem sobe é o estoque — **não apagamos linha**, porque
+     * linha é máquina e sumir com uma leva o histórico de adiamentos junto.
+     */
+    @Test
+    @DisplayName("Estoque menor sobe até a programação, sem apagar linha")
+    void estoqueMenorSobeAteAProgramacao() {
+        machineExists();
+        currentStockIs(10);
+        when(registerRepository.countByMachineAndStatusIn(machine, MachineReconciliationService.IN_STOCK))
+                .thenReturn(17);
+
+        var resultado = service.align(CODE);
+
+        ArgumentCaptor<MovementInventory> movimento = ArgumentCaptor.forClass(MovementInventory.class);
+        verify(movementRepository).save(movimento.capture());
+        assertThat(movimento.getValue().getQuantity()).isEqualTo(17);
+
+        assertThat(resultado.created()).isZero();
+        assertThat(resultado.stockAfter()).isEqualTo(17);
+        verify(registerRepository, never()).save(any());
+    }
+
+    /** Acertar o que já bate criaria linha fantasma ou movimento sem sentido. */
+    @Test
+    @DisplayName("Acertar o que já bate é recusado")
+    void acertarOQueJaBateEhRecusado() {
+        machineExists();
+        currentStockIs(17);
+        when(registerRepository.countByMachineAndStatusIn(machine, MachineReconciliationService.IN_STOCK))
+                .thenReturn(17);
+
+        assertThatThrownBy(() -> service.align(CODE))
+                .isInstanceOf(ReconciliationMismatchException.class)
+                .hasMessageContaining("já batem");
+
+        // Ler o estoque faz parte da conta; o que não pode é gravar.
+        verify(movementRepository, never()).save(any());
+        verify(registerRepository, never()).save(any());
+    }
+
     // ─── A regra do status (Parte 4) ─────────────────────────────────────────
 
     /**
