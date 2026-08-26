@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.contact.CreateContactDTO;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.SecurityConfiguration;
@@ -35,6 +36,10 @@ class ContactControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean
+    private PermissionService permissionService;
 
     @MockitoBean
     private TokenService tokenService;

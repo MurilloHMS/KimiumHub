@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.security;
 
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.domain.entities.auth.User;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -13,7 +14,11 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import org.springframework.security.core.GrantedAuthority;
+
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class SecurityFilter extends OncePerRequestFilter {
@@ -23,6 +28,9 @@ public class SecurityFilter extends OncePerRequestFilter {
 
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    PermissionService permissionService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -45,7 +53,7 @@ public class SecurityFilter extends OncePerRequestFilter {
                             new UsernamePasswordAuthenticationToken(
                                     user,
                                     null,
-                                    user.getAuthorities()
+                                    authoritiesOf((User) user)
                             );
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
@@ -53,6 +61,22 @@ public class SecurityFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * As roles da pessoa mais as permissões de tela dela.
+     *
+     * A soma acontece **aqui**, e não em `User.getAuthorities()`, porque
+     * entidade não injeta repositório — e as permissões vêm de uma consulta. O
+     * filtro é onde o acesso ao banco já mora.
+     *
+     * As roles continuam: `hasRole('CLIENTE')` do `SecurityConfiguration`
+     * depende delas, e o portal do cliente não participa do sistema de telas.
+     */
+    private List<GrantedAuthority> authoritiesOf(User user) {
+        List<GrantedAuthority> authorities = new ArrayList<>(user.getAuthorities());
+        authorities.addAll(permissionService.authoritiesOf(user.getId()));
+        return authorities;
     }
 
     private String recoverToken(HttpServletRequest request){

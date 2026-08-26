@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.user.AuthenticationDTO;
 import com.proautokimium.api.Application.DTOs.user.RegisterDTO;
 import com.proautokimium.api.Infrastructure.exceptions.auth.token.TokenInvalidException;
@@ -59,6 +60,10 @@ class AuthenticationControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean
+    private PermissionService permissionService;
 
     @MockitoBean
     private AuthenticationManager authenticationManager;

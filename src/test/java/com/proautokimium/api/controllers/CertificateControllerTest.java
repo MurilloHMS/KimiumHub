@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.certificate.CertificateBatchDTO;
 import com.proautokimium.api.Application.DTOs.certificate.CertificateHolderDTO;
 import com.proautokimium.api.Infrastructure.interfaces.certificate.CertificateGenerator;
@@ -43,6 +44,10 @@ class CertificateControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean
+    private PermissionService permissionService;
 
     @MockitoBean
     private CertificateHolderRepository repository;

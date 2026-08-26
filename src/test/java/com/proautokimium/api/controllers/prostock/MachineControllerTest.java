@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers.prostock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDivergenceDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.ReconcileDTO;
@@ -46,6 +47,8 @@ class MachineControllerTest {
     @MockitoBean MachineService service;
     @MockitoBean RegisterService registerService;
     @MockitoBean TokenService tokenService;
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean PermissionService permissionService;
     @MockitoBean AuthenticationManager authenticationManager;
     @MockitoBean UserRepository userRepository;
     @MockitoBean MachineAlertService alertService;

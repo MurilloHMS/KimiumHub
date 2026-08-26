@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.secrets.CreateSecretRequestDTO;
 import com.proautokimium.api.Infrastructure.exceptions.secrets.SecretExpiredException;
 import com.proautokimium.api.Infrastructure.exceptions.secrets.SecretNotFoundException;
@@ -35,6 +36,8 @@ class PublicSecretControllerTest {
     @Autowired ObjectMapper objectMapper;
     @MockitoBean PublicSecretService publicSecretService;
     @MockitoBean TokenService tokenService;
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean PermissionService permissionService;
     @MockitoBean AuthenticationManager authenticationManager;
     @MockitoBean UserRepository userRepository;
 

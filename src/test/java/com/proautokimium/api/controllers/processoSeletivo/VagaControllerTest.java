@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers.processoSeletivo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.vaga.CreateVagaDTO;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.vaga.ResponseVagaDTO;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.vaga.UpdateVagaDTO;
@@ -42,6 +43,8 @@ class VagaControllerTest {
     @Autowired ObjectMapper objectMapper;
     @MockitoBean VagaService vagaService;
     @MockitoBean private TokenService tokenService;
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean private PermissionService permissionService;
     @MockitoBean private AuthenticationManager authenticationManager;
     @MockitoBean private UserRepository userRepository;
 

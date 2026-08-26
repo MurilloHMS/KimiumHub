@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.partners.CreateEmployeeRequestDTO;
 import com.proautokimium.api.Application.DTOs.partners.EmployeeDTO;
 import com.proautokimium.api.Application.DTOs.partners.EmployeeResponseDTO;
@@ -40,6 +41,8 @@ class EmployeeControllerTest {
     @Autowired ObjectMapper objectMapper;
     @MockitoBean EmployeeService employeeService;
     @MockitoBean TokenService tokenService;
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean PermissionService permissionService;
     @MockitoBean AuthenticationManager authenticationManager;
     @MockitoBean UserRepository userRepository;
 

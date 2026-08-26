@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.profile.ProfileCreateDto;
 import com.proautokimium.api.Application.DTOs.profile.ProfileResponseDto;
 import com.proautokimium.api.Infrastructure.converters.ProfileConverter;
@@ -43,6 +44,8 @@ class VCardControllerTest {
     @MockitoBean ProfileService profileService;
     @MockitoBean ProfileConverter converter;
     @MockitoBean TokenService tokenService;
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean PermissionService permissionService;
     @MockitoBean AuthenticationManager authenticationManager;
     @MockitoBean UserRepository userRepository;
 

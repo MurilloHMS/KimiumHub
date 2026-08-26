@@ -1,5 +1,6 @@
 package com.proautokimium.api.controllers;
 
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.home.HomeSummaryDTO;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.SecurityConfiguration;
@@ -34,6 +35,8 @@ class HomeControllerTest {
 
     @MockitoBean HomeSummaryService service;
     @MockitoBean TokenService tokenService;
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean PermissionService permissionService;
     @MockitoBean AuthenticationManager authenticationManager;
     @MockitoBean UserRepository userRepository;
 

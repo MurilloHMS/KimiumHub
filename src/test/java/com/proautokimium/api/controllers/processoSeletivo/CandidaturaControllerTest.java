@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers.processoSeletivo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.CreateCandidaturaDTO;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.candidaturas.ResponseCandidaturaDTO;
 import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.CandidaturaAlreadyExistsException;
@@ -41,6 +42,8 @@ class CandidaturaControllerTest {
     @Autowired ObjectMapper objectMapper;
     @MockitoBean CandidaturaService candidaturaService;
     @MockitoBean private TokenService tokenService;
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean private PermissionService permissionService;
     @MockitoBean private AuthenticationManager authenticationManager;
     @MockitoBean private UserRepository userRepository;
 
