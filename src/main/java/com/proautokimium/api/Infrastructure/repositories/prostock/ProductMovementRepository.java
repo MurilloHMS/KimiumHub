@@ -18,9 +18,17 @@ public interface ProductMovementRepository extends JpaRepository<MovementInvento
      * O último movimento é o estoque atual: a base guarda o valor absoluto
      * resultante, não a diferença.
      *
-     * Empate de data resolve pelo id, só para o resultado ser determinístico.
-     * Dois lançamentos no mesmo instante já são ambíguos por natureza, e a
-     * ordenação não conserta isso — só evita que a resposta mude a cada consulta.
+     * Ordena por `createdAt`, e **não** por `movementDate`. A diferença não é
+     * estilo: `movement_date` é `date`, sem hora, então dois lançamentos do
+     * mesmo dia empatavam e o desempate caía no id — um UUID aleatório. O
+     * estoque atual era sorteado entre os movimentos do dia. Ver a V83.
+     *
+     * `movementDate` continua sendo quando a movimentação aconteceu, e serve
+     * para relatório. Estoque atual é o último **registrado**: uma entrada
+     * lançada com data retroativa não pode mudar o estoque de hoje.
+     *
+     * O id fica de desempate para as linhas antigas, que a V83 nivelou em
+     * meia-noite — arbitrário, mas ao menos estável entre consultas.
      */
-    Optional<MovementInventory> findTopByProductOrderByMovementDateDescIdDesc(ProductInventory product);
+    Optional<MovementInventory> findTopByProductOrderByCreatedAtDescIdDesc(ProductInventory product);
 }

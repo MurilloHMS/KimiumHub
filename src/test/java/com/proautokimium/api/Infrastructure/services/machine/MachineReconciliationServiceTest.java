@@ -69,7 +69,7 @@ class MachineReconciliationServiceTest {
     private void currentStockIs(int quantity) {
         MovementInventory last = new MovementInventory();
         last.setQuantity(quantity);
-        when(movementRepository.findTopByProductOrderByMovementDateDescIdDesc(machine))
+        when(movementRepository.findTopByProductOrderByCreatedAtDescIdDesc(machine))
                 .thenReturn(Optional.of(last));
     }
 
@@ -188,7 +188,7 @@ class MachineReconciliationServiceTest {
     @DisplayName("Máquina nova, sem histórico, entra a partir de zero")
     void maquinaSemHistoricoComecaDoZero() {
         machineExists();
-        when(movementRepository.findTopByProductOrderByMovementDateDescIdDesc(machine))
+        when(movementRepository.findTopByProductOrderByCreatedAtDescIdDesc(machine))
                 .thenReturn(Optional.empty());
 
         service.reconcile(entrada(3));

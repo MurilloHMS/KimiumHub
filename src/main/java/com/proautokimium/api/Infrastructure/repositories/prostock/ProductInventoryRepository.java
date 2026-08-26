@@ -22,12 +22,21 @@ public interface ProductInventoryRepository extends JpaRepository<ProductInvento
     /** Os produtos que também são máquina — o que antes era `type='MACHINE'`. */
     List<ProductInventory> findByIsMachineTrue();
 
+    /**
+     * Produtos cujo **último** movimento ficou abaixo do mínimo.
+     *
+     * Ordenava por `movementDate`, que é `date` e não tem hora: o
+     * `MAX(movementDate)` casava com TODOS os lançamentos do dia, não com o
+     * último. Um produto que caiu abaixo do mínimo de manhã e foi reposto à
+     * tarde continuava no alerta — e ainda vinha repetido na lista, uma vez por
+     * lançamento do dia. Ver a V83.
+     */
     @Query("""
         SELECT p
         FROM ProductInventory p
         JOIN p.movements m
-        WHERE m.movementDate = (
-            SELECT MAX(m2.movementDate)
+        WHERE m.createdAt = (
+            SELECT MAX(m2.createdAt)
             FROM MovementInventory m2
             WHERE m2.product = p
         )
