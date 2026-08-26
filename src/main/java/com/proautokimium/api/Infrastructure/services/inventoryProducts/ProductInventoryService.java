@@ -94,10 +94,16 @@ public class ProductInventoryService {
                 .orElseThrow(ProductNotFoundException::new);
 
         var movements = productMovementRepository.findMovementByProductId(product.getId());
+
+        // Ordena por `createdAt`, e não por `movementDate`: a segunda é `date`,
+        // sem hora, e dois lançamentos do mesmo dia empatavam. A tela lê o
+        // último item desta lista como estoque atual — com empate, ela lia um
+        // qualquer do dia.
         return movements.stream()
-                .sorted(Comparator.comparing(MovementInventory::getMovementDate))
+                .sorted(Comparator.comparing(MovementInventory::getCreatedAt))
                 .map(m -> new ProductMovementDTO(
                         m.getMovementDate(),
+                        m.getCreatedAt(),
                         m.getQuantity(),
                         m.getProduct().getSystemCode()
                 )).toList();
@@ -205,7 +211,7 @@ public class ProductInventoryService {
         			.values()
         			.stream()
         			.map(list -> list.stream()
-        					.max(Comparator.comparing(MovementInventory::getMovementDate))
+        					.max(Comparator.comparing(MovementInventory::getCreatedAt))
         					.orElse(null))
         			.filter(Objects::nonNull)
         			
@@ -214,7 +220,7 @@ public class ProductInventoryService {
         			.values()
         			.stream()
         			.map(l -> l.stream()
-        					.max(Comparator.comparing(MovementInventory::getMovementDate))
+        					.max(Comparator.comparing(MovementInventory::getCreatedAt))
         					.orElse(null))
         			.filter(Objects::nonNull)
         			.collect(Collectors.toList());

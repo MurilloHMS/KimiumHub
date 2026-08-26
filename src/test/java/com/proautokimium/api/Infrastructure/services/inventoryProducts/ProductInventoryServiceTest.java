@@ -4,6 +4,7 @@ import com.proautokimium.api.Application.DTOs.prostock.product.ProductMovementDT
 import com.proautokimium.api.Infrastructure.exceptions.product.ProductNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.prostock.ProductInventoryRepository;
 import com.proautokimium.api.Infrastructure.repositories.prostock.ProductMovementRepository;
+import com.proautokimium.api.domain.entities.prostock.MovementInventory;
 import com.proautokimium.api.domain.entities.prostock.ProductInventory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -83,7 +87,7 @@ class ProductInventoryServiceTest {
         when(productInventoryRepository.findBySystemCode("NAO-EXISTE")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.includeMovement(
-                new ProductMovementDTO(null, 10, "NAO-EXISTE")))
+                new ProductMovementDTO(null, null, 10, "NAO-EXISTE")))
                 .isInstanceOf(ProductNotFoundException.class);
 
         // Sem isto o movimento era gravado com product_id nulo: um lançamento
@@ -178,5 +182,52 @@ class ProductInventoryServiceTest {
         return new MockMultipartFile("file", "produtos.xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "conteudo".getBytes());
+    }
+
+    // ─── A ordem das movimentações ───────────────────────────────────────────
+
+    private MovementInventory movimento(ProductInventory product, int quantity,
+                                        LocalDateTime quando, int segundo) {
+        MovementInventory movement = new MovementInventory();
+        movement.setProduct(product);
+        movement.setQuantity(quantity);
+        movement.setMovementDate(quando);
+        movement.setCreatedAt(OffsetDateTime.of(2026, 9, 10, 8, 0, segundo, 0, ZoneOffset.UTC));
+        return movement;
+    }
+
+    /**
+     * **O teste do bug de 2026-08-26.**
+     *
+     * A tela lê o último item desta lista como estoque atual. Ordenando por
+     * `movementDate` — que é `date`, sem hora — dois lançamentos do mesmo dia
+     * empatam, e qual vinha por último era acaso: o estoque de uma máquina foi
+     * de 2 para 0 numa entrega de uma unidade só.
+     *
+     * A lista chega do repositório fora de ordem de propósito. Se alguém voltar
+     * a ordenar por `movementDate`, este teste quebra.
+     */
+    @Test
+    @DisplayName("Movimentações do mesmo dia saem na ordem em que foram registradas")
+    void movimentacoesDoMesmoDiaSaemNaOrdemDeRegistro() {
+        ProductInventory product = new ProductInventory();
+        product.setSystemCode("MAQ-001");
+
+        LocalDateTime mesmoDia = LocalDateTime.of(2026, 9, 10, 0, 0);
+
+        when(productInventoryRepository.findBySystemCode("MAQ-001"))
+                .thenReturn(Optional.of(product));
+        when(productMovementRepository.findMovementByProductId(any()))
+                .thenReturn(List.of(
+                        movimento(product, 0, mesmoDia, 3),
+                        movimento(product, 2, mesmoDia, 1),
+                        movimento(product, 1, mesmoDia, 2)));
+
+        List<ProductMovementDTO> movimentos = service.findAllMovementsByProduct("MAQ-001");
+
+        assertThat(movimentos).extracting(ProductMovementDTO::quantity)
+                .containsExactly(2, 1, 0);
+        // O último da lista é o estoque atual, e é isso que a tela lê.
+        assertThat(movimentos.get(movimentos.size() - 1).quantity()).isZero();
     }
 }

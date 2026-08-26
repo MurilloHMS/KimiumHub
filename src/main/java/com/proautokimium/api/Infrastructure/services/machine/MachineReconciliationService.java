@@ -162,7 +162,7 @@ public class MachineReconciliationService {
     /** Sem movimento nenhum o estoque é zero — não é erro, é máquina nova. */
     private int currentStock(ProductInventory machine) {
         return movementRepository
-                .findTopByProductOrderByMovementDateDescIdDesc(machine)
+                .findTopByProductOrderByCreatedAtDescIdDesc(machine)
                 .map(MovementInventory::getQuantity)
                 .orElse(0);
     }
