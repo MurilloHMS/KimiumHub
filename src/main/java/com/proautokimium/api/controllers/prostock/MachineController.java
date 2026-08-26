@@ -2,8 +2,10 @@ package com.proautokimium.api.controllers.prostock;
 
 import com.proautokimium.api.Application.DTOs.machine.MachineAlertConfigDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.CreateRegisterDTO;
+import com.proautokimium.api.Application.DTOs.prostock.machine.ReconcileDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.UpdateRegisterDTO;
 import com.proautokimium.api.Infrastructure.services.machine.MachineAlertService;
+import com.proautokimium.api.Infrastructure.services.machine.MachineReconciliationService;
 import com.proautokimium.api.Infrastructure.services.machine.MachineService;
 import com.proautokimium.api.Infrastructure.services.machine.RegisterService;
 import jakarta.validation.Valid;
@@ -27,6 +29,9 @@ public class MachineController {
 
     @Autowired
     private MachineAlertService alertService;
+
+    @Autowired
+    private MachineReconciliationService reconciliationService;
 
     @GetMapping
     public ResponseEntity<Object> getMachines(){
@@ -95,5 +100,18 @@ public class MachineController {
         return sent > 0
                 ? ResponseEntity.ok(sent + " e-mail(s) de teste enfileirado(s).")
                 : ResponseEntity.badRequest().body("Selecione ao menos um destinatario e salve antes de testar.");
+    }
+
+    /**
+     * Lança o estoque da máquina e ajusta a programação, numa transação só.
+     *
+     * Não existe endpoint para "só criar programação" ou "só lançar movimento"
+     * de máquina — para isso continuam as telas de sempre. Este existe para os
+     * dois acontecerem juntos ou nenhum acontecer.
+     */
+    @PostMapping("/reconcile")
+    public ResponseEntity<?> reconcile(@RequestBody @Valid ReconcileDTO dto){
+        reconciliationService.reconcile(dto);
+        return ResponseEntity.ok("Estoque e programação atualizados.");
     }
 }

@@ -7,6 +7,7 @@ import com.proautokimium.api.Infrastructure.security.SecurityConfiguration;
 import com.proautokimium.api.Infrastructure.security.TokenService;
 import com.proautokimium.api.Infrastructure.services.machine.MachineAlertService;
 import com.proautokimium.api.Infrastructure.services.machine.MachineService;
+import com.proautokimium.api.Infrastructure.services.machine.MachineReconciliationService;
 import com.proautokimium.api.Infrastructure.services.machine.RegisterService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,10 @@ class MachineControllerTest {
     @MockitoBean AuthenticationManager authenticationManager;
     @MockitoBean UserRepository userRepository;
     @MockitoBean MachineAlertService alertService;
+    // Dependência nova do controller: sem ela o @WebMvcTest não monta o
+    // contexto, e a falha aparece como "no qualifying bean" em todo teste da
+    // classe — não só no que exercita a conciliação.
+    @MockitoBean MachineReconciliationService reconciliationService;
 
     private final UUID machineId = UUID.randomUUID();
 
