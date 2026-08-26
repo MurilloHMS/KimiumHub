@@ -8,8 +8,11 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * O que uma pessoa pode, no formato que o Spring Security entende.
@@ -49,6 +52,30 @@ public class PermissionService {
         return codes.stream()
                 .map(code -> (GrantedAuthority) new SimpleGrantedAuthority(code))
                 .toList();
+    }
+
+    /**
+     * O que a pessoa pode, agrupado por tela — o formato que o front consome.
+     *
+     * Mapa e não lista: o guard precisa responder "entra nesta tela?" a cada
+     * item de menu e a cada render, e com lista isso seria varrer duzentas
+     * strings procurando prefixo. Com mapa é uma busca direta.
+     *
+     * Reaproveita o mesmo cache: é a mesma leitura, em outro arranjo.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, List<String>> permissionsByScreen(String userId) {
+        Map<String, List<String>> porTela = new LinkedHashMap<>();
+
+        for (GrantedAuthority authority : authoritiesOf(userId)) {
+            String[] partes = authority.getAuthority().split(":", 2);
+            // Role (`ROLE_ADMIN`) não é permissão de tela. Sem esta linha, ela
+            // viraria uma "tela" chamada ROLE_ADMIN no mapa do front.
+            if (partes.length != 2) continue;
+            porTela.computeIfAbsent(partes[0], tela -> new ArrayList<>()).add(partes[1]);
+        }
+
+        return porTela;
     }
 
     /**
