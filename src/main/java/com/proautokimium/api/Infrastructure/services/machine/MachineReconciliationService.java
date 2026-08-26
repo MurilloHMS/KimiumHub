@@ -71,6 +71,47 @@ public class MachineReconciliationService {
     }
 
     /**
+     * Quanto o estoque anda quando o status de uma programação muda.
+     *
+     * Lógica pura de propósito: sem repositório e sem entidade, ela se testa
+     * com uma linha por caso — e é ela que decide se a tela pergunta algo.
+     *
+     * A regra é "só ENTREGUE", mas com uma segunda metade que não é óbvia: o
+     * ajuste só vale quando o **outro lado** da transição está em estoque. Sem
+     * isso, AGUARDANDO_AQUISICAO → ENTREGUE baixaria 1 de um estoque onde a
+     * máquina nunca entrou.
+     */
+    public static int stockDeltaFor(MachineStatus before, MachineStatus after) {
+        // Linha nova não tem "antes". Nascer em estoque é entrada.
+        if (before == null) return IN_STOCK.contains(after) ? 1 : 0;
+
+        if (IN_STOCK.contains(before) && after == MachineStatus.ENTREGUE) return -1;
+        if (before == MachineStatus.ENTREGUE && IN_STOCK.contains(after)) return 1;
+
+        return 0;
+    }
+
+    /**
+     * Lança a movimentação de uma programação que mudou de lado.
+     *
+     * Reaproveita o `currentStock` e o `saveMovement` do `reconcile`, então
+     * continua existindo **um único lugar** que escreve movimento de máquina.
+     *
+     * Chamado de dentro do `RegisterService`, que já é `@Transactional`: a
+     * linha e o movimento caem juntos ou não caem.
+     */
+    @Transactional
+    public void applyScheduleStockChange(ProductInventory machine, int delta, LocalDateTime when){
+        if(delta == 0) return;
+
+        int resulting = currentStock(machine) + delta;
+        if(resulting < 0){
+            throw new ReconciliationMismatchException("O lançamento deixaria o estoque em " + resulting + ".");
+        }
+        saveMovement(machine, resulting, when);
+    }
+
+    /**
      * Nascem sem cliente e sem previsão.
      *
      * É de propósito: a máquina chegou, mas ninguém decidiu o destino dela

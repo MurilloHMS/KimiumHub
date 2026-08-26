@@ -15,5 +15,8 @@ public record CreateRegisterDTO(
         LocalDateTime previsaoEntrega,
         String tecnico,
         String regiao,
-        String consultor
+        String consultor,
+
+        /** Ver `UpdateRegisterDTO.adjustStock`. */
+        boolean adjustStock
 ) { }

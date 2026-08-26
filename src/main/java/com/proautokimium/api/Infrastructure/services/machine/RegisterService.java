@@ -7,8 +7,10 @@ import com.proautokimium.api.Application.DTOs.prostock.machine.ScheduleChangeDTO
 import com.proautokimium.api.Infrastructure.repositories.prostock.MachineScheduleChangeRepository;
 import com.proautokimium.api.Infrastructure.repositories.prostock.ProductInventoryRepository;
 import com.proautokimium.api.domain.entities.prostock.machine.MachineScheduleChange;
+import com.proautokimium.api.domain.enums.MachineStatus;
 import com.proautokimium.api.domain.exceptions.machine.MotivoDaAlteracaoObrigatorioException;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import com.proautokimium.api.Infrastructure.repositories.prostock.RegisterRepository;
@@ -28,13 +30,18 @@ public class RegisterService {
     private final ProductInventoryRepository productRepository;
 
     private final MachineScheduleChangeRepository scheduleChangeRepository;
+    private final MachineReconciliationService reconciliationService;
+    private final Clock clock;
 
     public RegisterService(RegisterRepository registerRepository,
                            ProductInventoryRepository productRepository,
-                           MachineScheduleChangeRepository scheduleChangeRepository) {
+                           MachineScheduleChangeRepository scheduleChangeRepository,
+                           MachineReconciliationService reconciliationService, Clock clock) {
         this.scheduleChangeRepository = scheduleChangeRepository;
         this.registerRepository = registerRepository;
         this.productRepository = productRepository;
+        this.reconciliationService = reconciliationService;
+        this.clock = clock;
     }
 
     /**
@@ -58,6 +65,11 @@ public class RegisterService {
 
         MachineRegister register = new MachineRegister(machine);
         register.fromDto(dto);
+
+        if(dto.adjustStock()){
+            int delta = MachineReconciliationService.stockDeltaFor(null, register.getStatus());
+            reconciliationService.applyScheduleStockChange(machine, delta, LocalDateTime.now(clock));
+        }
         return registerRepository.save(register);
     }
 
@@ -69,9 +81,16 @@ public class RegisterService {
         // Lido ANTES do fromDto: depois dele a data antiga já se perdeu, e não
         // há como saber de onde a previsão veio.
         LocalDateTime anterior = register.getPrevisaoEntrega();
+        // Pelo mesmo motivo, e é o que decide se o estoque anda.
+        MachineStatus statusAnterior = register.getStatus();
 
         register.fromDto(dto);
         registrarAlteracaoDePrevisao(register, anterior, dto);
+
+        if(dto.adjustStock()){
+            int delta = MachineReconciliationService.stockDeltaFor(statusAnterior, register.getStatus());
+            reconciliationService.applyScheduleStockChange(register.getMachine(), delta, LocalDateTime.now(clock));
+        }
 
         return registerRepository.save(register);
     }

@@ -40,6 +40,7 @@ import static org.mockito.Mockito.*;
 class MachineReconciliationServiceTest {
 
     private static final String CODE = "MAQ-001";
+    private static final LocalDateTime FIXED_DATE = LocalDateTime.of(2026, 9, 10, 12, 0);
 
     @Mock private ProductInventoryRepository productRepository;
     @Mock private ProductMovementRepository movementRepository;
@@ -276,6 +277,109 @@ class MachineReconciliationServiceTest {
                 .hasMessageContaining("estoque em -1");
 
         verifyNoInteractions(registerRepository);
+        verify(movementRepository, never()).save(any());
+    }
+
+    // ─── A regra do status (Parte 4) ─────────────────────────────────────────
+
+    /**
+     * `stockDeltaFor` é lógica pura: sem banco, sem entidade, sem mock.
+     *
+     * Por isso cada caso é uma linha. É ela que decide se a tela vai perguntar
+     * alguma coisa antes de gravar — errar aqui não quebra teste nenhum de
+     * integração, só separa os dois números em silêncio.
+     */
+    @Test
+    @DisplayName("Sair do estoque para ENTREGUE tira 1; voltar devolve 1")
+    void entregarTiraEDevolverRepoe() {
+        assertThat(MachineReconciliationService.stockDeltaFor(
+                MachineStatus.DISPONIVEL, MachineStatus.ENTREGUE)).isEqualTo(-1);
+        assertThat(MachineReconciliationService.stockDeltaFor(
+                MachineStatus.RESERVADA, MachineStatus.ENTREGUE)).isEqualTo(-1);
+        assertThat(MachineReconciliationService.stockDeltaFor(
+                MachineStatus.REFORMA, MachineStatus.ENTREGUE)).isEqualTo(-1);
+
+        assertThat(MachineReconciliationService.stockDeltaFor(
+                MachineStatus.ENTREGUE, MachineStatus.DISPONIVEL)).isEqualTo(1);
+    }
+
+    /**
+     * **A segunda metade da regra, a que não é óbvia.**
+     *
+     * "Só ENTREGUE" sozinho baixaria 1 de um estoque onde a máquina nunca
+     * entrou: AGUARDANDO_AQUISICAO é máquina que ainda não chegou, e a Parte 3
+     * nem a lista como candidata a sair.
+     */
+    @Test
+    @DisplayName("Entregar o que nunca esteve em estoque não mexe em nada")
+    void entregarOQueNaoEstavaEmEstoqueNaoMexe() {
+        assertThat(MachineReconciliationService.stockDeltaFor(
+                MachineStatus.AGUARDANDO_AQUISICAO, MachineStatus.ENTREGUE)).isZero();
+        assertThat(MachineReconciliationService.stockDeltaFor(
+                MachineStatus.LIBERAR_EQUIPAMENTOS, MachineStatus.ENTREGUE)).isZero();
+        assertThat(MachineReconciliationService.stockDeltaFor(
+                MachineStatus.ENTREGUE, MachineStatus.AGUARDANDO_AQUISICAO)).isZero();
+    }
+
+    /** Reservar não é entregar: a máquina continua no galpão. */
+    @Test
+    @DisplayName("Andar entre status de estoque não move nada")
+    void andarDentroDoEstoqueNaoMove() {
+        assertThat(MachineReconciliationService.stockDeltaFor(
+                MachineStatus.DISPONIVEL, MachineStatus.RESERVADA)).isZero();
+        assertThat(MachineReconciliationService.stockDeltaFor(
+                MachineStatus.RESERVADA, MachineStatus.REFORMA)).isZero();
+        assertThat(MachineReconciliationService.stockDeltaFor(
+                MachineStatus.DISPONIVEL, MachineStatus.DISPONIVEL)).isZero();
+    }
+
+    /**
+     * Linha nova não tem "antes". Nascer em estoque é entrada; nascer ENTREGUE
+     * é registro do que já saiu, e não pode somar nada.
+     */
+    @Test
+    @DisplayName("Linha nova soma 1 só se nascer em estoque")
+    void linhaNovaSomaSoSeNascerEmEstoque() {
+        assertThat(MachineReconciliationService.stockDeltaFor(null, MachineStatus.DISPONIVEL)).isEqualTo(1);
+        assertThat(MachineReconciliationService.stockDeltaFor(null, MachineStatus.REFORMA)).isEqualTo(1);
+
+        assertThat(MachineReconciliationService.stockDeltaFor(null, MachineStatus.ENTREGUE)).isZero();
+        assertThat(MachineReconciliationService.stockDeltaFor(null, MachineStatus.AGUARDANDO_AQUISICAO)).isZero();
+    }
+
+    // ─── O lançamento do ±1 ──────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("applyScheduleStockChange grava o estoque somado")
+    void ajusteDeProgramacaoGravaOEstoque() {
+        currentStockIs(4);
+
+        service.applyScheduleStockChange(machine, 1, FIXED_DATE);
+
+        ArgumentCaptor<MovementInventory> movimento = ArgumentCaptor.forClass(MovementInventory.class);
+        verify(movementRepository).save(movimento.capture());
+        assertThat(movimento.getValue().getQuantity()).isEqualTo(5);
+        assertThat(movimento.getValue().getMovementDate()).isEqualTo(FIXED_DATE);
+    }
+
+    /** Transição que não cruza a fronteira não pode virar linha no histórico. */
+    @Test
+    @DisplayName("Delta zero não grava movimento nenhum")
+    void deltaZeroNaoGravaMovimento() {
+        service.applyScheduleStockChange(machine, 0, FIXED_DATE);
+
+        verifyNoInteractions(movementRepository);
+    }
+
+    @Test
+    @DisplayName("Ajuste que deixaria o estoque negativo é recusado")
+    void ajusteNegativoEhRecusado() {
+        currentStockIs(0);
+
+        assertThatThrownBy(() -> service.applyScheduleStockChange(machine, -1, FIXED_DATE))
+                .isInstanceOf(ReconciliationMismatchException.class)
+                .hasMessageContaining("estoque em -1");
+
         verify(movementRepository, never()).save(any());
     }
 
