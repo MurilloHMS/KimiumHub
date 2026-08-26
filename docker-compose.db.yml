@@ -1,4 +1,9 @@
-version: '3.8'
+# Banco de DESENVOLVIMENTO. A produção fica na Locaweb e não passa por aqui.
+#
+# Mesmo sendo desenvolvimento, este banco guarda uma cópia da produção — é onde
+# migration é ensaiada antes de subir. Sem volume nomeado, o dado vivia na
+# camada gravável do contêiner: sobrevivia a `restart`, mas sumia num
+# `docker compose down` ou num reset do Docker Desktop.
 
 services:
 
@@ -12,6 +17,15 @@ services:
       POSTGRES_DB: flexpro
     ports:
       - "5432:5432"
+    # `/var/lib/postgresql`, e NÃO `/var/lib/postgresql/data`.
+    #
+    # O PostgreSQL 18 mudou o layout: o PGDATA virou
+    # `/var/lib/postgresql/18/docker`, e é o diretório pai que a imagem declara
+    # como volume. Montar no caminho antigo falha em silêncio — o contêiner
+    # sobe, o volume nomeado existe, e o dado continua indo para um volume
+    # anônimo que a recriação abandona.
+    volumes:
+      - postgres-data:/var/lib/postgresql
     networks:
       - postgres-compose-network
 
@@ -24,8 +38,24 @@ services:
       PGADMIN_DEFAULT_PASSWORD: root123
     ports:
       - "15432:80"
+    # Servidores cadastrados e senhas salvas também viviam na camada gravável:
+    # cada recriação do contêiner obrigava a cadastrar a conexão de novo.
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
     networks:
       - postgres-compose-network
+
+# Volume nomeado, e não bind mount para uma pasta do projeto: no Windows o
+# Postgres precisa de permissão de dono no diretório de dados, e uma pasta
+# vinda do disco do host quebra o initdb com "data directory has wrong
+# ownership". O volume nomeado fica dentro da VM do Docker, onde isso funciona.
+#
+# Anônimo o volume já era — a imagem cria um sozinha. A diferença do nomeado é
+# sobreviver à recriação do contêiner e ter nome fixo, que é o que permite
+# fazer backup dele e saber qual é qual.
+volumes:
+  postgres-data:
+  pgadmin-data:
 
 networks:
   postgres-compose-network:
