@@ -4,6 +4,7 @@ import com.proautokimium.api.Application.DTOs.prostock.machine.CreateRegisterDTO
 import com.proautokimium.api.Application.DTOs.prostock.machine.ResponseRegisterDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.UpdateRegisterDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.ScheduleChangeDTO;
+import com.proautokimium.api.Application.DTOs.prostock.machine.ScheduleSlipDTO;
 import com.proautokimium.api.Infrastructure.repositories.prostock.MachineScheduleChangeRepository;
 import com.proautokimium.api.Infrastructure.repositories.prostock.ProductInventoryRepository;
 import com.proautokimium.api.domain.entities.prostock.machine.MachineScheduleChange;
@@ -123,6 +124,27 @@ public class RegisterService {
     }
 
     /** O histórico de adiamentos de uma programação, mais recente primeiro. */
+    /**
+     * Todos os adiamentos desde uma data, com de quem são.
+     *
+     * O Hub agrega isto: quantos no mês, quantas máquinas adiaram mais de uma
+     * vez, qual o atraso mediano. A conta fica na tela de propósito — são
+     * dezenas de linhas por mês, e cada recorte novo viraria um endpoint novo.
+     */
+    public List<ScheduleSlipDTO> slipsSince(LocalDateTime from){
+        return scheduleChangeRepository.findSince(from)
+                .stream()
+                .map(c -> new ScheduleSlipDTO(
+                        c.getRegister().getId(),
+                        c.getRegister().getNomeCliente(),
+                        c.getRegister().getMachine().getName(),
+                        c.getPrevisaoAnterior(),
+                        c.getPrevisaoNova(),
+                        c.getMotivo(),
+                        c.getChangedAt()
+                )).toList();
+    }
+
     public List<ScheduleChangeDTO> listarAlteracoesDePrevisao(UUID registerId){
         return scheduleChangeRepository.findByRegisterIdOrderByChangedAtDesc(registerId)
                 .stream()

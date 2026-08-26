@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.machine;
 
+import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDivergenceDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.ReconcileDTO;
 import com.proautokimium.api.Infrastructure.exceptions.product.ProductNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.prostock.ProductInventoryRepository;
@@ -15,8 +16,11 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -68,6 +72,51 @@ public class MachineReconciliationService {
         }
 
         saveMovement(machine, resulting, dto.movementDate());
+    }
+
+    /**
+     * As duas contagens de cada máquina, lado a lado.
+     *
+     * **Este método existe por causa de uma decisão de projeto.** O estoque de
+     * máquina é contado por dois caminhos — `products_movements` e as linhas de
+     * programação em estoque — e a escolha foi manter os dois sincronizados em
+     * vez de derivar um do outro. O custo assumido: todo caminho novo precisa
+     * lembrar de conciliar, e no dia em que alguém esquecer, os números separam
+     * em silêncio.
+     *
+     * É esse silêncio que isto quebra.
+     *
+     * Duas consultas agregadas, não uma por máquina: o Hub abre com isto, e um
+     * `findTop` por máquina viraria dezenas de idas ao banco.
+     */
+    @Transactional
+    public List<MachineDivergenceDTO> divergences() {
+        Map<UUID, Integer> stockByMachine = new HashMap<>();
+        for (Object[] row : movementRepository.findLatestQuantityByProduct()) {
+            stockByMachine.put((UUID) row[0], ((Number) row[1]).intValue());
+        }
+
+        Map<UUID, Integer> scheduledByMachine = new HashMap<>();
+        for (Object[] row : registerRepository.countInStockByMachine(IN_STOCK)) {
+            scheduledByMachine.put((UUID) row[0], ((Number) row[1]).intValue());
+        }
+
+        // Máquina sem movimento e sem programação conta zero dos dois lados —
+        // não é divergência, é máquina que nunca foi usada.
+        return productRepository.findByIsMachineTrue().stream()
+                .map(machine -> new MachineDivergenceDTO(
+                        machine.getId(),
+                        machine.getSystemCode(),
+                        machine.getName(),
+                        stockByMachine.getOrDefault(machine.getId(), 0),
+                        scheduledByMachine.getOrDefault(machine.getId(), 0)))
+                // Quem diverge primeiro, e entre os que divergem, a maior
+                // diferença no topo: é a ordem em que alguém vai querer resolver.
+                .sorted(Comparator
+                        .comparing(MachineDivergenceDTO::diverges).reversed()
+                        .thenComparing(dto -> Math.abs(dto.difference()), Comparator.reverseOrder())
+                        .thenComparing(MachineDivergenceDTO::name))
+                .toList();
     }
 
     /**

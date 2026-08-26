@@ -11,10 +11,12 @@ import com.proautokimium.api.Infrastructure.services.machine.RegisterService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
@@ -36,6 +38,18 @@ public class MachineController {
     @GetMapping
     public ResponseEntity<Object> getMachines(){
         return ResponseEntity.status(HttpStatus.OK).body(service.getAllMachines());
+    }
+
+    /**
+     * As duas contagens de cada máquina, para o Hub mostrar onde elas separaram.
+     *
+     * Devolve todas, não só as divergentes: ver que treze máquinas batem é
+     * metade da informação, e sem isso a lista vazia seria indistinguível de
+     * uma tela quebrada.
+     */
+    @GetMapping("/divergences")
+    public ResponseEntity<Object> getDivergences(){
+        return ResponseEntity.ok(reconciliationService.divergences());
     }
 
     /*
@@ -77,6 +91,18 @@ public class MachineController {
     @GetMapping("/register/{id}/schedule-changes")
     public ResponseEntity<?> getScheduleChanges(@PathVariable UUID id){
         return ResponseEntity.ok(registerService.listarAlteracoesDePrevisao(id));
+    }
+
+    /**
+     * Os adiamentos de um período, para o Hub agregar.
+     *
+     * `from` é obrigatório: sem recorte, isto cresceria para sempre e um dia
+     * traria três anos de histórico numa tela que só quer o mês.
+     */
+    @GetMapping("/register/schedule-changes")
+    public ResponseEntity<?> getScheduleSlips(
+            @RequestParam("from") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from){
+        return ResponseEntity.ok(registerService.slipsSince(from.atStartOfDay()));
     }
 
     @GetMapping("/register")

@@ -280,6 +280,89 @@ class MachineReconciliationServiceTest {
         verify(movementRepository, never()).save(any());
     }
 
+    // ─── As duas contagens (divergência) ─────────────────────────────────────
+
+    private ProductInventory maquina(String code, String name) {
+        ProductInventory machine = new ProductInventory();
+        machine.setSystemCode(code);
+        machine.setName(name);
+        machine.id = UUID.randomUUID();
+        return machine;
+    }
+
+    /**
+     * **O teste que justifica o endpoint.**
+     *
+     * Manter duas contagens do mesmo fato foi decisão de projeto, com o custo
+     * assumido de que alguém um dia esqueceria de conciliar. Sem isto, o dia em
+     * que separarem ninguém fica sabendo — a divergência só aparece contando na
+     * mão.
+     */
+    @Test
+    @DisplayName("Compara o estoque com a programação, máquina por máquina")
+    void comparaAsDuasContagens() {
+        ProductInventory lavadora = maquina("MAQ-001", "Lavadora");
+        ProductInventory esteira = maquina("MAQ-002", "Esteira");
+
+        when(productRepository.findByIsMachineTrue()).thenReturn(List.of(lavadora, esteira));
+        when(movementRepository.findLatestQuantityByProduct()).thenReturn(List.<Object[]>of(
+                new Object[]{lavadora.getId(), 5},
+                new Object[]{esteira.getId(), 2}));
+        when(registerRepository.countInStockByMachine(MachineReconciliationService.IN_STOCK))
+                .thenReturn(List.<Object[]>of(
+                        new Object[]{lavadora.getId(), 4L},
+                        new Object[]{esteira.getId(), 2L}));
+
+        var divergencias = service.divergences();
+
+        // A que diverge vem primeiro: é a ordem em que alguém vai resolver.
+        assertThat(divergencias.get(0).name()).isEqualTo("Lavadora");
+        assertThat(divergencias.get(0).difference()).isEqualTo(1);
+        assertThat(divergencias.get(0).diverges()).isTrue();
+
+        // A que bate continua na lista: ver que treze máquinas fecham é metade
+        // da informação, e sem isso lista vazia parece tela quebrada.
+        assertThat(divergencias.get(1).name()).isEqualTo("Esteira");
+        assertThat(divergencias.get(1).diverges()).isFalse();
+    }
+
+    /**
+     * Máquina sem movimento e sem programação não é divergência — é máquina que
+     * nunca foi usada. Tratar a ausência como erro encheria a lista de ruído.
+     */
+    @Test
+    @DisplayName("Máquina sem movimento e sem programação conta zero dos dois lados")
+    void maquinaNuncaUsadaNaoDiverge() {
+        ProductInventory nova = maquina("MAQ-003", "Frontal");
+
+        when(productRepository.findByIsMachineTrue()).thenReturn(List.of(nova));
+        when(movementRepository.findLatestQuantityByProduct()).thenReturn(List.<Object[]>of());
+        when(registerRepository.countInStockByMachine(MachineReconciliationService.IN_STOCK))
+                .thenReturn(List.<Object[]>of());
+
+        var divergencias = service.divergences();
+
+        assertThat(divergencias).hasSize(1);
+        assertThat(divergencias.get(0).stock()).isZero();
+        assertThat(divergencias.get(0).scheduled()).isZero();
+        assertThat(divergencias.get(0).diverges()).isFalse();
+    }
+
+    /** Sobra na programação é tão errado quanto sobra no estoque, e aparece negativo. */
+    @Test
+    @DisplayName("Programação a mais que o estoque dá diferença negativa")
+    void sobraNaProgramacaoEhNegativa() {
+        ProductInventory maquina = maquina("MAQ-004", "Capô");
+
+        when(productRepository.findByIsMachineTrue()).thenReturn(List.of(maquina));
+        when(movementRepository.findLatestQuantityByProduct())
+                .thenReturn(List.<Object[]>of(new Object[]{maquina.getId(), 2}));
+        when(registerRepository.countInStockByMachine(MachineReconciliationService.IN_STOCK))
+                .thenReturn(List.<Object[]>of(new Object[]{maquina.getId(), 3L}));
+
+        assertThat(service.divergences().get(0).difference()).isEqualTo(-1);
+    }
+
     // ─── A regra do status (Parte 4) ─────────────────────────────────────────
 
     /**

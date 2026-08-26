@@ -11,7 +11,9 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
@@ -49,6 +51,34 @@ public class GlobalExceptionHandler {
                 .orElse("Dados inválidos.");
 
         return build(HttpStatus.BAD_REQUEST, message, request);
+    }
+
+    /**
+     * Parâmetro obrigatório que não veio: 400, dizendo **qual**.
+     *
+     * Sem isto cai no `Exception.class` e sai como 500 "Erro interno no
+     * servidor" — quem chamou fica sem saber que esqueceu um parâmetro, e quem
+     * mantém vai procurar bug onde não tem. Mesma família do incidente de
+     * 2026-08-18, quando onze endpoints respondiam 500 para campo em branco.
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingParameter(
+            MissingServletRequestParameterException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST,
+                "O parâmetro '" + ex.getParameterName() + "' é obrigatório.", request);
+    }
+
+    /**
+     * Parâmetro com o tipo errado — uma data mal formatada, por exemplo.
+     *
+     * Também caía no 500. É erro de quem chamou, e a mensagem diz o que se
+     * esperava sem vazar o nome da classe Java para a tela.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST,
+                "O valor de '" + ex.getName() + "' não está no formato esperado.", request);
     }
 
     /**

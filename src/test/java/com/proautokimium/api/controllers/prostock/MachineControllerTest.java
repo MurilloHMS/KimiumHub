@@ -2,6 +2,7 @@ package com.proautokimium.api.controllers.prostock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDTO;
+import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDivergenceDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.ReconcileDTO;
 import com.proautokimium.api.domain.exceptions.machine.ReconciliationMismatchException;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
@@ -164,6 +165,60 @@ class MachineControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(
                         "Saída de 2 precisa de 2 programações, e vieram 1."));
+    }
+
+    // ─── Os dois insights novos do Hub ───────────────────────────────────────
+
+    /**
+     * A divergência expõe quanta máquina a empresa tem. Fica atrás de login
+     * como o resto — e o teste existe para ninguém deixar aberto sem perceber.
+     */
+    @Test
+    @DisplayName("GET api/machine/divergences - deve retornar 403 sem autenticação")
+    void divergenciasExigemAutenticacao() throws Exception {
+        mockMvc.perform(get("/api/machine/divergences"))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(reconciliationService);
+    }
+
+    /**
+     * As que batem vêm junto de propósito: sem elas, lista vazia seria
+     * indistinguível de tela quebrada.
+     */
+    @Test
+    @DisplayName("GET api/machine/divergences - devolve também as máquinas que batem")
+    @WithMockUser
+    void divergenciasIncluemAsQueBatem() throws Exception {
+        when(reconciliationService.divergences()).thenReturn(List.of(
+                new MachineDivergenceDTO(machineId, "MAQ-001", "Lavadora", 5, 4),
+                new MachineDivergenceDTO(UUID.randomUUID(), "MAQ-002", "Esteira", 3, 3)));
+
+        mockMvc.perform(get("/api/machine/divergences"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].name").value("Lavadora"));
+    }
+
+    /**
+     * Sem `from` o endpoint traria o histórico inteiro numa tela que só quer o
+     * mês. Obrigatório, e recusado com 400 — não com 500.
+     */
+    @Test
+    @DisplayName("GET api/machine/register/schedule-changes - sem `from` é 400")
+    @WithMockUser
+    void adiamentosSemPeriodoSaoRecusados() throws Exception {
+        mockMvc.perform(get("/api/machine/register/schedule-changes"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(registerService);
+    }
+
+    @Test
+    @DisplayName("GET api/machine/register/schedule-changes - deve retornar 403 sem autenticação")
+    void adiamentosExigemAutenticacao() throws Exception {
+        mockMvc.perform(get("/api/machine/register/schedule-changes?from=2026-09-01"))
+                .andExpect(status().isForbidden());
     }
 
 }
