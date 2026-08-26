@@ -21,5 +21,15 @@ public record UpdateRegisterDTO(
          * Preencher pela primeira vez não é adiamento — é completar cadastro, e
          * cobrar justificativa ali só ensina a digitar "ok" para passar da tela.
          */
-        String motivoAlteracaoPrevisao
+        String motivoAlteracaoPrevisao,
+        /**
+         * Pedido explícito para lançar a movimentação de estoque junto.
+         *
+         * Não é inferido do status de propósito: a importação de planilha usa o
+         * mesmo caminho, e inferir faria 200 linhas virarem 200 movimentações.
+         *
+         * Primitivo, não `Boolean`: quem não manda o campo — o desktop, a
+         * importação — cai em `false`, que é "não encoste no estoque".
+         */
+        boolean adjustStock
 ) { }

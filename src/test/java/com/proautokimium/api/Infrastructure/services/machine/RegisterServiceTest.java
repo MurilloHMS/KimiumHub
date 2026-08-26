@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.machine;
 
+import com.proautokimium.api.Application.DTOs.prostock.machine.CreateRegisterDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.UpdateRegisterDTO;
 import com.proautokimium.api.Infrastructure.repositories.prostock.MachineScheduleChangeRepository;
 import com.proautokimium.api.Infrastructure.repositories.prostock.ProductInventoryRepository;
@@ -9,15 +10,18 @@ import com.proautokimium.api.domain.entities.prostock.machine.MachineRegister;
 import com.proautokimium.api.domain.entities.prostock.machine.MachineScheduleChange;
 import com.proautokimium.api.domain.enums.MachineStatus;
 import com.proautokimium.api.domain.exceptions.machine.MotivoDaAlteracaoObrigatorioException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -46,8 +50,24 @@ class RegisterServiceTest {
     @Mock private RegisterRepository registerRepository;
     @Mock private ProductInventoryRepository productRepository;
     @Mock private MachineScheduleChangeRepository scheduleChangeRepository;
+    @Mock private MachineReconciliationService reconciliationService;
 
-    @InjectMocks private RegisterService service;
+    /**
+     * Construído na mão, não por `@InjectMocks`, porque o `Clock` não é mock:
+     * é um relógio parado de verdade. Um `Clock` mockado devolveria `null` no
+     * `instant()` e o `LocalDateTime.now(clock)` estouraria — e a data do
+     * movimento é justamente o que se quer afirmar.
+     */
+    private static final Clock CLOCK =
+            Clock.fixed(Instant.parse("2026-09-10T15:00:00Z"), ZoneId.of("America/Sao_Paulo"));
+
+    private RegisterService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new RegisterService(registerRepository, productRepository,
+                scheduleChangeRepository, reconciliationService, CLOCK);
+    }
 
     private MachineRegister registroCom(LocalDateTime previsao) {
         MachineRegister register = new MachineRegister(new ProductInventory());
@@ -55,10 +75,11 @@ class RegisterServiceTest {
         return register;
     }
 
+    /** `adjustStock` fica em false: estes testes são sobre o motivo, não estoque. */
     private UpdateRegisterDTO dto(LocalDateTime previsao, String motivo) {
         return new UpdateRegisterDTO("Cliente", (short) 1, "Solicitante",
                 MachineStatus.DISPONIVEL, "Observação", previsao,
-                "Técnico", "Região", "Consultor", motivo);
+                "Técnico", "Região", "Consultor", motivo, false);
     }
 
     /**
@@ -202,5 +223,118 @@ class RegisterServiceTest {
 
         // A segunda alteração parte de onde a primeira chegou.
         assertThat(captor.getAllValues().get(1).getPrevisaoAnterior()).isEqualTo(SEMANA_QUE_VEM);
+    }
+
+    // ─── Parte 4: a programação mexendo no estoque ───────────────────────────
+
+    private static final UUID MACHINE_ID = UUID.randomUUID();
+
+    private ProductInventory maquina() {
+        ProductInventory machine = new ProductInventory();
+        machine.setMachine(true);
+        return machine;
+    }
+
+    private void maquinaExiste(ProductInventory machine) {
+        when(productRepository.findById(MACHINE_ID)).thenReturn(Optional.of(machine));
+    }
+
+    private CreateRegisterDTO createDto(MachineStatus status, boolean adjustStock) {
+        return new CreateRegisterDTO(MACHINE_ID, "Cliente", (short) 1, "Solicitante",
+                status, "Observação", null, "Técnico", "Região", "Consultor", adjustStock);
+    }
+
+    private UpdateRegisterDTO updateDto(MachineStatus status, boolean adjustStock) {
+        return new UpdateRegisterDTO("Cliente", (short) 1, "Solicitante",
+                status, "Observação", ONTEM, "Técnico", "Região", "Consultor", null, adjustStock);
+    }
+
+    private MachineRegister registroComStatus(ProductInventory machine, MachineStatus status) {
+        MachineRegister register = new MachineRegister(machine);
+        register.setPrevisaoEntrega(ONTEM);
+        register.setStatus(status);
+        return register;
+    }
+
+    /**
+     * **O teste que protege a importação de planilha.**
+     *
+     * `programacao-import` cria as linhas pelo mesmo `create`. Se o ajuste
+     * fosse inferido do status em vez de pedido, importar 200 linhas lançaria
+     * 200 movimentações — e o estoque de todas as máquinas iria para o espaço
+     * de uma vez.
+     */
+    @Test
+    @DisplayName("Sem adjustStock, criar linha não encosta no estoque")
+    void criarSemPedirAjusteNaoMexeNoEstoque() {
+        maquinaExiste(maquina());
+        when(registerRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.create(createDto(MachineStatus.DISPONIVEL, false));
+
+        verifyNoInteractions(reconciliationService);
+    }
+
+    @Test
+    @DisplayName("Com adjustStock, linha nova em estoque soma 1 na data do relógio")
+    void criarComAjusteSoma() {
+        ProductInventory machine = maquina();
+        maquinaExiste(machine);
+        when(registerRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.create(createDto(MachineStatus.DISPONIVEL, true));
+
+        verify(reconciliationService).applyScheduleStockChange(
+                eq(machine), eq(1), eq(LocalDateTime.now(CLOCK)));
+    }
+
+    /** Nascer ENTREGUE é registro do que já saiu — não pode somar nada. */
+    @Test
+    @DisplayName("Linha nova nascendo ENTREGUE não soma")
+    void criarEntregueNaoSoma() {
+        ProductInventory machine = maquina();
+        maquinaExiste(machine);
+        when(registerRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        service.create(createDto(MachineStatus.ENTREGUE, true));
+
+        verify(reconciliationService).applyScheduleStockChange(eq(machine), eq(0), any());
+    }
+
+    @Test
+    @DisplayName("Marcar ENTREGUE baixa 1")
+    void entregarBaixaUm() {
+        ProductInventory machine = maquina();
+        registroExistenteQueSalva(registroComStatus(machine, MachineStatus.DISPONIVEL));
+
+        service.update(updateDto(MachineStatus.ENTREGUE, true), REGISTER_ID);
+
+        verify(reconciliationService).applyScheduleStockChange(eq(machine), eq(-1), any());
+    }
+
+    /**
+     * O caso que ele reportou em 2026-08-26: voltar de ENTREGUE não devolvia a
+     * máquina para o estoque.
+     */
+    @Test
+    @DisplayName("Voltar de ENTREGUE devolve 1 ao estoque")
+    void voltarDeEntregueDevolveUm() {
+        ProductInventory machine = maquina();
+        registroExistenteQueSalva(registroComStatus(machine, MachineStatus.ENTREGUE));
+
+        service.update(updateDto(MachineStatus.DISPONIVEL, true), REGISTER_ID);
+
+        verify(reconciliationService).applyScheduleStockChange(eq(machine), eq(1), any());
+    }
+
+    /** O status antigo é lido antes do `fromDto`; sem isso o delta sairia zero. */
+    @Test
+    @DisplayName("Sem adjustStock, mudar status não encosta no estoque")
+    void mudarStatusSemPedirAjusteNaoMexe() {
+        registroExistenteQueSalva(registroComStatus(maquina(), MachineStatus.DISPONIVEL));
+
+        service.update(updateDto(MachineStatus.ENTREGUE, false), REGISTER_ID);
+
+        verifyNoInteractions(reconciliationService);
     }
 }
