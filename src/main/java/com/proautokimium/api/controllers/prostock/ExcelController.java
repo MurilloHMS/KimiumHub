@@ -3,6 +3,7 @@ package com.proautokimium.api.controllers.prostock;
 import com.proautokimium.api.Infrastructure.services.excel.ExcelService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,6 +23,7 @@ public class ExcelController {
         this.excelService = excelService;
     }
 
+    @PreAuthorize("hasAuthority('company/excel:INCLUIR')")
     @PostMapping(path = "/remove-credentials", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<byte[]> patchExcel(@RequestParam("files") List<MultipartFile> files) throws IOException {
 

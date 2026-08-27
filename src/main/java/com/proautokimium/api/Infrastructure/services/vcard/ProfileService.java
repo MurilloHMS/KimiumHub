@@ -10,6 +10,7 @@ import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.Profile;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.enums.UserRole;
+import com.proautokimium.api.domain.exceptions.partners.AccountNotLinkedToEmployeeException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import com.proautokimium.api.domain.exceptions.profile.ProfileAlreadyExistsException;
 import com.proautokimium.api.domain.exceptions.profile.ProfileNotFoundException;
@@ -22,6 +23,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.text.Normalizer;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
+import com.proautokimium.api.domain.enums.Permission;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,6 +39,7 @@ public class ProfileService {
     private final UserRepository userRepository;
     private final EmployeeRepository employeeRepository;
     private final ProfileImageStorageService profileImageStorage;
+    private final PermissionService permissionService;
 
     public List<ProfileResponseDto> getAll() {
         return repository.findAll()
@@ -91,14 +96,23 @@ public class ProfileService {
 
         Employee employee = resolveEmployee(login);
         if (employee == null) {
-            throw new EmployeeNotFoundException();
+            throw new AccountNotLinkedToEmployeeException();
         }
 
         ProfileResponseDto profileDto = repository.findByEmployee_Id(employee.getId())
                 .map(converter::toDto)
                 .orElse(null);
 
-        boolean canCreate = user.getRoles().contains(UserRole.VENDEDOR);
+        // Criar o cartão digital é `perfil:INCLUIR`, e não mais a role VENDEDOR.
+        //
+        // A tela é de todo mundo — cada um vê o próprio perfil. O que era só do
+        // vendedor é criar o cartão, e cravar isso aqui como role obrigava a
+        // mexer em código toda vez que alguém de fora de vendas precisasse.
+        //
+        // É por isso que a checagem é do domínio e não um `@PreAuthorize`:
+        // recusar o endpoint inteiro tiraria de quem não pode criar até o
+        // direito de ler o próprio perfil.
+        boolean canCreate = permissionService.can(user.getId(), "perfil", Permission.INCLUIR);
 
         String empresa = employee.getCompany() != null ? employee.getCompany().getName() : null;
         String email = user.getEmail() != null ? user.getEmail() :
@@ -118,7 +132,7 @@ public class ProfileService {
     public ProfileResponseDto createMyProfile(String login, ProfileCreateDto dto) {
         Employee employee = resolveEmployee(login);
         if (employee == null) {
-            throw new EmployeeNotFoundException();
+            throw new AccountNotLinkedToEmployeeException();
         }
 
         if (repository.existsByEmployee_Id(employee.getId())) {
@@ -150,7 +164,7 @@ public class ProfileService {
     public ProfileResponseDto updateMyProfile(String login, ProfileUpdateDto dto) {
         Employee employee = resolveEmployee(login);
         if (employee == null) {
-            throw new EmployeeNotFoundException();
+            throw new AccountNotLinkedToEmployeeException();
         }
 
         Profile profile = repository.findByEmployee_Id(employee.getId())
@@ -168,7 +182,7 @@ public class ProfileService {
     public String uploadMyProfileImage(String login, MultipartFile file) throws IOException {
         Employee employee = resolveEmployee(login);
         if (employee == null) {
-            throw new EmployeeNotFoundException();
+            throw new AccountNotLinkedToEmployeeException();
         }
 
         Profile profile = repository.findByEmployee_Id(employee.getId())

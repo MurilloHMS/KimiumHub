@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -23,6 +24,7 @@ public class FaqController {
     @Autowired
     private FaqService service;
 
+    @PreAuthorize("hasAuthority('faq/manager:CONSULTAR')")
     @GetMapping()
     @Operation(summary = "Obtém todas as perguntas", description = "Retorna lista com perguntas e respostas")
     public ResponseEntity<Object> getAll() {
@@ -35,6 +37,7 @@ public class FaqController {
         return ResponseEntity.ok(service.getAllPublic());
     }
 
+    @PreAuthorize("hasAuthority('faq/manager:INCLUIR')")
     @PostMapping
     @Operation(summary = "Cria uma pergunta", description = "Cria o cadastro com os dados enviados")
     public ResponseEntity<Object> create(@RequestBody FaqCreateDTO dto){
@@ -42,6 +45,7 @@ public class FaqController {
         return ResponseEntity.status(HttpStatus.CREATED).body("Faq criado com sucesso!");
     }
 
+    @PreAuthorize("hasAuthority('faq/manager:ALTERAR')")
     @PutMapping("/{id}")
     @Operation(summary = "Atualiza uma pergunta", description = "Atualiza o cadastro com os dados enviados")
     public ResponseEntity<Object> update(@RequestBody FaqUpdateDTO dto, @PathVariable("id") UUID id){
@@ -49,6 +53,7 @@ public class FaqController {
         return ResponseEntity.status(HttpStatus.OK).body("Faq atualizado com sucesso!");
     }
 
+    @PreAuthorize("hasAuthority('faq/manager:ALTERAR')")
     @PutMapping("/{id}/arquivar")
     @Operation(summary = "Arquiva FAQ", description = "Altera o Status para Arquivado")
     public ResponseEntity<Object> arquivar(@PathVariable("id") UUID id){
@@ -56,6 +61,7 @@ public class FaqController {
         return ResponseEntity.status(HttpStatus.OK).body("Faq arquivado com sucesso!");
     }
 
+    @PreAuthorize("hasAuthority('faq/manager:ALTERAR')")
     @PutMapping("/{id}/rascunho")
     @Operation(summary = "Marca FAQ como Rascunho", description = "Altera o Status para Rascunho")
     public ResponseEntity<Object> rascunho(@PathVariable("id") UUID id){
@@ -63,6 +69,7 @@ public class FaqController {
         return ResponseEntity.status(HttpStatus.OK).body("Faq marcado como rascunho com sucesso!");
     }
 
+    @PreAuthorize("hasAuthority('faq/manager:ALTERAR')")
     @PutMapping("/{id}/publicar")
     @Operation(summary = "Publica FAQ", description = "Altera o Status para Publicado")
     public ResponseEntity<Object> publicar(@PathVariable("id") UUID id){

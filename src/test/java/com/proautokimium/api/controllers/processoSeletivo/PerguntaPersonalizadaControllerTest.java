@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers.processoSeletivo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.perguntas.CreatePerguntaDTO;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.perguntas.UpdatePerguntaDTO;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
@@ -38,12 +39,14 @@ class PerguntaPersonalizadaControllerTest {
     @Autowired ObjectMapper objectMapper;
     @MockitoBean PerguntaPersonalizadaService perguntaService;
     @MockitoBean TokenService tokenService;
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean PermissionService permissionService;
     @MockitoBean AuthenticationManager authenticationManager;
     @MockitoBean UserRepository userRepository;
 
     @Test
     @DisplayName("POST /api/pergunta/{id} - deve criar pergunta e retornar 200")
-    @WithMockUser
+    @WithMockUser(authorities = {"rh/painel-de-vagas:ALTERAR", "rh/painel-de-vagas:CONSULTAR", "rh/painel-de-vagas:INCLUIR"})
     void deveCriarPerguntaComSucesso() throws Exception {
         UUID vagaId = UUID.randomUUID();
         CreatePerguntaDTO dto = new CreatePerguntaDTO("Qual sua experiência?", TipoPergunta.TEXTO_LIVRE, true, (short) 1);
@@ -72,7 +75,7 @@ class PerguntaPersonalizadaControllerTest {
 
     @Test
     @DisplayName("PUT /api/pergunta - deve atualizar pergunta e retornar 200")
-    @WithMockUser
+    @WithMockUser(authorities = {"rh/painel-de-vagas:ALTERAR", "rh/painel-de-vagas:CONSULTAR", "rh/painel-de-vagas:INCLUIR"})
     void deveAtualizarPerguntaComSucesso() throws Exception {
         UpdatePerguntaDTO dto = new UpdatePerguntaDTO(UUID.randomUUID(), "Nova pergunta?", TipoPergunta.SIM_NAO, true, (short) 2);
         doNothing().when(perguntaService).update(any(UpdatePerguntaDTO.class));
@@ -87,7 +90,7 @@ class PerguntaPersonalizadaControllerTest {
 
     @Test
     @DisplayName("GET /api/pergunta/{id} - deve retornar perguntas da vaga")
-    @WithMockUser
+    @WithMockUser(authorities = {"rh/painel-de-vagas:ALTERAR", "rh/painel-de-vagas:CONSULTAR", "rh/painel-de-vagas:INCLUIR"})
     void deveRetornarPerguntasPorVaga() throws Exception {
         UUID vagaId = UUID.randomUUID();
         when(perguntaService.listarPerguntasPorVaga(vagaId)).thenReturn(List.of());

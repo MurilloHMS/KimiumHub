@@ -30,21 +30,25 @@ public class VCardController {
 
     // ── Admin CRUD ────────────────────────────────────────────────────────────
 
+    @PreAuthorize("hasAuthority('profile-manager:CONSULTAR')")
     @GetMapping
     public ResponseEntity<List<ProfileResponseDto>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
+    @PreAuthorize("hasAuthority('profile-manager:CONSULTAR')")
     @GetMapping("/{id}")
     public ResponseEntity<ProfileResponseDto> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
+    @PreAuthorize("hasAuthority('profile-manager:INCLUIR')")
     @PostMapping
     public ResponseEntity<ProfileResponseDto> create(@RequestBody ProfileCreateDto dto) {
         return ResponseEntity.ok(service.create(dto));
     }
 
+    @PreAuthorize("hasAuthority('profile-manager:ALTERAR')")
     @PutMapping("/{id}")
     public ResponseEntity<ProfileResponseDto> update(
             @PathVariable UUID id,
@@ -52,6 +56,7 @@ public class VCardController {
         return ResponseEntity.ok(service.update(id, dto));
     }
 
+    @PreAuthorize("hasAuthority('profile-manager:EXCLUIR')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);
@@ -60,29 +65,40 @@ public class VCardController {
 
     // ── Self-service (Meu Perfil) ─────────────────────────────────────────────
 
+    @PreAuthorize("hasAuthority('perfil:CONSULTAR')")
     @GetMapping("/me")
     public ResponseEntity<MyProfileResponseDto> getMyProfile(Authentication authentication) {
         return ResponseEntity.ok(service.getMyProfile(authentication.getName()));
     }
 
+    /**
+     * Criar o próprio cartão.
+     *
+     * Era `hasRole('VENDEDOR')`, e a V88 moveu a decisão para a permissão. Se
+     * este endpoint tivesse ficado na role, a tela mentiria: ela passou a
+     * mostrar o botão por `perfil:INCLUIR`, e quem tivesse a permissão sem a
+     * role veria o botão e levaria 403 ao clicar.
+     */
     @PostMapping("/me")
-    @PreAuthorize("hasRole('VENDEDOR')")
+    @PreAuthorize("hasAuthority('perfil:INCLUIR')")
     public ResponseEntity<ProfileResponseDto> createMyProfile(
             Authentication authentication,
             @RequestBody ProfileCreateDto dto) {
         return ResponseEntity.ok(service.createMyProfile(authentication.getName(), dto));
     }
 
+    /** Editar o próprio cartão — quem cria, mantém. */
     @PutMapping("/me")
-    @PreAuthorize("hasRole('VENDEDOR')")
+    @PreAuthorize("hasAuthority('perfil:ALTERAR')")
     public ResponseEntity<ProfileResponseDto> updateMyProfile(
             Authentication authentication,
             @RequestBody ProfileUpdateDto dto) {
         return ResponseEntity.ok(service.updateMyProfile(authentication.getName(), dto));
     }
 
+    /** A foto é parte do cartão, e segue a mesma permissão de editá-lo. */
     @PostMapping("/me/image")
-    @PreAuthorize("hasRole('VENDEDOR')")
+    @PreAuthorize("hasAuthority('perfil:ALTERAR')")
     public ResponseEntity<String> uploadMyProfileImage(
             Authentication authentication,
             @RequestParam("file") MultipartFile file) throws IOException {

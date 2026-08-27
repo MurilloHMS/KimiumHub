@@ -37,6 +37,7 @@ public class ReimbursementController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAuthority('documentos/rh/reimbursements:INCLUIR')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Solicita reembolso", description = "Funcionário solicita reembolso com comprovante")
     public ResponseEntity<ReimbursementResponseDTO> request(
@@ -52,23 +53,24 @@ public class ReimbursementController {
     }
 
     @PostMapping("/{id}/approve")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/reimbursements:ALTERAR')")
     public ResponseEntity<ReimbursementResponseDTO> approve(@PathVariable UUID id, @Valid @RequestBody ReviewReimbursementDTO request, Authentication auth) {
         return ResponseEntity.ok(service.approve(id, request, auth.getName()));
     }
 
     @PostMapping("/{id}/reject")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/reimbursements:ALTERAR')")
     public ResponseEntity<ReimbursementResponseDTO> reject(@PathVariable UUID id, @Valid @RequestBody ReviewReimbursementDTO request, Authentication auth) {
         return ResponseEntity.ok(service.reject(id, request, auth.getName()));
     }
 
     @PostMapping("/{id}/pay")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/reimbursements:CONFIGURAR')")
     public ResponseEntity<ReimbursementResponseDTO> pay(@PathVariable UUID id, @Valid @RequestBody PayReimbursementDTO request) {
         return ResponseEntity.ok(service.pay(id, request));
     }
 
+    @PreAuthorize("hasAuthority('documentos/rh/reimbursements:CONSULTAR')")
     @GetMapping("/me")
     @Operation(summary = "Meus reembolsos", description = "Lista os reembolsos do funcionário autenticado")
     public ResponseEntity<List<ReimbursementResponseDTO>> mine(Authentication auth) {
@@ -76,18 +78,19 @@ public class ReimbursementController {
     }
 
     @GetMapping("/employee/{employeeId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/reimbursements:CONSULTAR')")
     public ResponseEntity<List<ReimbursementResponseDTO>> byEmployee(@PathVariable UUID employeeId) {
         return ResponseEntity.ok(service.listByEmployee(employeeId));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/reimbursements:CONSULTAR')")
     @Operation(summary = "Gerenciador de reembolsos", description = "Lista todos os reembolsos, opcionalmente filtrados por status")
     public ResponseEntity<List<ReimbursementResponseDTO>> listAll(@RequestParam(required = false) ReimbursementStatus status) {
         return ResponseEntity.ok(service.listAll(status));
     }
 
+    @PreAuthorize("hasAnyAuthority('rh/reimbursements:BAIXAR', 'documentos/rh/reimbursements:BAIXAR')")
     @GetMapping("/{id}/receipt")
     @Operation(summary = "Baixa comprovante", description = "Download do comprovante (dono ou RH/ADMIN)")
     public ResponseEntity<byte[]> receipt(@PathVariable UUID id, Authentication auth) throws IOException {

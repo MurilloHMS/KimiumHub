@@ -4,6 +4,7 @@ import com.proautokimium.api.Application.DTOs.processoSeletivo.perguntas.CreateP
 import com.proautokimium.api.Application.DTOs.processoSeletivo.perguntas.UpdatePerguntaDTO;
 import com.proautokimium.api.Infrastructure.services.processoSeletivo.PerguntaPersonalizadaService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -18,18 +19,21 @@ public class PerguntaPersonalizadaController {
         this.perguntaService = perguntaService;
     }
 
+    @PreAuthorize("hasAuthority('rh/painel-de-vagas:INCLUIR')")
     @PostMapping("/{id}")
     public ResponseEntity<?> create(@RequestBody CreatePerguntaDTO dto, @PathVariable UUID id){
         perguntaService.create(dto, id);
         return ResponseEntity.ok("Pergunta criada com sucesso");
     }
 
+    @PreAuthorize("hasAuthority('rh/painel-de-vagas:ALTERAR')")
     @PutMapping
     public ResponseEntity<?> update(@RequestBody UpdatePerguntaDTO dto){
         perguntaService.update(dto);
         return ResponseEntity.ok("Pergunta atualizada com sucesso");
     }
 
+    @PreAuthorize("hasAuthority('rh/painel-de-vagas:CONSULTAR')")
     @GetMapping("/{id}")
     public ResponseEntity<?> get(@PathVariable UUID id){
         return ResponseEntity.ok(perguntaService.listarPerguntasPorVaga(id));

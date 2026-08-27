@@ -28,7 +28,7 @@ public class GalleryController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'DESIGN')")
+    @PreAuthorize("hasAuthority('documentos/galeria:INCLUIR')")
     @Operation(summary = "Cria um arquivo na galeria", description = "Cria os arquivos da galeria de documentos da empresa")
     public ResponseEntity<GalleryDocumentResponseDTO> create(
             @RequestPart("file") MultipartFile file,
@@ -38,12 +38,14 @@ public class GalleryController {
         return ResponseEntity.status(HttpStatus.CREATED).body(document);
     }
 
+    @PreAuthorize("hasAuthority('documentos/galeria:CONSULTAR')")
     @GetMapping
     @Operation(summary = "Retorna todos os arquivos", description = "Retorna todos os arquivos da galeria")
     public ResponseEntity<List<GalleryDocumentResponseDTO>> getAll() {
         return ResponseEntity.ok(galleryDocumentService.list());
     }
 
+    @PreAuthorize("hasAuthority('documentos/galeria:BAIXAR')")
     @GetMapping("/{id}/file")
     @Operation(summary = "Baixar arquivo", description = "Baixa o arquivo da galeria pelo ID")
     public ResponseEntity<byte[]> getFile(@PathVariable UUID id) {
@@ -57,7 +59,7 @@ public class GalleryController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DESIGN')")
+    @PreAuthorize("hasAuthority('documentos/galeria:EXCLUIR')")
     @Operation(summary = "Deleta um arquivo", description = "Deleta o arquivo da galeria pelo ID")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         galleryDocumentService.delete(id);

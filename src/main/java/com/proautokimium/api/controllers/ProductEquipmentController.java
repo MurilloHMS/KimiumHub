@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,12 +28,14 @@ public class ProductEquipmentController {
     @Autowired
     private EquipmentGuideService service;
 
+    @PreAuthorize("hasAuthority('company/equipments:CONSULTAR')")
     @GetMapping
     @Operation(summary = "Obtém todos os equipamentos", description = "Retorna lista com todos os equipamentos")
     public ResponseEntity<Object> getAll(){
         return ResponseEntity.ok(service.getAll());
     }
 
+    @PreAuthorize("hasAuthority('company/equipments:INCLUIR')")
     @PostMapping
     @Operation(summary = "Cria um equipamento", description = "Registra um novo equipamento")
     public ResponseEntity<Object> create(@RequestPart("data") ProductEquipmentCreateDTO dto,
@@ -45,6 +48,7 @@ public class ProductEquipmentController {
         return ResponseEntity.ok().body("Equipamento cadastrado com sucesso!");
     }
 
+    @PreAuthorize("hasAuthority('company/equipments:ALTERAR')")
     @PutMapping("/{id}")
     @Operation(summary = "Atualiza um equipamento", description = "Atualiza um novo equipamento")
     public ResponseEntity<Object> update(@PathVariable("id") UUID uuid,
@@ -58,6 +62,7 @@ public class ProductEquipmentController {
         return ResponseEntity.ok().body("Equipamento atualizado com sucesso!");
     }
 
+    @PreAuthorize("hasAuthority('company/equipments:EXCLUIR')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Deleta um equipamento", description = "Exclui o registro de um equipamento")
     public ResponseEntity<Object> delete(@PathVariable("id") UUID uuid) {

@@ -25,6 +25,11 @@ import java.util.List;
 @RequestMapping("api/customer")
 @Tag(name = "Clientes", description = "CRUD Clientes")
 public class CustomerController {
+    /** O cadastro de clientes e o disparo de e-mails leem os mesmos registros. */
+    private static final String LER_CLIENTES =
+            "hasAnyAuthority('company/customers:CONSULTAR', "
+            + "'communication/email:CONSULTAR', 'communication/newsletter:CONSULTAR')";
+
 
     @Autowired
     CustomerService service;
@@ -34,6 +39,7 @@ public class CustomerController {
      * @param customer DTO - Dados do cliente
      * @return HttpStatus Created (201)
      */
+    @PreAuthorize("hasAuthority('company/customers:INCLUIR')")
     @PostMapping
     @Operation(summary = "Cria cliente", description = "Registra novo cliente")
     public ResponseEntity<String> CreateCustomer(@RequestBody @NotNull @Valid CustomerRequestDTO customer){
@@ -46,6 +52,7 @@ public class CustomerController {
      * @param file Planilha Excel com dados dos clientes
      * @return HttpStatus Created (201)
      */
+    @PreAuthorize("hasAuthority('company/customers:INCLUIR')")
     @PostMapping("upload")
     @Operation(summary = "Cria cliente via Excel", description = "Cadastra clientes via planilha")
     public ResponseEntity<String> createCustomersByExcel(@RequestParam MultipartFile file){
@@ -57,6 +64,7 @@ public class CustomerController {
      * Obtém lista de clientes
      * @return Lista de clientes
      */
+    @PreAuthorize(LER_CLIENTES)
     @GetMapping
     @Operation(summary = "Obtém lista de clientes", description = "Retorna lista de cadastro dos clientes")
     public ResponseEntity<Object> GetAllCustomer(){
@@ -67,6 +75,7 @@ public class CustomerController {
      * Obtém lista de e-mail dos clientes
      * @return Lista de E-mails
      */
+    @PreAuthorize(LER_CLIENTES)
     @GetMapping("only-email")
     @Operation(summary = "Obtém lista de emails", description = "Retorna lista de emails dos clientes")
     public ResponseEntity<Object> GetAllCustomerEmail(){
@@ -78,6 +87,7 @@ public class CustomerController {
      * @param dto Dados para atualizar cliente
      * @return HttpStatus OK (200)
      */
+    @PreAuthorize("hasAuthority('company/customers:ALTERAR')")
     @PutMapping
     @Operation(summary = "Atualiza Cliente", description = "Recebe dados para atualizar cliente")
     public ResponseEntity<String> UpdateCustomer(@RequestBody @NotNull @Valid CustomerRequestDTO dto){
@@ -90,6 +100,7 @@ public class CustomerController {
      * @param codParceiro Código interno Sankhya
      * @return HttpStatus OK (200)
      */
+    @PreAuthorize("hasAuthority('company/customers:EXCLUIR')")
     @DeleteMapping
     @Operation(summary = "Deleta cliente", description = "Excluí do sistema o registro do cliente")
     public ResponseEntity<String> DeleteCustomer(@RequestBody @NotNull @Valid String codParceiro){
@@ -98,6 +109,7 @@ public class CustomerController {
     }
 
     /** Quem tem acesso ao portal por este cliente. */
+    @PreAuthorize("hasAuthority('company/customers:CONSULTAR')")
     @GetMapping("{codParceiro}/users")
     @Operation(summary = "Acessos do cliente")
     public ResponseEntity<List<ClientUserDTO>> users(@PathVariable String codParceiro) {
@@ -107,7 +119,7 @@ public class CustomerController {
     /** Convida uma pessoa desta empresa para o portal do cliente. */
     @PostMapping("{codParceiro}/users")
     @Operation(summary = "Convida um acesso", description = "Cria o convite de primeiro acesso e envia o link por e-mail")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH', 'MARKETING')")
+    @PreAuthorize("hasAuthority('company/customers:CONFIGURAR')")
     public ResponseEntity<String> invite(@PathVariable String codParceiro,
                                          @RequestBody @Valid ClientInviteDTO dto) {
         service.inviteAccess(codParceiro, dto.email());

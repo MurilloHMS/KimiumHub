@@ -29,7 +29,15 @@ public final class SecurityPaths {
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
             "/api/candidatura",
-            "/api/auth/first-access/**"
+            // As duas do fluxo de primeiro acesso, e só elas.
+            //
+            // Era "/api/auth/first-access/**", e esse padrão casa TAMBÉM o
+            // caminho base — o que deixava `POST /api/auth/first-access`, que
+            // dispara o e-mail de acesso, aberto para qualquer um. Quem valida
+            // o token e quem escolhe a senha ainda não fez login e precisa
+            // passar; quem MANDA o convite é o RH.
+            "/api/auth/first-access/*/is-valid",
+            "/api/auth/first-access/*/sign-in"
     };
 
     private SecurityPaths(){}

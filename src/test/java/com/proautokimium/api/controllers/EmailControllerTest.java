@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.email.SmtpEmailRequestDTO;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.SecurityConfiguration;
@@ -36,12 +37,14 @@ class EmailControllerTest {
     @Autowired ObjectMapper objectMapper;
     @MockitoBean EmailService emailService;
     @MockitoBean TokenService tokenService;
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean PermissionService permissionService;
     @MockitoBean AuthenticationManager authenticationManager;
     @MockitoBean UserRepository userRepository;
 
     @Test
     @DisplayName("POST /api/email - deve criar email e retornar 200")
-    @WithMockUser
+    @WithMockUser(authorities = {"communication/email:ENVIAR", "communication/email:CONSULTAR"})
     void deveCriarEmailComSucesso() throws Exception {
         SmtpEmailRequestDTO dto = new SmtpEmailRequestDTO("remetente");
         doNothing().when(emailService).saveEmail(any(SmtpEmailRequestDTO.class));
@@ -67,7 +70,7 @@ class EmailControllerTest {
 
     @Test
     @DisplayName("GET /api/email - deve retornar todos os emails quando autenticado")
-    @WithMockUser
+    @WithMockUser(authorities = {"communication/email:ENVIAR", "communication/email:CONSULTAR"})
     void deveRetornarTodosOsEmailsAutenticado() throws Exception {
         EmailEntity entity = mock(EmailEntity.class);
         when(emailService.getAll()).thenReturn(Set.of(entity));

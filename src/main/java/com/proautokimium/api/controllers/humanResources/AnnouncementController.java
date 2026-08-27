@@ -30,12 +30,13 @@ public class AnnouncementController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/announcements:INCLUIR')")
     @Operation(summary = "Publica aviso", description = "Publica no mural e notifica todos os funcionários ativos")
     public ResponseEntity<AnnouncementResponseDTO> publish(@Valid @RequestBody CreateAnnouncementRequestDTO request, Authentication auth) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.publish(request, auth.getName()));
     }
 
+    @PreAuthorize("hasAnyAuthority('rh/announcements:CONSULTAR', 'documentos/rh/announcements:CONSULTAR')")
     @GetMapping
     @Operation(summary = "Lista avisos", description = "Mural completo, mais recente primeiro — aberto a qualquer funcionário autenticado")
     public ResponseEntity<List<AnnouncementResponseDTO>> listAll() {

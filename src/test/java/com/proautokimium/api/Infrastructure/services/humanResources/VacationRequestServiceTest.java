@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.CreateVacationRequestDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.CreateVacationByRhDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.EmployeeVacationOverviewDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.ReviewVacationRequestDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationRequestResponseDTO;
@@ -219,5 +220,85 @@ class VacationRequestServiceTest {
         when(employeeRepository.findByUsername("sem-vinculo")).thenReturn(Optional.empty());
 
         assertThrows(EmployeeNotFoundException.class, () -> service.getMyOverview("sem-vinculo"));
+    }
+
+    // ─── O saldo no lançamento do RH ─────────────────────────────────────────
+
+    /** O lançamento do RH nasce aprovado: quem lança não pede a si mesmo. */
+    private CreateVacationByRhDTO lancamento(Integer saldoInformado) {
+        return new CreateVacationByRhDTO(
+                UUID.randomUUID(),
+                LocalDate.of(2026, 9, 1),
+                LocalDate.of(2026, 9, 10),
+                saldoInformado,
+                "lançado pelo RH");
+    }
+
+    private void prepararLancamento() {
+        mockAuthenticatedEmployee();
+        when(employeeRepository.findById(any())).thenReturn(Optional.of(employee));
+        when(vacationRequestRepository.findOverlappingInTeam(eq(team), eq(employee), any(), any()))
+                .thenReturn(List.of());
+        when(vacationRequestRepository.save(any(VacationRequest.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+        when(brazilianBussinessCalculator.countBusinessDays(any(), any())).thenReturn(8L);
+    }
+
+    /**
+     * **O saldo informado é o saldo DEPOIS do lançamento.**
+     *
+     * Quando o RH digita o número, ele está corrigindo o cadastro — "esta
+     * pessoa fica com 10 dias" — e não dando uma entrada para descontar.
+     *
+     * O código fazia as duas coisas: gravava o valor digitado e descontava por
+     * cima. Lançar 10 dias informando saldo 10 terminava em 2, e o sintoma era
+     * o RH digitar o número certo e ver outro na tela.
+     */
+    @Test
+    @DisplayName("saldo informado é gravado como está, sem desconto por cima")
+    void saldoInformadoNaoEhDescontado() {
+        prepararLancamento();
+
+        service.createByRh(lancamento(10), LOGIN);
+
+        assertThat(employee.getVacationBalanceDays())
+                .as("o RH disse 10, e 10 é o que fica")
+                .isEqualTo(10);
+    }
+
+    /**
+     * **Zero é um saldo, não é "não informado".**
+     *
+     * É o caso que a checagem por `!= null` protege e uma por `> 0` quebraria:
+     * o RH lança as últimas férias da pessoa e diz que ela fica zerada. Se zero
+     * caísse no ramo do desconto, o saldo ficaria NEGATIVO — e ninguém olha um
+     * campo que já estava em zero.
+     */
+    @Test
+    @DisplayName("saldo informado como zero fica zero")
+    void saldoZeroFicaZero() {
+        prepararLancamento();
+
+        service.createByRh(lancamento(0), LOGIN);
+
+        assertThat(employee.getVacationBalanceDays()).isZero();
+    }
+
+    /**
+     * Em branco é o outro caso: usa o que o sistema já sabe e desconta.
+     *
+     * Sem este par, "não descontar quando informado" viraria "nunca descontar"
+     * num refactor, e o saldo pararia de cair sem ninguém notar.
+     */
+    @Test
+    @DisplayName("sem saldo informado, desconta os dias úteis do saldo atual")
+    void semSaldoInformadoDesconta() {
+        prepararLancamento();
+
+        service.createByRh(lancamento(null), LOGIN);
+
+        assertThat(employee.getVacationBalanceDays())
+                .as("12 de saldo menos 8 dias úteis")
+                .isEqualTo(4);
     }
 }

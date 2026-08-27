@@ -230,10 +230,6 @@ public class VacationRequestService {
 
         Employee reviewer = resolveEmployee(login);
 
-        if(dto.vacationBalanceDays() != null){
-            employee.setVacationBalanceDays(dto.vacationBalanceDays());
-        }
-
         if(employee.getTeam() != null){
             List<VacationRequest> overlapping = vacationRequestRepository.findOverlappingInTeam(
                     employee.getTeam(), employee, dto.startDate(), dto.endDate()
@@ -249,9 +245,26 @@ public class VacationRequestService {
 
         request.approve(reviewer, dto.notes(), LocalDateTime.now(clock));
 
-        int balance = employee.getVacationBalanceDays() != null ? employee.getVacationBalanceDays() : 0;
-        long businessDays = businessDayCalculator.countBusinessDays(dto.startDate(), dto.endDate());
-        employee.setVacationBalanceDays(balance - (int) businessDays);
+        // O saldo informado é o saldo DEPOIS deste lançamento, e não uma
+        // entrada para descontar.
+        //
+        // São duas intenções diferentes na mesma tela. Quando o RH digita o
+        // saldo, ele está corrigindo o cadastro: "esta pessoa fica com 10 dias".
+        // Quando deixa em branco, está usando o que o sistema já sabe, e aí o
+        // desconto é do sistema.
+        //
+        // O código fazia as duas: gravava o valor digitado e descontava por
+        // cima. Lançar 10 dias informando saldo 10 terminava com 2 — e o
+        // sintoma era o RH digitar o número certo e ver outro na tela.
+        if (dto.vacationBalanceDays() != null) {
+            employee.setVacationBalanceDays(dto.vacationBalanceDays());
+        } else {
+            int balance = employee.getVacationBalanceDays() != null
+                    ? employee.getVacationBalanceDays() : 0;
+            long businessDays = businessDayCalculator.countBusinessDays(
+                    dto.startDate(), dto.endDate());
+            employee.setVacationBalanceDays(balance - (int) businessDays);
+        }
         employeeRepository.save(employee);
 
         VacationRequest saved = vacationRequestRepository.save(request);

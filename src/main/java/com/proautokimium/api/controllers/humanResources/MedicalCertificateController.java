@@ -34,6 +34,7 @@ public class MedicalCertificateController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAuthority('documentos/rh/medical-certificates:INCLUIR')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Envia atestado", description = "Funcionário envia atestado por foto ou arquivo")
     public ResponseEntity<MedicalCertificateResponseDTO> submit(
@@ -48,6 +49,7 @@ public class MedicalCertificateController {
                 .body(service.submit(auth.getName(), startDate, endDate, submissionType, confirmedLegible, file));
     }
 
+    @PreAuthorize("hasAuthority('documentos/rh/medical-certificates:CONSULTAR')")
     @GetMapping("/me")
     @Operation(summary = "Meus atestados", description = "Histórico do funcionário autenticado")
     public ResponseEntity<List<MedicalCertificateResponseDTO>> mine(Authentication auth) {
@@ -55,19 +57,20 @@ public class MedicalCertificateController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/medical-certificates:CONSULTAR')")
     @Operation(summary = "Todos os atestados", description = "Lista todos os atestados para gestao do RH")
     public ResponseEntity<List<MedicalCertificateResponseDTO>> listAll() {
         return ResponseEntity.ok(service.listAll());
     }
 
     @GetMapping("/employee/{employeeId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/medical-certificates:CONSULTAR')")
     @Operation(summary = "Histórico do funcionário", description = "Histórico completo + contagem de atestados no ano corrente")
     public ResponseEntity<EmployeeMedicalCertificatesDTO> byEmployee(@PathVariable UUID employeeId) {
         return ResponseEntity.ok(service.getForRh(employeeId));
     }
 
+    @PreAuthorize("hasAnyAuthority('rh/medical-certificates:BAIXAR', 'documentos/rh/medical-certificates:BAIXAR')")
     @GetMapping("/{id}/file")
     @Operation(summary = "Baixa atestado", description = "Download do atestado (dono ou RH/ADMIN)")
     public ResponseEntity<byte[]> file(@PathVariable UUID id, Authentication auth) throws IOException {

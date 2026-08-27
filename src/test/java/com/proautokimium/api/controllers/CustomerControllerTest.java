@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.partners.CustomerRequestDTO;
 import com.proautokimium.api.Application.DTOs.partners.PartnerRecipientDTO;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
@@ -41,6 +42,8 @@ class CustomerControllerTest {
     @Autowired ObjectMapper objectMapper;
     @MockitoBean CustomerService customerService;
     @MockitoBean TokenService tokenService;
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean PermissionService permissionService;
     @MockitoBean AuthenticationManager authenticationManager;
     @MockitoBean UserRepository userRepository;
 
@@ -50,7 +53,7 @@ class CustomerControllerTest {
 
     @Test
     @DisplayName("POST /api/customer - deve cadastrar cliente e retornar 201")
-    @WithMockUser
+    @WithMockUser(authorities = {"company/customers:CONSULTAR", "company/customers:INCLUIR", "company/customers:ALTERAR", "company/customers:EXCLUIR", "company/customers:CONFIGURAR"})
     void deveCadastrarClienteComSucesso() throws Exception {
         doNothing().when(customerService).createCustomer(any(CustomerRequestDTO.class));
 
@@ -74,7 +77,7 @@ class CustomerControllerTest {
 
     @Test
     @DisplayName("POST /api/customer - deve retornar 409 quando cliente já existe")
-    @WithMockUser
+    @WithMockUser(authorities = {"company/customers:CONSULTAR", "company/customers:INCLUIR", "company/customers:ALTERAR", "company/customers:EXCLUIR", "company/customers:CONFIGURAR"})
     void deveRetornarErroAoCadastrarClienteDuplicado() throws Exception {
         doThrow(new CustomerAlreadyExistsException()).when(customerService).createCustomer(any(CustomerRequestDTO.class));
 
@@ -87,7 +90,7 @@ class CustomerControllerTest {
 
     @Test
     @DisplayName("POST /api/customer/upload - deve importar clientes via Excel e retornar 201")
-    @WithMockUser
+    @WithMockUser(authorities = {"company/customers:CONSULTAR", "company/customers:INCLUIR", "company/customers:ALTERAR", "company/customers:EXCLUIR", "company/customers:CONFIGURAR"})
     void deveImportarClientesViaExcel() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "customers.xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", new byte[]{1, 2, 3});
@@ -102,7 +105,7 @@ class CustomerControllerTest {
 
     @Test
     @DisplayName("GET /api/customer - deve retornar lista de clientes quando autenticado")
-    @WithMockUser
+    @WithMockUser(authorities = {"company/customers:CONSULTAR", "company/customers:INCLUIR", "company/customers:ALTERAR", "company/customers:EXCLUIR", "company/customers:CONFIGURAR"})
     void deveRetornarListaDeClientesAutenticado() throws Exception {
         when(customerService.getAllCustomers()).thenReturn(ResponseEntity.ok(List.of(buildDto())));
 
@@ -121,7 +124,7 @@ class CustomerControllerTest {
 
     @Test
     @DisplayName("GET /api/customer/only-email - deve retornar lista de emails dos clientes")
-    @WithMockUser
+    @WithMockUser(authorities = {"company/customers:CONSULTAR", "company/customers:INCLUIR", "company/customers:ALTERAR", "company/customers:EXCLUIR", "company/customers:CONFIGURAR"})
     void deveRetornarListaDeEmailsDeClientes() throws Exception {
         PartnerRecipientDTO emailDto = new PartnerRecipientDTO(UUID.randomUUID(), "Cliente Teste", "cliente@teste.com", "customer");
         when(customerService.getAllCustomersEmail()).thenReturn(ResponseEntity.ok(List.of(emailDto)));
@@ -134,7 +137,7 @@ class CustomerControllerTest {
 
     @Test
     @DisplayName("PUT /api/customer - deve atualizar cliente e retornar 200")
-    @WithMockUser
+    @WithMockUser(authorities = {"company/customers:CONSULTAR", "company/customers:INCLUIR", "company/customers:ALTERAR", "company/customers:EXCLUIR", "company/customers:CONFIGURAR"})
     void deveAtualizarClienteComSucesso() throws Exception {
         doNothing().when(customerService).UpdateCustomer(any(CustomerRequestDTO.class));
 
@@ -148,7 +151,7 @@ class CustomerControllerTest {
 
     @Test
     @DisplayName("PUT /api/customer - deve retornar 404 quando cliente não existe")
-    @WithMockUser
+    @WithMockUser(authorities = {"company/customers:CONSULTAR", "company/customers:INCLUIR", "company/customers:ALTERAR", "company/customers:EXCLUIR", "company/customers:CONFIGURAR"})
     void deveRetornarErroAoAtualizarClienteInexistente() throws Exception {
         doThrow(new CustomerNotFoundException()).when(customerService).UpdateCustomer(any(CustomerRequestDTO.class));
 
@@ -161,7 +164,7 @@ class CustomerControllerTest {
 
     @Test
     @DisplayName("DELETE /api/customer - deve deletar cliente e retornar 200")
-    @WithMockUser
+    @WithMockUser(authorities = {"company/customers:CONSULTAR", "company/customers:INCLUIR", "company/customers:ALTERAR", "company/customers:EXCLUIR", "company/customers:CONFIGURAR"})
     void deveDeletarClienteComSucesso() throws Exception {
         doNothing().when(customerService).DeleteCustomer(any(String.class));
 
@@ -175,7 +178,7 @@ class CustomerControllerTest {
 
     @Test
     @DisplayName("DELETE /api/customer - deve retornar 404 quando cliente não existe")
-    @WithMockUser
+    @WithMockUser(authorities = {"company/customers:CONSULTAR", "company/customers:INCLUIR", "company/customers:ALTERAR", "company/customers:EXCLUIR", "company/customers:CONFIGURAR"})
     void deveRetornarErroAoDeletarClienteInexistente() throws Exception {
         doThrow(new CustomerNotFoundException()).when(customerService).DeleteCustomer(any(String.class));
 

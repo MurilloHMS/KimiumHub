@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers.processoSeletivo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.candidato.CreateCandidatoDTO;
 import com.proautokimium.api.Application.DTOs.processoSeletivo.candidato.ResponseCandidatoDTO;
 import com.proautokimium.api.Infrastructure.exceptions.processoSeletivo.CandidatoAlreadyExistsException;
@@ -39,12 +40,14 @@ class CandidatoControllerTest {
     @Autowired ObjectMapper objectMapper;
     @MockitoBean CandidatoService candidatoService;
     @MockitoBean TokenService tokenService;
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean PermissionService permissionService;
     @MockitoBean AuthenticationManager authenticationManager;
     @MockitoBean UserRepository userRepository;
 
     @Test
     @DisplayName("POST /api/candidato - deve cadastrar candidato e retornar 200")
-    @WithMockUser
+    @WithMockUser(authorities = {"rh/candidaturas:CONSULTAR"})
     void deveCadastrarCandidatoComSucesso() throws Exception {
         CreateCandidatoDTO dto = new CreateCandidatoDTO("João Silva", "joao@teste.com", "11999999999", "linkedin.com/in/joao", "curriculo.pdf");
         when(candidatoService.create(any(CreateCandidatoDTO.class))).thenReturn(mock(Candidato.class));
@@ -71,7 +74,7 @@ class CandidatoControllerTest {
 
     @Test
     @DisplayName("POST /api/candidato - deve retornar 409 quando candidato já existe")
-    @WithMockUser
+    @WithMockUser(authorities = {"rh/candidaturas:CONSULTAR"})
     void deveRetornarErroAoCadastrarCandidatoDuplicado() throws Exception {
         CreateCandidatoDTO dto = new CreateCandidatoDTO("João Silva", "joao@teste.com", "11999999999", null, null);
         doThrow(new CandidatoAlreadyExistsException()).when(candidatoService).create(any(CreateCandidatoDTO.class));
@@ -85,7 +88,7 @@ class CandidatoControllerTest {
 
     @Test
     @DisplayName("GET /api/candidato - deve retornar lista de candidatos quando autenticado")
-    @WithMockUser
+    @WithMockUser(authorities = {"rh/candidaturas:CONSULTAR"})
     void deveRetornarListaDeCandidatos() throws Exception {
         ResponseCandidatoDTO candidato = new ResponseCandidatoDTO("João Silva", "joao@teste.com", "11999999999", null, null, LocalDateTime.now());
         when(candidatoService.listarCandidatos()).thenReturn(List.of(candidato));

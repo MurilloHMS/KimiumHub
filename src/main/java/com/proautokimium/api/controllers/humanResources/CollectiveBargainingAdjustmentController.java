@@ -22,7 +22,7 @@ public class CollectiveBargainingAdjustmentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/career-structure:CONFIGURAR')")
     public ResponseEntity<CollectiveBargainingAdjustmentResponseDTO> apply(
             @Valid @RequestBody ApplyCollectiveBargainingAdjustmentRequestDTO request) {
         return ResponseEntity.ok(service.apply(request));

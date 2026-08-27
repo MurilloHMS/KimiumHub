@@ -32,6 +32,20 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Query("SELECT DISTINCT u FROM users u JOIN u.roles r WHERE r IN :roles")
     List<User> findByRolesIn(@Param("roles") Collection<UserRole> roles);
 
+    /**
+     * A conta é de desenvolvedor?
+     *
+     * Consulta nativa em `user_roles` porque `roles` é `@ElementCollection`:
+     * carregar o `User` inteiro só para olhar uma role custaria um join a mais
+     * numa consulta que roda **uma vez por requisição**.
+     */
+    @Query(value = """
+        SELECT EXISTS (
+            SELECT 1 FROM user_roles WHERE user_id = :userId AND role = 'DEVELOPER'
+        )
+        """, nativeQuery = true)
+    boolean isDeveloper(@Param("userId") String userId);
+
     boolean existsByLogin(String username);
 
     @Query("select coalesce(e.name, u.login) from users u left join u.employee e where u.login = :login")

@@ -29,7 +29,7 @@ public class CalendarController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/calendar:CONSULTAR')")
     @Operation(summary = "Eventos do calendário", description = "Lista eventos que se sobrepõem ao período, filtráveis por setor/empresa/status")
     public ResponseEntity<List<CalendarEventDTO>> get(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,

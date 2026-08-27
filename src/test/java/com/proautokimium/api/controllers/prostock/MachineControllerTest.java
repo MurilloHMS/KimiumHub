@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers.prostock;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.MachineDivergenceDTO;
 import com.proautokimium.api.Application.DTOs.prostock.machine.ReconcileDTO;
@@ -46,6 +47,8 @@ class MachineControllerTest {
     @MockitoBean MachineService service;
     @MockitoBean RegisterService registerService;
     @MockitoBean TokenService tokenService;
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean PermissionService permissionService;
     @MockitoBean AuthenticationManager authenticationManager;
     @MockitoBean UserRepository userRepository;
     @MockitoBean MachineAlertService alertService;
@@ -62,7 +65,7 @@ class MachineControllerTest {
 
     @Test
     @DisplayName("GET api/machine - deve retornar lista de máquinas quando autenticado")
-    @WithMockUser
+    @WithMockUser(authorities = {"stock/programacao:CONSULTAR"})
     void deveRetornarMaquinasAutenticado() throws Exception {
         when(service.getAllMachines()).thenReturn(List.of(buildMachineDto()));
 
@@ -110,7 +113,7 @@ class MachineControllerTest {
      */
     @Test
     @DisplayName("POST api/machine/reconcile - deve chamar o serviço com o delta negativo intacto")
-    @WithMockUser
+    @WithMockUser(authorities = {"stock/hub:ALTERAR"})
     void reconcileEntregaODtoAoServico() throws Exception {
         UUID registerId = UUID.randomUUID();
         ReconcileDTO dto = new ReconcileDTO("SYS001", -1, LocalDateTime.now(), List.of(registerId), 0);
@@ -129,7 +132,7 @@ class MachineControllerTest {
 
     @Test
     @DisplayName("POST api/machine/reconcile - deve retornar 400 sem código do produto")
-    @WithMockUser
+    @WithMockUser(authorities = {"stock/hub:ALTERAR"})
     void reconcileSemCodigoEhRecusado() throws Exception {
         ReconcileDTO dto = new ReconcileDTO("  ", 1, LocalDateTime.now(), List.of(), 1);
 
@@ -151,7 +154,7 @@ class MachineControllerTest {
      */
     @Test
     @DisplayName("POST api/machine/reconcile - conta que não fecha sai como 400, não 500")
-    @WithMockUser
+    @WithMockUser(authorities = {"stock/hub:ALTERAR"})
     void reconcileComContaAbertaSaiComo400() throws Exception {
         doThrow(new ReconciliationMismatchException("Saída de 2 precisa de 2 programações, e vieram 1."))
                 .when(reconciliationService).reconcile(any());
@@ -188,7 +191,7 @@ class MachineControllerTest {
      */
     @Test
     @DisplayName("GET api/machine/divergences - devolve também as máquinas que batem")
-    @WithMockUser
+    @WithMockUser(authorities = {"stock/hub:CONSULTAR"})
     void divergenciasIncluemAsQueBatem() throws Exception {
         when(reconciliationService.divergences()).thenReturn(List.of(
                 new MachineDivergenceDTO(machineId, "MAQ-001", "Lavadora", 5, 4),
@@ -206,7 +209,7 @@ class MachineControllerTest {
      */
     @Test
     @DisplayName("GET api/machine/register/schedule-changes - sem `from` é 400")
-    @WithMockUser
+    @WithMockUser(authorities = {"stock/hub:CONSULTAR"})
     void adiamentosSemPeriodoSaoRecusados() throws Exception {
         mockMvc.perform(get("/api/machine/register/schedule-changes"))
                 .andExpect(status().isBadRequest());
@@ -221,4 +224,38 @@ class MachineControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    /**
+     * **A leitura compartilhada.**
+     *
+     * O `MachineStore` alimenta o Hub, as Movimentações e a Programação ao
+     * mesmo tempo. Se `GET /api/machine` exigisse a tela da Programação, quem
+     * cuida só do Hub abriria a tela com a lista vazia — sem erro nenhum, sem
+     * 403 visível, sem nada que ligasse o sintoma a permissão.
+     *
+     * Por isso o endpoint aceita QUALQUER uma das quatro telas de estoque, e
+     * este teste usa a mais improvável delas.
+     */
+    @Test
+    @DisplayName("quem só cuida do Hub continua lendo as máquinas")
+    @WithMockUser(authorities = {"stock/hub:CONSULTAR"})
+    void leituraCompartilhadaAceitaQualquerTelaDeEstoque() throws Exception {
+        when(service.getAllMachines()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/machine"))
+                .andExpect(status().isOk());
+    }
+
+    /**
+     * E quem não cuida de estoque nenhum não lê.
+     *
+     * Sem este par, "aceita qualquer uma das quatro" poderia virar "aceita
+     * qualquer pessoa logada" num refactor e ninguém veria.
+     */
+    @Test
+    @DisplayName("quem não tem tela de estoque não lê as máquinas")
+    @WithMockUser(authorities = {"rh/hub:CONSULTAR"})
+    void quemNaoEhDoEstoqueNaoLe() throws Exception {
+        mockMvc.perform(get("/api/machine"))
+                .andExpect(status().isForbidden());
+    }
 }

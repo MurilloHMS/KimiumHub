@@ -1,6 +1,7 @@
 package com.proautokimium.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Application.DTOs.certificate.CertificateBatchDTO;
 import com.proautokimium.api.Application.DTOs.certificate.CertificateHolderDTO;
 import com.proautokimium.api.Infrastructure.interfaces.certificate.CertificateGenerator;
@@ -43,6 +44,10 @@ class CertificateControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    // O SecurityFilter passa a somar as permissões de tela às roles.
+    @MockitoBean
+    private PermissionService permissionService;
 
     @MockitoBean
     private CertificateHolderRepository repository;
@@ -115,9 +120,9 @@ class CertificateControllerTest {
      * nome preenche um PDF. Seria derrubar o servidor com um `curl`.
      */
     @Test
-    @DisplayName("POST /batch - usuario sem ADMIN nao gera lote")
-    @WithMockUser(roles = "VENDEDOR")
-    void batchDeveRecusarQuemNaoEhAdmin() throws Exception {
+    @DisplayName("POST /batch - quem nao tem a tela de certificados nao gera lote")
+    @WithMockUser(authorities = {"rh/hub:CONSULTAR"})
+    void batchDeveRecusarQuemNaoTemATela() throws Exception {
         mockMvc.perform(post("/api/certificate/batch")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -139,7 +144,7 @@ class CertificateControllerTest {
 
     @Test
     @DisplayName("POST /batch - ADMIN recebe o ZIP")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"tools/certificados:INCLUIR", "tools/certificados:BAIXAR"})
     void batchDeveDevolverOZipParaAdmin() throws Exception {
         when(generator.generateCertificatesZip(any())).thenReturn("zip".getBytes());
 
@@ -159,7 +164,7 @@ class CertificateControllerTest {
      */
     @Test
     @DisplayName("POST /batch - acima de 200 nomes devolve 400")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"tools/certificados:INCLUIR", "tools/certificados:BAIXAR"})
     void batchDeveRecusarListaAcimaDoTeto() throws Exception {
         List<String> duzentosEUm = IntStream.rangeClosed(1, 201)
                 .mapToObj(i -> "Pessoa " + i)
@@ -175,7 +180,7 @@ class CertificateControllerTest {
 
     @Test
     @DisplayName("POST /batch - lista vazia devolve 400")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"tools/certificados:INCLUIR", "tools/certificados:BAIXAR"})
     void batchDeveRecusarListaVazia() throws Exception {
         mockMvc.perform(post("/api/certificate/batch")
                         .with(csrf())
@@ -192,7 +197,7 @@ class CertificateControllerTest {
     /** Linha em branco e erro de quem chamou, nao algo para o servidor adivinhar. */
     @Test
     @DisplayName("POST /batch - nome em branco na lista devolve 400")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"tools/certificados:INCLUIR", "tools/certificados:BAIXAR"})
     void batchDeveRecusarNomeEmBranco() throws Exception {
         mockMvc.perform(post("/api/certificate/batch")
                         .with(csrf())

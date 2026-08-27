@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,6 +20,7 @@ public class ContactController {
     @Autowired
     ContactService service;
 
+    @PreAuthorize("hasAuthority('communication/contact:CONSULTAR')")
     @GetMapping
     @Operation(summary = "Obtém todos os contatos", description = "Retorna todos os registros de contato")
     public ResponseEntity<Object> getAllContacts(){
