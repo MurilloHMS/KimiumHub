@@ -11,6 +11,8 @@ public interface UserTemplateRepository extends JpaRepository<UserTemplate, User
 
     List<UserTemplate> findByUserId(String userId);
 
+    List<UserTemplate> findByTemplateId(UUID templateId);
+
     /**
      * Apaga o histórico de carimbos de uma pessoa.
      *

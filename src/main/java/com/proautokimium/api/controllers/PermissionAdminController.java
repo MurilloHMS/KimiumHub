@@ -67,6 +67,18 @@ public class PermissionAdminController {
         return ResponseEntity.ok(service.templateGrid(templateId));
     }
 
+    /**
+     * Quem já foi carimbado com este modelo.
+     *
+     * Abre com qualquer uma das duas permissões: é a lista que sustenta o aviso
+     * "3 usuários usaram este carimbo" na tela de modelos.
+     */
+    @GetMapping("/templates/{templateId}/stamped-users")
+    @PreAuthorize("hasAnyAuthority('" + TEMPLATES + ":CONSULTAR', '" + USERS + ":CONSULTAR')")
+    public ResponseEntity<List<UserSummaryDTO>> stampedWith(@PathVariable UUID templateId) {
+        return ResponseEntity.ok(service.stampedWith(templateId));
+    }
+
     /** Criar. Com `copyFromId` preenchido, é o duplicar. */
     @PostMapping("/templates")
     @PreAuthorize("hasAuthority('" + TEMPLATES + ":INCLUIR')")

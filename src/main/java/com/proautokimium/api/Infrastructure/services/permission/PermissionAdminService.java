@@ -88,6 +88,24 @@ public class PermissionAdminService {
                 .toList();
     }
 
+    /**
+     * Quem já foi carimbado com este modelo.
+     *
+     * A tela de modelos precisa dos **nomes**, para o aviso, e dos **ids**,
+     * para o reaplicar. Sem eles o aviso diria "3 usuários" e o botão ao lado
+     * não teria em quem mexer — que é o mesmo que não ter botão.
+     */
+    @Transactional(readOnly = true)
+    public List<UserSummaryDTO> stampedWith(UUID templateId) {
+        templates.findById(templateId).orElseThrow(PermissionTemplateNotFoundException::new);
+
+        Set<String> carimbados = new HashSet<>();
+        stamps.findByTemplateId(templateId).forEach(stamp -> carimbados.add(stamp.getUserId()));
+        if (carimbados.isEmpty()) return List.of();
+
+        return users().stream().filter(u -> carimbados.contains(u.id())).toList();
+    }
+
     @Transactional(readOnly = true)
     public TemplateGridDTO templateGrid(UUID templateId) {
         PermissionTemplate template = templates.findById(templateId)
