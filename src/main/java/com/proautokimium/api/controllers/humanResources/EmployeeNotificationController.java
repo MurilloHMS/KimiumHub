@@ -25,7 +25,7 @@ public class EmployeeNotificationController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/notifications:ENVIAR')")
     @Operation(summary = "Envia notificação", description = "employeeIds vazio/nulo envia para todos os funcionários ativos")
     public ResponseEntity<SendNotificationResponseDTO> send(@Valid @RequestBody SendNotificationRequestDTO request) {
         return ResponseEntity.ok(service.send(request));

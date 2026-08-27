@@ -26,7 +26,7 @@ public class TeamOverviewController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/team-overview:CONSULTAR')")
     @Operation(summary = "Visão de equipe", description = "Lista funcionários ativos com CLT/PJ e disponibilidade, filtrável por setor/empresa")
     public ResponseEntity<List<TeamOverviewEntryDTO>> get(
             @RequestParam(required = false) UUID teamId,

@@ -40,7 +40,7 @@ public class HoleriteController {
      * @param tipo Tipo de holerite (SALÁRIO ou ADIANTAMENTO)
      */
     @PostMapping(value = "/vincular", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/holerit:INCLUIR')")
     @Operation(summary = "Vincula Holerite", description = "Vincula um holerite ao funcionário")
     public ResponseEntity<?> vincular(@RequestParam("file") MultipartFile file,
                                       @RequestParam("competencia") String competencia,
@@ -72,6 +72,7 @@ public class HoleriteController {
     }
 
     /** Holerites do funcionário logado. */
+    @PreAuthorize("hasAuthority('documentos/holerites:CONSULTAR')")
     @GetMapping("/me")
     @Operation(summary = "Holerite funcionário", description = "Retorna holerites vinculados ao usuário logado")
     public ResponseEntity<List<HoleriteResponseDTO>> meus(Authentication auth) {
@@ -79,6 +80,7 @@ public class HoleriteController {
     }
 
     /** Baixa o PDF do holerite (dono ou RH/ADMIN). */
+    @PreAuthorize("hasAnyAuthority('rh/holerit:BAIXAR', 'documentos/holerites:BAIXAR')")
     @GetMapping("/{id}/arquivo")
     @Operation(summary = "Baixa holerite", description = "Download do holerite")
     public ResponseEntity<byte[]> arquivo(@PathVariable UUID id, Authentication auth) throws IOException {
@@ -106,7 +108,7 @@ public class HoleriteController {
     }
 
     @PostMapping("/vincular/preview")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/holerit:CONSULTAR')")
     @Operation(summary = "Confere antes de enviar", description = "Analisa o PDF e diz o que aconteceria, sem gravar nada")
     public ResponseEntity<List<HoleritePreviewItemDTO>> preview(
             @RequestParam MultipartFile file,
@@ -116,7 +118,7 @@ public class HoleriteController {
     }
 
     @GetMapping("/auditoria")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/holerit:CONSULTAR')")
     @Operation(summary = "Auditoria dos holerites", description = "Quem recebeu, quem abriu e quem confirmou")
     public ResponseEntity<List<HoleriteAuditoriaDTO>> auditoria(
             @RequestParam String competencia,
@@ -125,7 +127,7 @@ public class HoleriteController {
     }
 
     @PutMapping("/{id}/cancelar")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/holerit:EXCLUIR')")
     public ResponseEntity<Object> cancelar(@PathVariable UUID id,
                                            @RequestBody CancelarHoleriteDTO dto,
                                            Authentication auth) {
@@ -134,7 +136,7 @@ public class HoleriteController {
     }
 
     @PutMapping(value = "/{id}/arquivo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/holerit:ALTERAR')")
     public ResponseEntity<Object> substituirArquivo(@PathVariable UUID id,
                                                     @RequestParam MultipartFile file,
                                                     Authentication auth) throws IOException {
@@ -143,6 +145,7 @@ public class HoleriteController {
     }
 
     /** Sem @PreAuthorize de propósito: quem confirma é o dono, e o serviço recusa o resto. */
+    @PreAuthorize("hasAuthority('documentos/holerites:ALTERAR')")
     @PostMapping("/{id}/confirmar")
     public ResponseEntity<Object> confirmar(@PathVariable UUID id, Authentication auth) {
         service.confirmarRecebimento(id, auth.getName());

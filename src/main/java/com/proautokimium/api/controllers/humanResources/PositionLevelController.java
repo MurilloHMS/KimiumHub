@@ -14,6 +14,18 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/hr/position-levels")
 public class PositionLevelController {
+    /**
+     * A leitura de referência do RH.
+     *
+     * Empresas, departamentos, hierarquias, times, cargos e níveis são lidos
+     * pela Estrutura, por Cargos & Níveis e pelo cadastro de Funcionários —
+     * os stores são compartilhados. Exigir uma tela só deixaria os combos
+     * das outras vazios, sem erro nenhum na tela.
+     */
+    private static final String LER_ESTRUTURA_RH =
+            "hasAnyAuthority('rh/organizational-structure:CONSULTAR', "
+            + "'rh/career-structure:CONSULTAR', 'rh/employees:CONSULTAR')";
+
 
     private final PositionLevelService positionLevelService;
 
@@ -22,13 +34,13 @@ public class PositionLevelController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/career-structure:INCLUIR')")
     public ResponseEntity<PositionLevelResponseDTO> create(@Valid @RequestBody CreatePositionLevelRequestDTO request) {
         return ResponseEntity.ok(positionLevelService.create(request));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize(LER_ESTRUTURA_RH)
     public ResponseEntity<List<PositionLevelResponseDTO>> listByPosition(@RequestParam UUID positionId) {
         return ResponseEntity.ok(positionLevelService.listByPosition(positionId));
     }

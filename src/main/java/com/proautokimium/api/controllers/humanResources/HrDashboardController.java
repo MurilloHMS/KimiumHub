@@ -22,6 +22,7 @@ public class HrDashboardController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAuthority('rh/hub:CONSULTAR')")
     @GetMapping
     @Operation(summary = "Resumo do painel", description = "Funcionários por empresa (com CLT/PJ), por cargo, por departamento, folha total e tamanho da estrutura organizacional")
     public ResponseEntity<HrDashboardSummaryDTO> summary() {

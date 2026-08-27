@@ -31,7 +31,7 @@ public class EmployeeDocumentController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/employees:INCLUIR')")
     @Operation(summary = "Vincula documento", description = "RH vincula um documento assinado a um funcionário")
     public ResponseEntity<EmployeeDocumentResponseDTO> vincular(
             @RequestParam UUID employeeId,
@@ -41,12 +41,14 @@ public class EmployeeDocumentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.vincular(employeeId, title, file));
     }
 
+    @PreAuthorize("hasAuthority('documentos/rh/documents:CONSULTAR')")
     @GetMapping("/me")
     @Operation(summary = "Meus documentos", description = "Lista os documentos do funcionário autenticado")
     public ResponseEntity<List<EmployeeDocumentResponseDTO>> meus(Authentication auth) {
         return ResponseEntity.ok(service.listarDoFuncionario(auth.getName()));
     }
 
+    @PreAuthorize("hasAnyAuthority('rh/employees:BAIXAR', 'documentos/rh/documents:BAIXAR')")
     @GetMapping("/{id}/arquivo")
     @Operation(summary = "Baixa documento", description = "Download do documento (dono ou RH/ADMIN)")
     public ResponseEntity<byte[]> arquivo(@PathVariable UUID id, Authentication auth) throws IOException {

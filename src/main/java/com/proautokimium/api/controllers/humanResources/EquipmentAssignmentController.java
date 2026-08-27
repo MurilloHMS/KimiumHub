@@ -27,12 +27,14 @@ public class EquipmentAssignmentController {
         this.service = service;
     }
 
+    @PreAuthorize("hasAuthority('rh/equipment-assignments:INCLUIR')")
     @PostMapping
     @Operation(summary = "Registra entrega", description = "Vincula um equipamento a um funcionário")
     public ResponseEntity<EquipmentAssignmentResponseDTO> deliver(@Valid @RequestBody DeliverEquipmentRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.deliver(request));
     }
 
+    @PreAuthorize("hasAuthority('rh/equipment-assignments:ALTERAR')")
     @PostMapping("/{id}/return")
     @Operation(summary = "Registra devolução", description = "Marca o equipamento como devolvido")
     public ResponseEntity<EquipmentAssignmentResponseDTO> markAsReturned(
@@ -40,12 +42,14 @@ public class EquipmentAssignmentController {
         return ResponseEntity.ok(service.markAsReturned(id, request));
     }
 
+    @PreAuthorize("hasAuthority('rh/equipment-assignments:CONSULTAR')")
     @GetMapping("/employee/{employeeId}")
     @Operation(summary = "Histórico do funcionário", description = "Todos os equipamentos já entregues/devolvidos por esse funcionário")
     public ResponseEntity<List<EquipmentAssignmentResponseDTO>> byEmployee(@PathVariable UUID employeeId) {
         return ResponseEntity.ok(service.listByEmployee(employeeId));
     }
 
+    @PreAuthorize("hasAuthority('rh/equipment-assignments:CONSULTAR')")
     @GetMapping
     @Operation(summary = "Equipamentos em posse", description = "Tudo que está com algum funcionário agora, ainda não devolvido")
     public ResponseEntity<List<EquipmentAssignmentResponseDTO>> currentlyWithEmployees() {

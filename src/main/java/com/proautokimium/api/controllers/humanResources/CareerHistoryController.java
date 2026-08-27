@@ -15,6 +15,18 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/hr/career-histories")
 public class CareerHistoryController {
+    /**
+     * A leitura de referência do RH.
+     *
+     * Empresas, departamentos, hierarquias, times, cargos e níveis são lidos
+     * pela Estrutura, por Cargos & Níveis e pelo cadastro de Funcionários —
+     * os stores são compartilhados. Exigir uma tela só deixaria os combos
+     * das outras vazios, sem erro nenhum na tela.
+     */
+    private static final String LER_ESTRUTURA_RH =
+            "hasAnyAuthority('rh/organizational-structure:CONSULTAR', "
+            + "'rh/career-structure:CONSULTAR', 'rh/employees:CONSULTAR')";
+
 
     private final CareerHistoryService careerHistoryService;
 
@@ -23,13 +35,13 @@ public class CareerHistoryController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize(LER_ESTRUTURA_RH)
     public ResponseEntity<List<CareerHistoryResponseDTO>> listByEmployee(@RequestParam UUID employeeId) {
         return ResponseEntity.ok(careerHistoryService.listByEmployee(employeeId));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('rh/career-structure:INCLUIR')")
     public ResponseEntity<CareerHistoryResponseDTO> create(@Valid @RequestBody CreateCareerHistoryDTO dto) {
         var created = careerHistoryService.create(dto);
         return ResponseEntity.created(URI.create("/api/hr/career-histories?employeeId=" + dto.employeeId()))
