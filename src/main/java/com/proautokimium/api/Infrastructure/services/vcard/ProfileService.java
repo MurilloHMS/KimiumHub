@@ -10,6 +10,7 @@ import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.Profile;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.enums.UserRole;
+import com.proautokimium.api.domain.exceptions.partners.AccountNotLinkedToEmployeeException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import com.proautokimium.api.domain.exceptions.profile.ProfileAlreadyExistsException;
 import com.proautokimium.api.domain.exceptions.profile.ProfileNotFoundException;
@@ -95,7 +96,7 @@ public class ProfileService {
 
         Employee employee = resolveEmployee(login);
         if (employee == null) {
-            throw new EmployeeNotFoundException();
+            throw new AccountNotLinkedToEmployeeException();
         }
 
         ProfileResponseDto profileDto = repository.findByEmployee_Id(employee.getId())
@@ -131,7 +132,7 @@ public class ProfileService {
     public ProfileResponseDto createMyProfile(String login, ProfileCreateDto dto) {
         Employee employee = resolveEmployee(login);
         if (employee == null) {
-            throw new EmployeeNotFoundException();
+            throw new AccountNotLinkedToEmployeeException();
         }
 
         if (repository.existsByEmployee_Id(employee.getId())) {
@@ -163,7 +164,7 @@ public class ProfileService {
     public ProfileResponseDto updateMyProfile(String login, ProfileUpdateDto dto) {
         Employee employee = resolveEmployee(login);
         if (employee == null) {
-            throw new EmployeeNotFoundException();
+            throw new AccountNotLinkedToEmployeeException();
         }
 
         Profile profile = repository.findByEmployee_Id(employee.getId())
@@ -181,7 +182,7 @@ public class ProfileService {
     public String uploadMyProfileImage(String login, MultipartFile file) throws IOException {
         Employee employee = resolveEmployee(login);
         if (employee == null) {
-            throw new EmployeeNotFoundException();
+            throw new AccountNotLinkedToEmployeeException();
         }
 
         Profile profile = repository.findByEmployee_Id(employee.getId())
