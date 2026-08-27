@@ -68,15 +68,15 @@ public class PermissionAdminController {
     }
 
     /**
-     * Quem já foi carimbado com este modelo.
+     * A quem este modelo já foi aplicado.
      *
      * Abre com qualquer uma das duas permissões: é a lista que sustenta o aviso
-     * "3 usuários usaram este carimbo" na tela de modelos.
+     * "aplicado a 3 pessoas" na tela de modelos.
      */
-    @GetMapping("/templates/{templateId}/stamped-users")
+    @GetMapping("/templates/{templateId}/applied-to")
     @PreAuthorize("hasAnyAuthority('" + TEMPLATES + ":CONSULTAR', '" + USERS + ":CONSULTAR')")
-    public ResponseEntity<List<UserSummaryDTO>> stampedWith(@PathVariable UUID templateId) {
-        return ResponseEntity.ok(service.stampedWith(templateId));
+    public ResponseEntity<List<UserSummaryDTO>> appliedTo(@PathVariable UUID templateId) {
+        return ResponseEntity.ok(service.appliedTo(templateId));
     }
 
     /** Criar. Com `copyFromId` preenchido, é o duplicar. */
@@ -132,7 +132,7 @@ public class PermissionAdminController {
     }
 
     /**
-     * Carimba um modelo em N pessoas.
+     * Aplica um modelo a N pessoas.
      *
      * Exige `CONFIGURAR` e não `ALTERAR`: alterar é mexer numa pessoa, e isto
      * alcança várias de uma vez — inclusive apagando ajuste individual quando o
@@ -144,6 +144,23 @@ public class PermissionAdminController {
                                                 @RequestBody ApplyTemplateDTO form,
                                                 Authentication auth) {
         return ResponseEntity.ok(service.apply(templateId, form, auth.getName()));
+    }
+
+    /**
+     * Desfaz a aplicação de um modelo numa pessoa.
+     *
+     * `DELETE` sobre o registro da aplicação, e não sobre o modelo: o que se
+     * apaga é o fato de ele ter sido copiado nesta pessoa — junto com as
+     * permissões que **só** ele deu. O modelo continua existindo, e quem mais o
+     * recebeu continua com ele.
+     *
+     * Exige `CONFIGURAR` pelo mesmo motivo do aplicar: tira acesso de alguém.
+     */
+    @DeleteMapping("/users/{userId}/templates/{templateId}")
+    @PreAuthorize("hasAuthority('" + USERS + ":CONFIGURAR')")
+    public ResponseEntity<ApplyResultDTO> undoApply(@PathVariable String userId,
+                                                    @PathVariable UUID templateId) {
+        return ResponseEntity.ok(service.undoApply(userId, templateId));
     }
 
     @PostMapping("/users/{userId}/copy-from/{sourceUserId}")

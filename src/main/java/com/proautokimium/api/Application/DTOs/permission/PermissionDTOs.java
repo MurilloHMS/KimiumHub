@@ -24,7 +24,7 @@ public final class PermissionDTOs {
 
     /** Uma linha da lista lateral de modelos. */
     public record TemplateSummaryDTO(UUID id, String name, String description,
-                                     boolean active, long allowedCells, long stampedUsers) { }
+                                     boolean active, long allowedCells, long appliedToUsers) { }
 
     /** Um modelo aberto, com a grade inteira. */
     public record TemplateGridDTO(UUID id, String name, String description,
@@ -34,25 +34,25 @@ public final class PermissionDTOs {
     public record UserSummaryDTO(String id, String name, String login,
                                  boolean active, List<String> templates) { }
 
-    /** Um carimbo que já passou por alguém. */
+    /** Um modelo que já foi aplicado a alguém, e quando. */
     public record AppliedTemplateDTO(UUID id, String name, OffsetDateTime appliedAt,
                                      String appliedBy, ApplyMode mode) { }
 
     /**
      * A grade de uma pessoa.
      *
-     * `stamped` é o que os modelos carimbados nela permitem — a comparação com
-     * `cells` é o ponto âmbar da tela. É derivado, não guardado: `user_templates`
-     * já registra por onde a pessoa passou, e uma coluna a mais em
-     * `user_permissions` só repetiria isso com risco de discordar.
+     * `appliedCells` é o que os modelos **aplicados** nela permitem — a
+     * comparação com `cells` é o ponto âmbar da tela. É derivado, não guardado:
+     * `user_templates` já registra quais modelos passaram por ela, e uma coluna
+     * a mais em `user_permissions` só repetiria isso com risco de discordar.
      *
      * O que ele **não** distingue: uma célula que divergiu porque alguém a
      * ajustou, e uma que divergiu porque o modelo mudou depois. Por isso a tela
-     * diz "difere dos carimbos aplicados", e não "ajuste individual".
+     * diz "difere dos modelos aplicados", e não "ajuste individual".
      */
     public record UserGridDTO(String id, String name, String login,
                               Map<String, List<String>> cells,
-                              Map<String, List<String>> stamped,
+                              Map<String, List<String>> appliedCells,
                               List<AppliedTemplateDTO> appliedTemplates) { }
 
     /**
@@ -71,9 +71,9 @@ public final class PermissionDTOs {
     /** Renomear ou desativar. */
     public record TemplateEditDTO(String name, String description, Boolean active) { }
 
-    /** Carimbar um modelo em N pessoas. */
+    /** Aplicar um modelo a N pessoas. */
     public record ApplyTemplateDTO(List<String> userIds, ApplyMode mode) { }
 
-    /** O que o carimbo mexeu, para a tela poder dizer em vez de só fechar. */
+    /** O que a aplicação mexeu, para a tela poder dizer em vez de só fechar. */
     public record ApplyResultDTO(int users, int cellsChanged) { }
 }

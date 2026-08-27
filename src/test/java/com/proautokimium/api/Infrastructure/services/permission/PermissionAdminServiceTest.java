@@ -30,7 +30,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
- * O carimbo, e o que ele faz com quem já estava configurado.
+ * Aplicar um modelo, e o que isso faz com quem já estava configurado.
  *
  * Estes testes existem porque a diferença entre SOMAR e SUBSTITUIR **não dá
  * erro quando está errada**: as duas gravam, as duas respondem 200, e a pessoa
@@ -45,7 +45,7 @@ class PermissionAdminServiceTest {
     @Mock private PermissionTemplateRepository templates;
     @Mock private TemplatePermissionRepository templateCells;
     @Mock private UserPermissionRepository userCells;
-    @Mock private UserTemplateRepository stamps;
+    @Mock private UserTemplateRepository applied;
     @Mock private UserRepository users;
     @Mock private PermissionService permissions;
 
@@ -124,7 +124,7 @@ class PermissionAdminServiceTest {
      * **O caso que desenhou a feature inteira.**
      *
      * O vendedor que mexe com telas do estoque recebe VENDAS e depois ESTOQUE.
-     * Se o segundo carimbo apagasse o primeiro, ele perderia as telas de vendas
+     * Se a segunda aplicacao apagasse a primeira, ele perderia as telas de vendas
      * no momento em que ganhasse as de estoque — e a única saída seria um
      * modelo "Vendas + Estoque", que é exatamente a explosão de grupos que este
      * desenho evita.
@@ -185,19 +185,110 @@ class PermissionAdminServiceTest {
     }
 
     @Test
-    @DisplayName("o carimbo fica registrado, com quem aplicou e em que modo")
-    void carimboFicaRegistrado() {
+    @DisplayName("a aplicacao fica registrada, com quem aplicou e em que modo")
+    void aplicacaoFicaRegistrada() {
         when(userCells.findByUserIdIn(List.of(WESLLEY))).thenReturn(new ArrayList<>());
         modeloEstoqueLibera(PRODUTOS, Permission.CONSULTAR);
 
         service.apply(ESTOQUE, new ApplyTemplateDTO(List.of(WESLLEY), ApplyMode.SUBSTITUIR), "murillo");
 
-        ArgumentCaptor<UserTemplate> carimbo = ArgumentCaptor.forClass(UserTemplate.class);
-        verify(stamps).save(carimbo.capture());
-        assertThat(carimbo.getValue().getUserId()).isEqualTo(WESLLEY);
-        assertThat(carimbo.getValue().getTemplateId()).isEqualTo(ESTOQUE);
-        assertThat(carimbo.getValue().getAppliedBy()).isEqualTo("murillo");
-        assertThat(carimbo.getValue().getMode()).isEqualTo(ApplyMode.SUBSTITUIR);
+        ArgumentCaptor<UserTemplate> registro = ArgumentCaptor.forClass(UserTemplate.class);
+        verify(applied).save(registro.capture());
+        assertThat(registro.getValue().getUserId()).isEqualTo(WESLLEY);
+        assertThat(registro.getValue().getTemplateId()).isEqualTo(ESTOQUE);
+        assertThat(registro.getValue().getAppliedBy()).isEqualTo("murillo");
+        assertThat(registro.getValue().getMode()).isEqualTo(ApplyMode.SUBSTITUIR);
+    }
+
+    // ─── Desfazer a aplicação ────────────────────────────────────────────────
+
+    private static final UUID BASE = UUID.randomUUID();
+
+    /**
+     * **O teste que dá sentido ao botão.**
+     *
+     * Desfazer ALMOXARIFADO no Weslley não pode derrubar as telas que o Base
+     * dá. Se derrubasse, "desfazer" deixaria a pessoa com menos do que ela
+     * tinha antes de qualquer modelo — o oposto do que a palavra promete, e o
+     * jeito mais rápido de alguém trancar um colega tentando corrigir um erro.
+     */
+    @Test
+    @DisplayName("desfazer mantém o que outro modelo aplicado também dá")
+    void desfazerMantemOQueOutroModeloDa() {
+        when(templates.findById(BASE)).thenReturn(Optional.of(modelo(BASE, "Base")));
+
+        // ESTOQUE dá as duas; Base dá só a de movimentações.
+        when(templateCells.findByTemplateIdAndAllowedTrue(ESTOQUE)).thenReturn(List.of(
+                celulaDoModelo(ESTOQUE, MOVIMENTACOES, Permission.CONSULTAR),
+                celulaDoModelo(ESTOQUE, PRODUTOS, Permission.CONSULTAR)));
+        when(templateCells.findByTemplateIdAndAllowedTrue(BASE)).thenReturn(List.of(
+                celulaDoModelo(BASE, MOVIMENTACOES, Permission.CONSULTAR)));
+
+        when(applied.findByUserId(WESLLEY)).thenReturn(List.of(
+                new UserTemplate(WESLLEY, ESTOQUE, "murillo", ApplyMode.SOMAR),
+                new UserTemplate(WESLLEY, BASE, "migration", ApplyMode.SOMAR)));
+
+        List<UserPermission> grade = new ArrayList<>(List.of(
+                celula(WESLLEY, MOVIMENTACOES, Permission.CONSULTAR, true),
+                celula(WESLLEY, PRODUTOS, Permission.CONSULTAR, true)));
+        when(userCells.findAllOfUser(WESLLEY)).thenReturn(grade);
+
+        ApplyResultDTO resultado = service.undoApply(WESLLEY, ESTOQUE);
+
+        assertThat(ligada(grade, MOVIMENTACOES, Permission.CONSULTAR))
+                .as("o Base também dá esta — fica de pé")
+                .isTrue();
+        assertThat(ligada(grade, PRODUTOS, Permission.CONSULTAR))
+                .as("só o ESTOQUE dava esta — sai")
+                .isFalse();
+        assertThat(resultado.cellsChanged()).isEqualTo(1);
+    }
+
+    /**
+     * O registro some junto — senão a tela continuaria oferecendo desfazer o
+     * que já foi desfeito, e o ponto âmbar contaria a partir de um modelo que
+     * não vale mais.
+     */
+    @Test
+    @DisplayName("desfazer apaga o registro da aplicação e esquece o cache")
+    void desfazerApagaORegistro() {
+        modeloEstoqueLibera(PRODUTOS, Permission.CONSULTAR);
+        when(applied.findByUserId(WESLLEY)).thenReturn(List.of(
+                new UserTemplate(WESLLEY, ESTOQUE, "murillo", ApplyMode.SOMAR)));
+        when(userCells.findAllOfUser(WESLLEY)).thenReturn(new ArrayList<>(List.of(
+                celula(WESLLEY, PRODUTOS, Permission.CONSULTAR, true))));
+
+        service.undoApply(WESLLEY, ESTOQUE);
+
+        ArgumentCaptor<UserTemplate.Key> chave = ArgumentCaptor.forClass(UserTemplate.Key.class);
+        verify(applied).deleteById(chave.capture());
+        assertThat(chave.getValue().getUserId()).isEqualTo(WESLLEY);
+        assertThat(chave.getValue().getTemplateId()).isEqualTo(ESTOQUE);
+        verify(permissions).forget(WESLLEY);
+    }
+
+    /**
+     * Desfazer nunca **liga** nada.
+     *
+     * Se ele mexesse no que estava desligado, seria um SUBSTITUIR disfarçado —
+     * e uma permissão tirada à mão voltaria por conta própria.
+     */
+    @Test
+    @DisplayName("desfazer não liga nada que estava desligado")
+    void desfazerNaoLiga() {
+        modeloEstoqueLibera(PRODUTOS, Permission.CONSULTAR);
+        when(applied.findByUserId(WESLLEY)).thenReturn(List.of(
+                new UserTemplate(WESLLEY, ESTOQUE, "murillo", ApplyMode.SOMAR)));
+
+        List<UserPermission> grade = new ArrayList<>(List.of(
+                celula(WESLLEY, PRODUTOS, Permission.CONSULTAR, false),
+                celula(WESLLEY, MOVIMENTACOES, Permission.EXCLUIR, false)));
+        when(userCells.findAllOfUser(WESLLEY)).thenReturn(grade);
+
+        ApplyResultDTO resultado = service.undoApply(WESLLEY, ESTOQUE);
+
+        assertThat(resultado.cellsChanged()).isZero();
+        assertThat(grade.stream().noneMatch(UserPermission::isAllowed)).isTrue();
     }
 
     // ─── O cache ─────────────────────────────────────────────────────────────
@@ -211,8 +302,8 @@ class PermissionAdminServiceTest {
      * alguém vai investigar, e volta no dia seguinte.
      */
     @Test
-    @DisplayName("carimbar esquece o cache de cada pessoa alcançada")
-    void carimbarEsqueceOCacheDeTodos() {
+    @DisplayName("aplicar esquece o cache de cada pessoa alcançada")
+    void aplicarEsqueceOCacheDeTodos() {
         when(userCells.findByUserIdIn(any())).thenReturn(new ArrayList<>());
         modeloEstoqueLibera(PRODUTOS, Permission.CONSULTAR);
 
@@ -237,9 +328,9 @@ class PermissionAdminServiceTest {
     /**
      * **E gravar um MODELO não esquece o cache de ninguém — de propósito.**
      *
-     * O carimbo já passou: quem foi carimbado com ele não muda porque ele
+     * A cópia já aconteceu: quem recebeu este modelo não muda porque ele
      * mudou. Invalidar aqui daria a impressão contrária, e é justamente a
-     * confusão que o desenho de "modelo é carimbo, não pai" existe para evitar.
+     * confusão que "aplicar é copiar, não vincular" existe para evitar.
      */
     @Test
     @DisplayName("gravar um modelo não invalida cache de ninguém")
@@ -318,28 +409,28 @@ class PermissionAdminServiceTest {
     /**
      * Copiar leva o histórico junto, e não é detalhe.
      *
-     * Sem os carimbos, a tela do destino calcularia o esperado a partir de
-     * modelos que ele nunca recebeu — e apontaria divergência em toda célula,
-     * transformando o ponto âmbar em ruído.
+     * Sem a lista de modelos aplicados, a tela do destino calcularia o
+     * esperado a partir de modelos que ele nunca recebeu — e apontaria
+     * divergência em toda célula, transformando o ponto âmbar em ruído.
      */
     @Test
-    @DisplayName("copiar de outra pessoa leva a grade e os carimbos")
+    @DisplayName("copiar de outra pessoa leva a grade e os modelos aplicados")
     void copiarLevaOsCarimbos() {
         when(userCells.findAllOfUser(RICARDO)).thenReturn(new ArrayList<>(List.of(
                 celula(RICARDO, PRODUTOS, Permission.CONSULTAR, true))));
         List<UserPermission> destino = new ArrayList<>(List.of(
                 celula(WESLLEY, PRODUTOS, Permission.CONSULTAR, false)));
         when(userCells.findAllOfUser(WESLLEY)).thenReturn(destino);
-        when(stamps.findByUserId(RICARDO)).thenReturn(List.of(
+        when(applied.findByUserId(RICARDO)).thenReturn(List.of(
                 new UserTemplate(RICARDO, ESTOQUE, "murillo", ApplyMode.SOMAR)));
 
         service.copyFrom(WESLLEY, RICARDO);
 
         assertThat(ligada(destino, PRODUTOS, Permission.CONSULTAR)).isTrue();
-        verify(stamps).deleteByUserId(WESLLEY);
+        verify(applied).deleteByUserId(WESLLEY);
 
         ArgumentCaptor<UserTemplate> copiado = ArgumentCaptor.forClass(UserTemplate.class);
-        verify(stamps).save(copiado.capture());
+        verify(applied).save(copiado.capture());
         assertThat(copiado.getValue().getUserId()).isEqualTo(WESLLEY);
         assertThat(copiado.getValue().getTemplateId()).isEqualTo(ESTOQUE);
         verify(permissions).forget(WESLLEY);
@@ -372,7 +463,7 @@ class PermissionAdminServiceTest {
         assertThat(resumo.allowedCells())
                 .as("só a célula que o original tinha ligada")
                 .isEqualTo(1);
-        assertThat(resumo.stampedUsers()).isZero();
+        assertThat(resumo.appliedToUsers()).isZero();
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<TemplatePermission>> criadas = ArgumentCaptor.forClass(List.class);

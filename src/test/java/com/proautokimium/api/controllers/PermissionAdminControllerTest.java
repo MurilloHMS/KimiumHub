@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -86,9 +87,9 @@ class PermissionAdminControllerTest {
     }
 
     @Test
-    @DisplayName("funcionário sem a permissão não carimba modelo em ninguém")
+    @DisplayName("funcionário sem a permissão não aplica modelo em ninguém")
     @WithMockUser(username = "ricardo", authorities = {"ROLE_USER"})
-    void funcionarioComumNaoCarimba() throws Exception {
+    void funcionarioComumNaoAplica() throws Exception {
         mockMvc.perform(post("/api/permissions/templates/" + UUID.randomUUID() + "/apply")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -127,22 +128,51 @@ class PermissionAdminControllerTest {
     }
 
     /**
-     * **Alterar não é carimbar.**
+     * **Alterar não é aplicar modelo.**
      *
-     * Alterar mexe numa pessoa; carimbar alcança várias de uma vez, e no modo
+     * Alterar mexe numa pessoa; aplicar alcança várias de uma vez, e no modo
      * SUBSTITUIR apaga ajuste individual de todas elas. São dois pesos, e por
      * isso duas permissões.
      */
     @Test
-    @DisplayName("quem altera uma pessoa não carimba um modelo em várias")
+    @DisplayName("quem altera uma pessoa não aplica um modelo em várias")
     @WithMockUser(username = "ana", authorities = {USERS + ":ALTERAR"})
-    void alterarNaoCarimba() throws Exception {
+    void alterarNaoAplica() throws Exception {
         mockMvc.perform(post("/api/permissions/templates/" + UUID.randomUUID() + "/apply")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(
                                 new ApplyTemplateDTO(List.of("u-1"), ApplyMode.SOMAR))))
                 .andExpect(status().isForbidden());
+    }
+
+    /**
+     * Desfazer tira acesso, então pesa o mesmo que aplicar.
+     *
+     * Quem só altera uma pessoa por vez não pode desfazer um modelo inteiro
+     * nela — é o mesmo raciocínio da aplicação em massa, na direção contrária.
+     */
+    @Test
+    @DisplayName("quem só altera não desfaz a aplicação de um modelo")
+    @WithMockUser(username = "ana", authorities = {USERS + ":ALTERAR"})
+    void alterarNaoDesfaz() throws Exception {
+        mockMvc.perform(delete("/api/permissions/users/u-1/templates/" + UUID.randomUUID())
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    @DisplayName("com CONFIGURAR, desfazer responde quantas células saíram")
+    @WithMockUser(username = "murillo", authorities = {USERS + ":CONFIGURAR"})
+    void desfazerResponde() throws Exception {
+        when(service.undoApply(anyString(), any())).thenReturn(new ApplyResultDTO(1, 9));
+
+        mockMvc.perform(delete("/api/permissions/users/u-1/templates/" + UUID.randomUUID())
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cellsChanged").value(9));
     }
 
     // ─── O catálogo serve às duas telas ──────────────────────────────────────
@@ -186,13 +216,13 @@ class PermissionAdminControllerTest {
     /**
      * Quem aplicou fica registrado, e vem do token — não do corpo.
      *
-     * Se viesse do corpo, o registro de "quem carimbou" seria escrito por quem
-     * carimbou, e não valeria nada numa auditoria.
+     * Se viesse do corpo, o registro de "quem aplicou" seria escrito por quem
+     * aplicou, e não valeria nada numa auditoria.
      */
     @Test
-    @DisplayName("o carimbo registra quem aplicou, tirado da autenticação")
+    @DisplayName("a aplicação registra quem aplicou, tirado da autenticação")
     @WithMockUser(username = "murillo", authorities = {USERS + ":CONFIGURAR"})
-    void carimboRegistraQuemAplicou() throws Exception {
+    void aplicacaoRegistraQuemAplicou() throws Exception {
         UUID modelo = UUID.randomUUID();
         when(service.apply(any(), any(), org.mockito.ArgumentMatchers.eq("murillo")))
                 .thenReturn(new ApplyResultDTO(2, 40));

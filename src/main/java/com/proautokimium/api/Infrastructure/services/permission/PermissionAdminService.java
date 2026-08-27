@@ -20,10 +20,13 @@ import java.util.*;
 /**
  * As telas que configuram o controle de acesso.
  *
- * A regra que organiza tudo aqui: **o modelo é um carimbo, não um pai.**
- * Aplicá-lo escreve as permissões na pessoa, e depois disso ele não tem mais
- * poder nenhum sobre ela. Por isso mexer num modelo não invalida cache de
+ * A regra que organiza tudo aqui: **aplicar um modelo é copiar, não vincular.**
+ * A aplicação escreve as permissões dentro da pessoa, e depois disso o modelo
+ * não manda mais nada nela. Por isso mexer num modelo não invalida cache de
  * ninguém, e mexer numa pessoa invalida só o dela.
+ *
+ * `user_templates` guarda só o **registro de que a cópia aconteceu** — para a
+ * tela poder avisar quem já recebeu, oferecer reaplicar, e desfazer.
  */
 @Service
 public class PermissionAdminService {
@@ -32,7 +35,7 @@ public class PermissionAdminService {
     private final PermissionTemplateRepository templates;
     private final TemplatePermissionRepository templateCells;
     private final UserPermissionRepository userCells;
-    private final UserTemplateRepository stamps;
+    private final UserTemplateRepository applied;
     private final UserRepository users;
     private final PermissionService permissions;
 
@@ -40,14 +43,14 @@ public class PermissionAdminService {
                                   PermissionTemplateRepository templates,
                                   TemplatePermissionRepository templateCells,
                                   UserPermissionRepository userCells,
-                                  UserTemplateRepository stamps,
+                                  UserTemplateRepository applied,
                                   UserRepository users,
                                   PermissionService permissions) {
         this.screens = screens;
         this.templates = templates;
         this.templateCells = templateCells;
         this.userCells = userCells;
-        this.stamps = stamps;
+        this.applied = applied;
         this.users = users;
         this.permissions = permissions;
     }
@@ -75,35 +78,35 @@ public class PermissionAdminService {
         templateCells.countAllowedByTemplate()
                 .forEach(c -> ligadas.put(c.getTemplateId(), c.getTotal()));
 
-        Map<UUID, Long> carimbados = new HashMap<>();
-        stamps.countByTemplate()
-                .forEach(c -> carimbados.put(c.getTemplateId(), c.getTotal()));
+        Map<UUID, Long> alcancados = new HashMap<>();
+        applied.countByTemplate()
+                .forEach(c -> alcancados.put(c.getTemplateId(), c.getTotal()));
 
         return templates.findAll().stream()
                 .sorted(Comparator.comparing(PermissionTemplate::getName))
                 .map(t -> new TemplateSummaryDTO(
                         t.getId(), t.getName(), t.getDescription(), t.isActive(),
                         ligadas.getOrDefault(t.getId(), 0L),
-                        carimbados.getOrDefault(t.getId(), 0L)))
+                        alcancados.getOrDefault(t.getId(), 0L)))
                 .toList();
     }
 
     /**
-     * Quem já foi carimbado com este modelo.
+     * A quem este modelo já foi aplicado.
      *
      * A tela de modelos precisa dos **nomes**, para o aviso, e dos **ids**,
      * para o reaplicar. Sem eles o aviso diria "3 usuários" e o botão ao lado
      * não teria em quem mexer — que é o mesmo que não ter botão.
      */
     @Transactional(readOnly = true)
-    public List<UserSummaryDTO> stampedWith(UUID templateId) {
+    public List<UserSummaryDTO> appliedTo(UUID templateId) {
         templates.findById(templateId).orElseThrow(PermissionTemplateNotFoundException::new);
 
-        Set<String> carimbados = new HashSet<>();
-        stamps.findByTemplateId(templateId).forEach(stamp -> carimbados.add(stamp.getUserId()));
-        if (carimbados.isEmpty()) return List.of();
+        Set<String> alcancados = new HashSet<>();
+        applied.findByTemplateId(templateId).forEach(reg -> alcancados.add(reg.getUserId()));
+        if (alcancados.isEmpty()) return List.of();
 
-        return users().stream().filter(u -> carimbados.contains(u.id())).toList();
+        return users().stream().filter(u -> alcancados.contains(u.id())).toList();
     }
 
     @Transactional(readOnly = true)
@@ -192,9 +195,9 @@ public class PermissionAdminService {
     /**
      * Grava a grade de um modelo.
      *
-     * **Não invalida cache de ninguém, e isso não é esquecimento.** O carimbo
-     * já passou: quem foi carimbado com este modelo não muda porque ele mudou.
-     * Alcançar essas pessoas é o "reaplicar", que é um ato explícito e avisado.
+     * **Não invalida cache de ninguém, e isso não é esquecimento.** A cópia já
+     * aconteceu: quem recebeu este modelo não muda porque ele mudou. Alcançar
+     * essas pessoas é o "reaplicar", que é um ato explícito e avisado.
      */
     @Transactional
     public int saveTemplateGrid(UUID templateId, GridDTO grid) {
@@ -228,10 +231,10 @@ public class PermissionAdminService {
         Map<UUID, String> nomeDoModelo = new HashMap<>();
         templates.findAll().forEach(t -> nomeDoModelo.put(t.getId(), t.getName()));
 
-        Map<String, List<String>> carimbos = new HashMap<>();
-        for (UserTemplate stamp : stamps.findAll()) {
-            carimbos.computeIfAbsent(stamp.getUserId(), id -> new ArrayList<>())
-                    .add(nomeDoModelo.getOrDefault(stamp.getTemplateId(), "?"));
+        Map<String, List<String>> modelosDaPessoa = new HashMap<>();
+        for (UserTemplate registro : applied.findAll()) {
+            modelosDaPessoa.computeIfAbsent(registro.getUserId(), id -> new ArrayList<>())
+                    .add(nomeDoModelo.getOrDefault(registro.getTemplateId(), "?"));
         }
 
         return users.findAllWithEmployee().stream()
@@ -240,7 +243,7 @@ public class PermissionAdminService {
                         String.CASE_INSENSITIVE_ORDER))
                 .map(u -> new UserSummaryDTO(u.getId(), displayName(u), u.getLogin(),
                         u.isActive(),
-                        carimbos.getOrDefault(u.getId(), List.of()).stream().sorted().toList()))
+                        modelosDaPessoa.getOrDefault(u.getId(), List.of()).stream().sorted().toList()))
                 .toList();
     }
 
@@ -255,22 +258,22 @@ public class PermissionAdminService {
                     .add(cell.getPermission().name());
         }
 
-        List<UserTemplate> aplicados = stamps.findByUserId(userId);
+        List<UserTemplate> aplicados = applied.findByUserId(userId);
 
         Map<UUID, PermissionTemplate> porId = new HashMap<>();
         templates.findAll().forEach(t -> porId.put(t.getId(), t));
 
-        // O esperado é a UNIÃO do que os carimbos permitem — semântica de SOMAR,
-        // que é como quase todo carimbo é aplicado. A divergência com `cells` é
-        // o ponto âmbar da tela.
+        // O esperado é a UNIÃO do que os modelos aplicados permitem — semântica
+        // de SOMAR, que é como quase toda aplicação acontece. A divergência com
+        // `cells` é o ponto âmbar da tela.
         //
         // O que ele NÃO distingue: célula que divergiu porque alguém a ajustou,
         // e célula que divergiu porque o modelo mudou depois. Por isso a tela
-        // diz "difere dos carimbos aplicados", e não "ajuste individual".
-        Map<String, List<String>> carimbado = new LinkedHashMap<>();
-        for (UserTemplate stamp : aplicados) {
-            for (TemplatePermission cell : templateCells.findByTemplateIdAndAllowedTrue(stamp.getTemplateId())) {
-                List<String> naTela = carimbado.computeIfAbsent(
+        // diz "difere dos modelos aplicados", e não "ajuste individual".
+        Map<String, List<String>> peloModelo = new LinkedHashMap<>();
+        for (UserTemplate registro : aplicados) {
+            for (TemplatePermission cell : templateCells.findByTemplateIdAndAllowedTrue(registro.getTemplateId())) {
+                List<String> naTela = peloModelo.computeIfAbsent(
                         cell.getScreenCode(), tela -> new ArrayList<>());
                 if (!naTela.contains(cell.getPermission().name())) {
                     naTela.add(cell.getPermission().name());
@@ -279,16 +282,16 @@ public class PermissionAdminService {
         }
 
         List<AppliedTemplateDTO> historico = aplicados.stream()
-                .map(stamp -> new AppliedTemplateDTO(
-                        stamp.getTemplateId(),
-                        porId.containsKey(stamp.getTemplateId())
-                                ? porId.get(stamp.getTemplateId()).getName() : "?",
-                        stamp.getAppliedAt(), stamp.getAppliedBy(), stamp.getMode()))
+                .map(registro -> new AppliedTemplateDTO(
+                        registro.getTemplateId(),
+                        porId.containsKey(registro.getTemplateId())
+                                ? porId.get(registro.getTemplateId()).getName() : "?",
+                        registro.getAppliedAt(), registro.getAppliedBy(), registro.getMode()))
                 .sorted(Comparator.comparing(AppliedTemplateDTO::name))
                 .toList();
 
         return new UserGridDTO(user.getId(), displayName(user), user.getLogin(),
-                cells, carimbado, historico);
+                cells, peloModelo, historico);
     }
 
     /**
@@ -319,7 +322,7 @@ public class PermissionAdminService {
     }
 
     /**
-     * Carimba um modelo em N pessoas.
+     * Aplica um modelo a N pessoas.
      *
      * SOMAR liga o que o modelo permite e não desliga nada — é o que faz
      * "Vendas + Estoque" funcionar sem existir um modelo combinado. SUBSTITUIR
@@ -357,10 +360,11 @@ public class PermissionAdminService {
         }
         userCells.saveAll(cells);
 
-        // Registra o carimbo. Recarimbar a mesma pessoa atualiza a data e o
-        // modo em vez de criar uma segunda linha — a chave é (usuário, modelo).
+        // Registra a aplicação. Aplicar de novo na mesma pessoa atualiza a data
+        // e o modo em vez de criar uma segunda linha — a chave é (usuário,
+        // modelo), e duas linhas iguais não diriam nada a mais.
         for (String userId : alvos) {
-            stamps.save(new UserTemplate(userId, templateId, appliedBy, modo));
+            applied.save(new UserTemplate(userId, templateId, appliedBy, modo));
             permissions.forget(userId);
         }
 
@@ -370,9 +374,9 @@ public class PermissionAdminService {
     /**
      * "Deixa o Pedro igual ao João."
      *
-     * Copia a grade **e o histórico de carimbos**. Copiar só a grade deixaria a
-     * tela do Pedro apontando divergência em toda célula, porque o esperado
-     * seria calculado a partir dos carimbos que ele nunca recebeu.
+     * Copia a grade **e a lista de modelos aplicados**. Copiar só a grade
+     * deixaria a tela do Pedro apontando divergência em toda célula, porque o
+     * esperado seria calculado a partir de modelos que ele nunca recebeu.
      */
     @Transactional
     public int copyFrom(String targetUserId, String sourceUserId) {
@@ -395,15 +399,65 @@ public class PermissionAdminService {
         }
         userCells.saveAll(cells);
 
-        List<UserTemplate> daOrigem = stamps.findByUserId(sourceUserId);
-        stamps.deleteByUserId(targetUserId);
-        for (UserTemplate stamp : daOrigem) {
-            stamps.save(new UserTemplate(targetUserId, stamp.getTemplateId(),
-                    stamp.getAppliedBy(), stamp.getMode()));
+        List<UserTemplate> daOrigem = applied.findByUserId(sourceUserId);
+        applied.deleteByUserId(targetUserId);
+        for (UserTemplate registro : daOrigem) {
+            applied.save(new UserTemplate(targetUserId, registro.getTemplateId(),
+                    registro.getAppliedBy(), registro.getMode()));
         }
 
         permissions.forget(targetUserId);
         return alteradas;
+    }
+
+    /**
+     * Desfaz a aplicação de um modelo numa pessoa.
+     *
+     * **Não é apagar o registro e pronto.** Apagar só a linha de
+     * `user_templates` não tiraria permissão nenhuma — ela é anotação, não
+     * fonte. Desfazer de verdade é desligar o que **aquele** modelo deu.
+     *
+     * A parte que importa é o `manter`: uma permissão que outro modelo aplicado
+     * também dá **fica ligada**. Sem isso, desfazer ALMOXARIFADO no Weslley
+     * derrubaria junto as telas que o Base dá, e a pessoa sairia com menos do
+     * que tinha antes de qualquer modelo — o oposto de desfazer.
+     *
+     * O que ele não alcança: permissão que alguém ligou à mão depois e que por
+     * acaso o modelo também dava. Ela é desligada. É o mesmo limite do ponto
+     * âmbar — o sistema guarda que a cópia aconteceu, não o que havia antes
+     * dela.
+     */
+    @Transactional
+    public ApplyResultDTO undoApply(String userId, UUID templateId) {
+        requireUser(userId);
+        templates.findById(templateId).orElseThrow(PermissionTemplateNotFoundException::new);
+
+        Set<String> desteModelo = allowedKeysOfTemplate(templateId);
+
+        Set<String> manter = new HashSet<>();
+        for (UserTemplate registro : applied.findByUserId(userId)) {
+            if (registro.getTemplateId().equals(templateId)) continue;
+            manter.addAll(allowedKeysOfTemplate(registro.getTemplateId()));
+        }
+
+        List<UserPermission> cells = userCells.findAllOfUser(userId);
+        int alteradas = 0;
+        for (UserPermission cell : cells) {
+            String chave = key(cell.getScreenCode(), cell.getPermission());
+            if (cell.isAllowed() && desteModelo.contains(chave) && !manter.contains(chave)) {
+                cell.setAllowed(false);
+                alteradas++;
+            }
+        }
+        userCells.saveAll(cells);
+
+        UserTemplate.Key chave = new UserTemplate.Key();
+        chave.setUserId(userId);
+        chave.setTemplateId(templateId);
+        applied.deleteById(chave);
+
+        permissions.forget(userId);
+        return new ApplyResultDTO(1, alteradas);
     }
 
     // ─── Miudezas ────────────────────────────────────────────────────────────
