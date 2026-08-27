@@ -115,7 +115,7 @@ class AuthenticationControllerTest {
 
     @Test
     @DisplayName("Deve registrar usuário novo com senha criptografada")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"settings/admin:INCLUIR"})
     void sholdRegisterNewUser() throws Exception {
         RegisterDTO dto = new RegisterDTO("novo.usuario", "email@exemple.com", "123456", List.of(UserRole.ADMIN));
 
@@ -174,6 +174,7 @@ class AuthenticationControllerTest {
 
     @Test
     @DisplayName("Deve bloquear o primeiro acesso quando o funcionário já possui usuário vinculado")
+    @WithMockUser(authorities = {"settings/admin:ENVIAR"})
     void shouldBlockFirstAccessWhenEmployeeAlreadyHasUser() throws Exception {
         Employee employee = new Employee();
         employee.id = UUID.randomUUID();
@@ -200,6 +201,7 @@ class AuthenticationControllerTest {
 
     @Test
     @DisplayName("Deve enviar o token de primeiro acesso quando o funcionário ainda não tem usuário")
+    @WithMockUser(authorities = {"settings/admin:ENVIAR"})
     void shouldSendFirstAccessTokenWhenEmployeeHasNoUser() throws Exception {
         Employee employee = new Employee();
         employee.id = UUID.randomUUID();
@@ -438,5 +440,65 @@ class AuthenticationControllerTest {
                 .andExpect(status().isOk());
 
         verify(authorizationService).forgotPassword("12.345.678/0001-90");
+    }
+
+    // ─── O fluxo de primeiro acesso ──────────────────────────────────────────
+
+    /**
+     * **Estas duas rotas não podem exigir login, nunca.**
+     *
+     * Quem valida o token e quem escolhe a senha ainda não tem conta — é o que
+     * o primeiro acesso é. Se elas ficarem atrás de permissão, funcionário novo
+     * nenhum entra no sistema, e o sintoma é um link de e-mail que abre numa
+     * tela de erro.
+     *
+     * O `SecurityPaths` liberava `/api/auth/first-access/**`, e esse padrão
+     * casa também o caminho base — deixando aberto o endpoint que DISPARA o
+     * convite. Trocado por dois padrões de um segmento; estes testes existem
+     * para provar que a troca não fechou o que precisava ficar aberto.
+     */
+    @Test
+    @DisplayName("validar o token do primeiro acesso não exige login")
+    void validarTokenNaoExigeLogin() throws Exception {
+        mockMvc.perform(post("/api/auth/first-access/um-token-qualquer/is-valid")
+                        .with(csrf()))
+                .andExpect(result -> org.junit.jupiter.api.Assertions.assertNotEquals(
+                        403, result.getResponse().getStatus(),
+                        "quem chega pelo link do e-mail ainda nao tem conta"));
+    }
+
+    @Test
+    @DisplayName("escolher a senha no primeiro acesso não exige login")
+    void escolherSenhaNaoExigeLogin() throws Exception {
+        mockMvc.perform(post("/api/auth/first-access/um-token-qualquer/sign-in")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "novato",
+                                  "password": "Primeira123@"
+                                }
+                                """))
+                .andExpect(result -> org.junit.jupiter.api.Assertions.assertNotEquals(
+                        403, result.getResponse().getStatus(),
+                        "quem escolhe a senha ainda nao tem conta"));
+    }
+
+    /**
+     * **E o convite, sim.**
+     *
+     * Disparar o e-mail de primeiro acesso era aberto por tabela — o `/**`
+     * cobria o caminho base. Qualquer um podia mandar convite para qualquer
+     * funcionário.
+     */
+    @Test
+    @DisplayName("disparar o convite de primeiro acesso exige permissão")
+    @WithMockUser(username = "ricardo", authorities = {"ROLE_USER"})
+    void convidarExigePermissao() throws Exception {
+        mockMvc.perform(post("/api/auth/first-access")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"employeeId\":\"00000000-0000-0000-0000-000000000001\"}"))
+                .andExpect(status().isForbidden());
     }
 }

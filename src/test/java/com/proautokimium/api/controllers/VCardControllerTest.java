@@ -58,7 +58,7 @@ class VCardControllerTest {
 
     @Test
     @DisplayName("GET /api/profile - deve retornar lista quando autenticado")
-    @WithMockUser
+    @WithMockUser(authorities = {"profile-manager:CONSULTAR", "profile-manager:INCLUIR", "profile-manager:ALTERAR", "profile-manager:EXCLUIR", "perfil:CONSULTAR"})
     void deveRetornarListaDeProfilesAutenticado() throws Exception {
         when(profileService.getAll()).thenReturn(List.of(buildResponse()));
 
@@ -75,7 +75,7 @@ class VCardControllerTest {
 
     @Test
     @DisplayName("POST /api/profile - deve criar profile quando autenticado")
-    @WithMockUser
+    @WithMockUser(authorities = {"profile-manager:CONSULTAR", "profile-manager:INCLUIR", "profile-manager:ALTERAR", "profile-manager:EXCLUIR", "perfil:CONSULTAR"})
     void deveCriarProfileAutenticado() throws Exception {
         ProfileCreateDto dto = new ProfileCreateDto("João Silva", "joao-silva", "Dev", "Empresa",
                 "joao@teste.com", null, null, List.of(), List.of(), List.of(), List.of(), true);
@@ -103,7 +103,7 @@ class VCardControllerTest {
 
     @Test
     @DisplayName("DELETE /api/profile/{id} - deve deletar profile quando autenticado")
-    @WithMockUser
+    @WithMockUser(authorities = {"profile-manager:CONSULTAR", "profile-manager:INCLUIR", "profile-manager:ALTERAR", "profile-manager:EXCLUIR", "perfil:CONSULTAR"})
     void deveDeletarProfileAutenticado() throws Exception {
         doNothing().when(profileService).delete(profileId);
 

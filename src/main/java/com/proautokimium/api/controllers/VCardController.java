@@ -30,21 +30,25 @@ public class VCardController {
 
     // ── Admin CRUD ────────────────────────────────────────────────────────────
 
+    @PreAuthorize("hasAuthority('profile-manager:CONSULTAR')")
     @GetMapping
     public ResponseEntity<List<ProfileResponseDto>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
+    @PreAuthorize("hasAuthority('profile-manager:CONSULTAR')")
     @GetMapping("/{id}")
     public ResponseEntity<ProfileResponseDto> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
+    @PreAuthorize("hasAuthority('profile-manager:INCLUIR')")
     @PostMapping
     public ResponseEntity<ProfileResponseDto> create(@RequestBody ProfileCreateDto dto) {
         return ResponseEntity.ok(service.create(dto));
     }
 
+    @PreAuthorize("hasAuthority('profile-manager:ALTERAR')")
     @PutMapping("/{id}")
     public ResponseEntity<ProfileResponseDto> update(
             @PathVariable UUID id,
@@ -52,6 +56,7 @@ public class VCardController {
         return ResponseEntity.ok(service.update(id, dto));
     }
 
+    @PreAuthorize("hasAuthority('profile-manager:EXCLUIR')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);
@@ -60,6 +65,7 @@ public class VCardController {
 
     // ── Self-service (Meu Perfil) ─────────────────────────────────────────────
 
+    @PreAuthorize("hasAuthority('perfil:CONSULTAR')")
     @GetMapping("/me")
     public ResponseEntity<MyProfileResponseDto> getMyProfile(Authentication authentication) {
         return ResponseEntity.ok(service.getMyProfile(authentication.getName()));

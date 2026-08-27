@@ -102,6 +102,7 @@ public class FuelSupplyController {
 	 * @param dto Dados do filtro
 	 * @return PDF com relatório
 	 */
+	@PreAuthorize("hasAnyAuthority('company/fuel-supply:BAIXAR', 'company/fuel-hub:BAIXAR')")
 	@PostMapping
 	@Operation(summary = "Gerar relatório", description = "Gera o relatório de combustíveis")
 	public ResponseEntity<byte[]> generateReport(@RequestBody FuelSupplyReportFilterDTO dto) {

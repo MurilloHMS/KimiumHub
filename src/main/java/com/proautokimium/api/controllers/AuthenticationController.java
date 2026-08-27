@@ -81,7 +81,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/register")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('settings/admin:INCLUIR')")
     public ResponseEntity<Object> Register(@RequestBody @Valid RegisterDTO data){
         return authService.signIn(data) != null ?
                 ResponseEntity.status(HttpStatus.OK).body("Usuário criado com sucesso!")
@@ -116,7 +116,7 @@ public class AuthenticationController {
 
     @GetMapping("/users")
     @Operation(summary = "Retorna Usuários", description = "Obtém a lista de usuários")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAuthority('settings/admin:CONSULTAR')")
     public ResponseEntity<Object> getUsers(){
         return ResponseEntity.ok(authService.getUsers());
     }
@@ -130,12 +130,13 @@ public class AuthenticationController {
 
     @PostMapping("/users/{login}/reset-password")
     @Operation(summary = "Reset de senha pelo Admin/RH", description = "Gera o token de recuperação e envia via email para o usuário")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RH')")
+    @PreAuthorize("hasAuthority('settings/admin:CONFIGURAR')")
     public ResponseEntity<Object> resetPasswordByAdmin(@PathVariable String login) {
         authService.resetPasswordByAdmin(login);
         return ResponseEntity.ok("Token de redefinição enviado para o e-mail do usuário.");
     }
 
+    @PreAuthorize("hasAuthority('settings/admin:ENVIAR')")
     @PostMapping("/first-access")
     @Operation(summary = "Cria o Primeiro Acesso", description = "Gera o token de primeiro acesso e envia via email")
     public ResponseEntity<Object> firstAccess(@RequestBody @Valid NewAccessDTO dto) {
@@ -256,7 +257,7 @@ public class AuthenticationController {
 
     @PutMapping("/users/{login}/block")
     @Operation(summary = "Bloqueia Usuário", description = "Bloqueia o acesso ao sistema pelo login")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAuthority('settings/admin:CONFIGURAR')")
     public ResponseEntity<Object> blockAccess(@PathVariable String login){
         authService.blockUser(login);
         return ResponseEntity.ok().body("Acesso do usuário foi bloqueado");
@@ -264,14 +265,14 @@ public class AuthenticationController {
 
     @PutMapping("/users/{login}/unblock")
     @Operation(summary = "Libera Usuário", description = "Libera o acesso ao sistema pelo login")
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasAuthority('settings/admin:CONFIGURAR')")
     public ResponseEntity<Object> unblockAccess(@PathVariable String login){
         authService.unblockUser(login);
         return ResponseEntity.ok().body("Acesso do usuário foi liberado");
     }
 
     @PutMapping("/users/{login}/customer")
-    @PreAuthorize("hasAnyRole('ADMIN','MARKETING')")
+    @PreAuthorize("hasAuthority('company/customers:CONFIGURAR')")
     @Operation(summary = "Vincula o usuário a um cliente")
     public ResponseEntity<Object> linkCustomer(@PathVariable String login,
                                                @RequestParam String codParceiro) {
@@ -280,7 +281,7 @@ public class AuthenticationController {
     }
 
     @DeleteMapping("/users/{login}/customer")
-    @PreAuthorize("hasAnyRole('ADMIN','MARKETING')")
+    @PreAuthorize("hasAuthority('company/customers:CONFIGURAR')")
     @Operation(summary = "Remove o acesso do usuário ao cliente")
     public ResponseEntity<Object> unlinkCustomer(@PathVariable String login) {
         authService.unlinkCustomer(login);
