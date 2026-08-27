@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.permission;
 
 import com.proautokimium.api.Infrastructure.repositories.permission.UserPermissionRepository;
+import com.proautokimium.api.domain.enums.Permission;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.GrantedAuthority;
@@ -76,6 +77,23 @@ public class PermissionService {
         }
 
         return porTela;
+    }
+
+    /**
+     * A pessoa pode esta ação nesta tela?
+     *
+     * Para quando a **regra é do domínio**, e não um `@PreAuthorize` na porta:
+     * o cartão digital, por exemplo, é uma seção dentro de uma tela que todo
+     * mundo abre. Recusar o endpoint inteiro seria errado — quem não pode criar
+     * ainda precisa ler o próprio perfil.
+     *
+     * Passa pelo cache, como todo o resto.
+     */
+    @Transactional(readOnly = true)
+    public boolean can(String userId, String screenCode, Permission permission) {
+        String procurado = screenCode + ":" + permission.name();
+        return authoritiesOf(userId).stream()
+                .anyMatch(authority -> procurado.equals(authority.getAuthority()));
     }
 
     /**
