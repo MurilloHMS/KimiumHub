@@ -25,10 +25,26 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    /** Permissão negada é resposta, não falha: 403, e sem stack trace no log. */
+    /**
+     * Permissão negada é resposta, não falha: 403, e sem stack trace no log.
+     *
+     * **A mensagem diz qual authority faltou**, e isso não é cosmético. Com
+     * permissão por tela em 228 endpoints, um mapeamento errado tira o trabalho
+     * de alguém no meio do expediente — e "Access Denied" não diz nem em que
+     * tela procurar. Sem esta frase, cada erro de mapeamento vira uma
+     * investigação; com ela, vira uma linha no chamado.
+     *
+     * O log fica no nível `warn` com a authority junto: é o que permite achar
+     * um mapeamento errado antes de alguém reclamar.
+     */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
-        return build(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+        String mensagem = MissingAuthority.message(ex);
+
+        log.warn("Acesso negado | path={} | faltou={}",
+                request.getRequestURI(), MissingAuthority.of(ex));
+
+        return build(HttpStatus.FORBIDDEN, mensagem, request);
     }
 
     @ExceptionHandler(Exception.class)
