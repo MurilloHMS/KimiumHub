@@ -21,6 +21,7 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -74,6 +75,7 @@ public class MachineContractController {
     //   ]
     // }
     // ─────────────────────────────────────────────────────────────────────────
+    @PreAuthorize("hasAuthority('finance/rent-receipt-generator:CONSULTAR')")
     @PostMapping("/preview")
     public ResponseEntity<ReportPreviewDTO> preview(
             @RequestPart("spreadsheet") MultipartFile file) throws Exception {
@@ -106,6 +108,7 @@ public class MachineContractController {
     //
     // Response : application/zip  →  recibos-locacao-Maio.zip
     // ─────────────────────────────────────────────────────────────────────────
+    @PreAuthorize("hasAuthority('finance/rent-receipt-generator:INCLUIR')")
     @PostMapping("/generate")
     public ResponseEntity<byte[]> generate(
             @RequestBody GenerateReportRequestDTO request) throws Exception {
@@ -152,6 +155,7 @@ public class MachineContractController {
                 .body(zipBuffer.toByteArray());
     }
 
+    @PreAuthorize("hasAuthority('finance/rent-receipt-generator:BAIXAR')")
     @GetMapping("/spreadsheet/model")
     public ResponseEntity<byte[]> getSpreadSheetModel() throws Exception {
         byte[] file = machineContractExcelWriterService.writeTemplate();
@@ -169,6 +173,7 @@ public class MachineContractController {
     // ─────────────────────────────────────────────────────────────────────────
     // V2 — Generate with persistence, exclusion, mode, name overrides
     // ─────────────────────────────────────────────────────────────────────────
+    @PreAuthorize("hasAuthority('finance/rent-receipt-generator:INCLUIR')")
     @PostMapping("/generate/v2")
     public ResponseEntity<byte[]> generateV2(
             @RequestBody GenerateReportRequestV2DTO request) throws Exception {
@@ -322,6 +327,7 @@ public class MachineContractController {
     // ─────────────────────────────────────────────────────────────────────────
     // History endpoints
     // ─────────────────────────────────────────────────────────────────────────
+    @PreAuthorize("hasAuthority('finance/rent-receipt-generator:CONSULTAR')")
     @GetMapping("/receipts")
     public ResponseEntity<List<ReceiptBatchSummaryDTO>> listBatches(
             @RequestParam(required = false) String month,
@@ -353,6 +359,7 @@ public class MachineContractController {
         return ResponseEntity.ok(result);
     }
 
+    @PreAuthorize("hasAuthority('finance/rent-receipt-generator:CONSULTAR')")
     @GetMapping("/receipts/{batchId}")
     public ResponseEntity<ReceiptBatchDetailDTO> getBatchDetail(
             @PathVariable UUID batchId) {
@@ -388,6 +395,7 @@ public class MachineContractController {
         return ResponseEntity.ok(new ReceiptBatchDetailDTO(summary, receipts));
     }
 
+    @PreAuthorize("hasAuthority('finance/rent-receipt-generator:BAIXAR')")
     @GetMapping("/receipts/{batchId}/download")
     public ResponseEntity<byte[]> downloadBatchZip(
             @PathVariable UUID batchId) throws Exception {
@@ -417,6 +425,7 @@ public class MachineContractController {
                 .body(zipBuffer.toByteArray());
     }
 
+    @PreAuthorize("hasAuthority('finance/rent-receipt-generator:BAIXAR')")
     @GetMapping("/receipts/file/{receiptId}")
     public ResponseEntity<InputStreamResource> downloadSingleReceipt(
             @PathVariable UUID receiptId) throws Exception {
