@@ -10,6 +10,7 @@ import com.proautokimium.api.domain.enums.Permission;
 import com.proautokimium.api.domain.enums.UserRole;
 import com.proautokimium.api.domain.exceptions.auth.UserNotFoundException;
 import com.proautokimium.api.domain.exceptions.permission.ClientHasNoScreenPermissionsException;
+import com.proautokimium.api.domain.exceptions.permission.DeveloperPermissionsAreLockedException;
 import com.proautokimium.api.domain.exceptions.permission.PermissionTemplateNameInUseException;
 import com.proautokimium.api.domain.exceptions.permission.PermissionTemplateNotFoundException;
 import org.springframework.stereotype.Service;
@@ -242,7 +243,7 @@ public class PermissionAdminService {
                 .sorted(Comparator.comparing(PermissionAdminService::displayName,
                         String.CASE_INSENSITIVE_ORDER))
                 .map(u -> new UserSummaryDTO(u.getId(), displayName(u), u.getLogin(),
-                        u.isActive(),
+                        u.isActive(), u.getRoles().contains(UserRole.DEVELOPER),
                         modelosDaPessoa.getOrDefault(u.getId(), List.of()).stream().sorted().toList()))
                 .toList();
     }
@@ -291,6 +292,7 @@ public class PermissionAdminService {
                 .toList();
 
         return new UserGridDTO(user.getId(), displayName(user), user.getLogin(),
+                user.getRoles().contains(UserRole.DEVELOPER),
                 cells, peloModelo, historico);
     }
 
@@ -303,7 +305,7 @@ public class PermissionAdminService {
      */
     @Transactional
     public int saveUserGrid(String userId, GridDTO grid) {
-        requireUser(userId);
+        requireEditableUser(userId);
 
         Set<String> desejadas = keysOf(grid);
         List<UserPermission> cells = userCells.findAllOfUser(userId);
@@ -339,7 +341,7 @@ public class PermissionAdminService {
         templates.findById(templateId).orElseThrow(PermissionTemplateNotFoundException::new);
 
         List<String> alvos = form.userIds() == null ? List.of() : form.userIds();
-        for (String userId : alvos) requireUser(userId);
+        for (String userId : alvos) requireEditableUser(userId);
         if (alvos.isEmpty()) return new ApplyResultDTO(0, 0);
 
         ApplyMode modo = form.mode() == null ? ApplyMode.SOMAR : form.mode();
@@ -380,7 +382,8 @@ public class PermissionAdminService {
      */
     @Transactional
     public int copyFrom(String targetUserId, String sourceUserId) {
-        requireUser(targetUserId);
+        // O destino é quem recebe a escrita; a origem só é lida.
+        requireEditableUser(targetUserId);
         requireUser(sourceUserId);
 
         Set<String> origem = new HashSet<>();
@@ -429,7 +432,7 @@ public class PermissionAdminService {
      */
     @Transactional
     public ApplyResultDTO undoApply(String userId, UUID templateId) {
-        requireUser(userId);
+        requireEditableUser(userId);
         templates.findById(templateId).orElseThrow(PermissionTemplateNotFoundException::new);
 
         Set<String> desteModelo = allowedKeysOfTemplate(templateId);
@@ -481,6 +484,22 @@ public class PermissionAdminService {
         User user = users.findById(userId).orElseThrow(UserNotFoundException::new);
         if (user.getRoles().contains(UserRole.CLIENTE)) {
             throw new ClientHasNoScreenPermissionsException();
+        }
+        return user;
+    }
+
+    /**
+     * O mesmo, mas para quem vai **escrever**.
+     *
+     * Ler a grade de um desenvolvedor é útil — dá para ver que ele tem tudo.
+     * Escrever nela não: as authorities dele vêm da resolução, não da tabela,
+     * então a gravação passaria e não mudaria nada. Recusar é o que impede a
+     * tela de mentir.
+     */
+    private User requireEditableUser(String userId) {
+        User user = requireUser(userId);
+        if (user.getRoles().contains(UserRole.DEVELOPER)) {
+            throw new DeveloperPermissionsAreLockedException();
         }
         return user;
     }

@@ -30,9 +30,15 @@ public final class PermissionDTOs {
     public record TemplateGridDTO(UUID id, String name, String description,
                                   boolean active, Map<String, List<String>> cells) { }
 
-    /** Uma linha da lista lateral de usuários. */
+    /**
+     * Uma linha da lista lateral de usuários.
+     *
+     * `developer` é o que faz a tela abrir a grade em leitura: a conta de
+     * desenvolvedor tem tudo por resolução, e escrever nela não mudaria nada.
+     */
     public record UserSummaryDTO(String id, String name, String login,
-                                 boolean active, List<String> templates) { }
+                                 boolean active, boolean developer,
+                                 List<String> templates) { }
 
     /** Um modelo que já foi aplicado a alguém, e quando. */
     public record AppliedTemplateDTO(UUID id, String name, OffsetDateTime appliedAt,
@@ -51,6 +57,7 @@ public final class PermissionDTOs {
      * diz "difere dos modelos aplicados", e não "ajuste individual".
      */
     public record UserGridDTO(String id, String name, String login,
+                              boolean developer,
                               Map<String, List<String>> cells,
                               Map<String, List<String>> appliedCells,
                               List<AppliedTemplateDTO> appliedTemplates) { }

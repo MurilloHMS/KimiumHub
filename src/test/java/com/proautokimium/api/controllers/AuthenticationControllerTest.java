@@ -501,4 +501,55 @@ class AuthenticationControllerTest {
                         .content("{\"employeeId\":\"00000000-0000-0000-0000-000000000001\"}"))
                 .andExpect(status().isForbidden());
     }
+
+    /**
+     * **A saída de emergência não se fecha por requisição.**
+     *
+     * A conta de desenvolvedor é o que garante que sempre exista alguém capaz
+     * de reabrir o controle de acesso. Se a role caísse por um PUT, o sistema
+     * poderia ficar sem ninguém que consiga configurá-lo — e a volta seria
+     * `INSERT` no banco.
+     */
+    @Test
+    @DisplayName("não dá para tirar a role de desenvolvedor")
+    @WithMockUser(username = "murillo", authorities = {"settings/admin:CONFIGURAR"})
+    void naoTiraODesenvolvedor() throws Exception {
+        User dev = new User("murillo", "murillo@teste.com", "hash",
+                List.of(UserRole.DEVELOPER, UserRole.ADMIN));
+        when(userRepository.findByLogin("murillo")).thenReturn(dev);
+
+        mockMvc.perform(put("/api/auth/users/murillo/roles")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "roles": ["USER"]
+                                }
+                                """))
+                .andExpect(status().isConflict());
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    /** E mexer nas outras roles dele continua valendo, desde que ela fique. */
+    @Test
+    @DisplayName("as outras roles do desenvolvedor podem mudar")
+    @WithMockUser(username = "murillo", authorities = {"settings/admin:CONFIGURAR"})
+    void asOutrasRolesPodemMudar() throws Exception {
+        User dev = new User("murillo", "murillo@teste.com", "hash",
+                List.of(UserRole.DEVELOPER, UserRole.ADMIN));
+        when(userRepository.findByLogin("murillo")).thenReturn(dev);
+
+        mockMvc.perform(put("/api/auth/users/murillo/roles")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "roles": ["DEVELOPER", "RH"]
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        verify(userRepository).save(dev);
+    }
 }

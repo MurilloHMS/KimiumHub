@@ -1,5 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.permission;
 
+import com.proautokimium.api.Infrastructure.repositories.UserRepository;
+import com.proautokimium.api.Infrastructure.repositories.permission.ScreenRepository;
 import com.proautokimium.api.Infrastructure.repositories.permission.UserPermissionRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,10 @@ import static org.mockito.Mockito.when;
 class PermissionServiceTest {
 
     @Mock private UserPermissionRepository repository;
+    // Dependências novas da proteção do desenvolvedor. Sem elas o `@InjectMocks`
+    // passa `null` e todo teste da classe morre em NPE — não só o do atalho.
+    @Mock private UserRepository users;
+    @Mock private ScreenRepository screens;
     @InjectMocks private PermissionService service;
 
     @Test
@@ -54,5 +60,57 @@ class PermissionServiceTest {
         when(repository.findAuthorities("u1")).thenReturn(List.of());
 
         assertThat(service.authoritiesOf("u1")).isEmpty();
+    }
+
+    // ─── A conta que não se tranca ───────────────────────────────────────────
+
+    /**
+     * **O desenvolvedor tem tudo, e não consulta `user_permissions`.**
+     *
+     * Sem esta saída, a tela de permissões consegue trancar o próprio dono: um
+     * "bloquear tudo" na pessoa errada e ninguém mais abre a configuração — o
+     * mesmo impasse que a V87 resolveu no banco, agora alcançável por dois
+     * cliques.
+     */
+    @Test
+    @DisplayName("desenvolvedor recebe todas as telas vezes todas as permissões")
+    void desenvolvedorTemTudo() {
+        when(users.isDeveloper("u-dev")).thenReturn(true);
+        when(screens.findByActiveTrueOrderByModuleAscSortOrderAsc())
+                .thenReturn(List.of(tela("stock/movements"), tela("rh/hub")));
+
+        var authorities = service.authoritiesOf("u-dev").stream()
+                .map(GrantedAuthority::getAuthority).toList();
+
+        assertThat(authorities)
+                .as("duas telas vezes as sete permissões")
+                .hasSize(14)
+                .contains("stock/movements:EXCLUIR", "rh/hub:CONFIGURAR");
+    }
+
+    /**
+     * E a tabela nem é lida.
+     *
+     * Se fosse, um desenvolvedor com a grade zerada perderia acesso — que é
+     * exatamente o que esta proteção existe para impedir.
+     */
+    @Test
+    @DisplayName("a grade do desenvolvedor não é consultada")
+    void desenvolvedorNaoDependeDaTabela() {
+        when(users.isDeveloper("u-dev")).thenReturn(true);
+        when(screens.findByActiveTrueOrderByModuleAscSortOrderAsc()).thenReturn(List.of());
+
+        service.authoritiesOf("u-dev");
+
+        org.mockito.Mockito.verify(repository, org.mockito.Mockito.never())
+                .findAuthorities("u-dev");
+    }
+
+    private static com.proautokimium.api.domain.entities.permission.Screen tela(String code) {
+        var screen = new com.proautokimium.api.domain.entities.permission.Screen();
+        screen.setCode(code);
+        screen.setLabel(code);
+        screen.setModule("Teste");
+        return screen;
     }
 }

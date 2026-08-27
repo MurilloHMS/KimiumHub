@@ -1,5 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.permission;
 
+import com.proautokimium.api.Infrastructure.repositories.UserRepository;
+import com.proautokimium.api.Infrastructure.repositories.permission.ScreenRepository;
 import com.proautokimium.api.Infrastructure.repositories.permission.UserPermissionRepository;
 import com.proautokimium.api.Infrastructure.settings.CacheConfig;
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +43,8 @@ class PermissionCacheTest {
 
     @Autowired private PermissionService service;
     @MockitoBean private UserPermissionRepository repository;
+    @MockitoBean private UserRepository users;
+    @MockitoBean private ScreenRepository screens;
 
     @Test
     @DisplayName("A segunda leitura vem do cache, sem ir ao banco")

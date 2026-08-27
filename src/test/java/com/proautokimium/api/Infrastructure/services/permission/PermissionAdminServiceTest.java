@@ -9,6 +9,7 @@ import com.proautokimium.api.domain.enums.ApplyMode;
 import com.proautokimium.api.domain.enums.Permission;
 import com.proautokimium.api.domain.enums.UserRole;
 import com.proautokimium.api.domain.exceptions.permission.ClientHasNoScreenPermissionsException;
+import com.proautokimium.api.domain.exceptions.permission.DeveloperPermissionsAreLockedException;
 import com.proautokimium.api.domain.exceptions.permission.PermissionTemplateNameInUseException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -72,6 +73,12 @@ class PermissionAdminServiceTest {
         user.setId(id);
         user.setLogin(id);
         user.setRoles(new ArrayList<>(List.of(UserRole.USER)));
+        return user;
+    }
+
+    private static User desenvolvedor(String id) {
+        User user = funcionario(id);
+        user.setRoles(new ArrayList<>(List.of(UserRole.DEVELOPER)));
         return user;
     }
 
@@ -490,5 +497,73 @@ class PermissionAdminServiceTest {
         screen.setLabel(code);
         screen.setModule("Estoque");
         return screen;
+    }
+
+    // ─── A conta que não se tranca ───────────────────────────────────────────
+
+    /**
+     * **A tela recusa mexer nas permissões de um desenvolvedor.**
+     *
+     * Ele tem todas as authorities por resolução, não pela tabela — então a
+     * gravação passaria e não mudaria nada. Uma tela que aceita o clique,
+     * confirma "gravado" e não muda nada é pior que uma que diz não.
+     */
+    @Test
+    @DisplayName("gravar a grade de um desenvolvedor é recusado")
+    void naoGravaNoDesenvolvedor() {
+        when(users.findById("u-dev")).thenReturn(Optional.of(desenvolvedor("u-dev")));
+
+        assertThatThrownBy(() -> service.saveUserGrid("u-dev", new GridDTO(Map.of())))
+                .isInstanceOf(DeveloperPermissionsAreLockedException.class);
+
+        verify(userCells, never()).saveAll(any());
+    }
+
+    /**
+     * O carimbo em massa também para — inclusive quando ele é **um dos**
+     * alvos.
+     *
+     * É o caminho mais fácil de trancar o dono sem querer: selecionar todo
+     * mundo, escolher SUBSTITUIR, e o desenvolvedor ir junto no meio.
+     */
+    @Test
+    @DisplayName("aplicar modelo em lote recusa se um dos alvos for desenvolvedor")
+    void loteRecusaSeTiverDesenvolvedor() {
+        when(users.findById("u-dev")).thenReturn(Optional.of(desenvolvedor("u-dev")));
+        modeloEstoqueLibera(PRODUTOS, Permission.CONSULTAR);
+
+        assertThatThrownBy(() -> service.apply(ESTOQUE,
+                new ApplyTemplateDTO(List.of(WESLLEY, "u-dev"), ApplyMode.SUBSTITUIR), "murillo"))
+                .isInstanceOf(DeveloperPermissionsAreLockedException.class);
+
+        verify(userCells, never()).saveAll(any());
+    }
+
+    /** Copiar de um desenvolvedor é permitido: a origem só é lida. */
+    @Test
+    @DisplayName("copiar DE um desenvolvedor pode; copiar PARA não")
+    void copiarDePodeCopiarParaNao() {
+        when(users.findById("u-dev")).thenReturn(Optional.of(desenvolvedor("u-dev")));
+        when(userCells.findAllOfUser("u-dev")).thenReturn(new ArrayList<>(List.of(
+                celula("u-dev", PRODUTOS, Permission.CONSULTAR, true))));
+        when(userCells.findAllOfUser(WESLLEY)).thenReturn(new ArrayList<>(List.of(
+                celula(WESLLEY, PRODUTOS, Permission.CONSULTAR, false))));
+        when(applied.findByUserId("u-dev")).thenReturn(List.of());
+
+        service.copyFrom(WESLLEY, "u-dev");
+
+        assertThatThrownBy(() -> service.copyFrom("u-dev", WESLLEY))
+                .isInstanceOf(DeveloperPermissionsAreLockedException.class);
+    }
+
+    /** Ler a grade dele continua valendo — dá para conferir que tem tudo. */
+    @Test
+    @DisplayName("a grade do desenvolvedor abre para leitura")
+    void gradeDoDesenvolvedorAbre() {
+        when(users.findById("u-dev")).thenReturn(Optional.of(desenvolvedor("u-dev")));
+        when(userCells.findAllOfUser("u-dev")).thenReturn(List.of());
+        when(applied.findByUserId("u-dev")).thenReturn(List.of());
+
+        assertThat(service.userGrid("u-dev").developer()).isTrue();
     }
 }

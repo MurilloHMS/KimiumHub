@@ -1,6 +1,9 @@
 package com.proautokimium.api.Infrastructure.services.permission;
 
+import com.proautokimium.api.Infrastructure.repositories.UserRepository;
+import com.proautokimium.api.Infrastructure.repositories.permission.ScreenRepository;
 import com.proautokimium.api.Infrastructure.repositories.permission.UserPermissionRepository;
+import com.proautokimium.api.domain.entities.permission.Screen;
 import com.proautokimium.api.domain.enums.Permission;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -30,9 +33,39 @@ public class PermissionService {
     public static final String CACHE = "userAuthorities";
 
     private final UserPermissionRepository repository;
+    private final UserRepository users;
+    private final ScreenRepository screens;
 
-    public PermissionService(UserPermissionRepository repository) {
+    public PermissionService(UserPermissionRepository repository,
+                             UserRepository users,
+                             ScreenRepository screens) {
         this.repository = repository;
+        this.users = users;
+        this.screens = screens;
+    }
+
+    /**
+     * **O desenvolvedor não perde acesso, nunca.**
+     *
+     * Sem esta saída, a tela de permissões consegue trancar o próprio dono: um
+     * "bloquear tudo" na pessoa errada, ou um SUBSTITUIR com o modelo errado, e
+     * ninguém mais abre a configuração — o mesmo impasse que a V87 resolveu no
+     * banco, agora alcançável por dois cliques.
+     *
+     * É o mesmo papel que o `AuthenticationService` já reconhece ao recusar
+     * bloquear um desenvolvedor. Aqui ele passa a valer para permissão também.
+     *
+     * O preço, dito na frente: quem tem `DEVELOPER` tem **tudo**, e isso não se
+     * revoga pela interface. Tirar é `DELETE FROM user_roles`.
+     */
+    private Collection<GrantedAuthority> tudoQueExiste() {
+        List<GrantedAuthority> todas = new ArrayList<>();
+        for (Screen screen : screens.findByActiveTrueOrderByModuleAscSortOrderAsc()) {
+            for (Permission permission : Permission.values()) {
+                todas.add(new SimpleGrantedAuthority(screen.getCode() + ":" + permission.name()));
+            }
+        }
+        return todas;
     }
 
     /**
@@ -49,6 +82,10 @@ public class PermissionService {
     @Cacheable(value = CACHE, key = "#userId")
     @Transactional(readOnly = true)
     public Collection<? extends GrantedAuthority> authoritiesOf(String userId) {
+        if (users.isDeveloper(userId)) {
+            return tudoQueExiste();
+        }
+
         List<String> codes = repository.findAuthorities(userId);
         return codes.stream()
                 .map(code -> (GrantedAuthority) new SimpleGrantedAuthority(code))

@@ -14,6 +14,7 @@ import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
 import com.proautokimium.api.Infrastructure.services.notification.NotificationService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.Infrastructure.exceptions.auth.CredentialsIncorrectException;
+import com.proautokimium.api.domain.exceptions.permission.DeveloperPermissionsAreLockedException;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.enums.NotificationType;
 import com.proautokimium.api.domain.enums.UserRole;
@@ -249,6 +250,18 @@ public class AuthenticationController {
         User user = (User) repository.findByLogin(login);
 
         if(user == null) return ResponseEntity.notFound().build();
+
+        // A conta de desenvolvedor não perde o papel por aqui.
+        //
+        // Ela é a saída de emergência do controle de acesso: tem todas as
+        // permissões por resolução, e é o que garante que sempre exista alguém
+        // capaz de reabrir o sistema. Deixar a role cair por uma requisição
+        // seria fechar essa saída sem ninguém perceber — e a volta é `INSERT`
+        // no banco. O mesmo motivo pelo qual o bloqueio já a recusa.
+        if (user.getRoles().contains(UserRole.DEVELOPER)
+                && !roles.roles().contains(UserRole.DEVELOPER)) {
+            throw new DeveloperPermissionsAreLockedException();
+        }
 
         user.setRoles(roles.roles());
         repository.save(user);
