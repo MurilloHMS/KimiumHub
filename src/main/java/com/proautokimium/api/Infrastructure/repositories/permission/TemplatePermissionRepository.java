@@ -43,4 +43,26 @@ public interface TemplatePermissionRepository
          )
         """, nativeQuery = true)
     int createMissing(@Param("permission") String permission);
+
+    List<TemplatePermission> findByTemplateIdAndAllowedTrue(UUID templateId);
+
+    /**
+     * Quantas células cada modelo tem ligadas.
+     *
+     * É o "9 telas" da lista lateral. Agrupada pelo mesmo motivo da contagem de
+     * carimbos: desenhar onze linhas não pode custar onze consultas.
+     */
+    @Query("""
+        SELECT tp.templateId AS templateId, COUNT(tp) AS total
+          FROM TemplatePermission tp
+         WHERE tp.allowed = true
+         GROUP BY tp.templateId
+    """)
+    List<Count> countAllowedByTemplate();
+
+    /** O par que a consulta agrupada devolve. */
+    interface Count {
+        UUID getTemplateId();
+        long getTotal();
+    }
 }

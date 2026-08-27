@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface UserPermissionRepository
@@ -65,4 +66,13 @@ public interface UserPermissionRepository
          )
         """, nativeQuery = true)
     int createMissing(@Param("permission") String permission);
+
+    /**
+     * As grades de várias pessoas de uma vez — o que o "aplicar a vários" lê.
+     *
+     * Uma consulta para as N pessoas, e não uma por pessoa: carimbar quatro
+     * usuários são 1.540 células, e buscá-las em quatro idas ao banco seria
+     * pagar quatro vezes por uma leitura que o banco faz numa.
+     */
+    List<UserPermission> findByUserIdIn(Collection<String> userIds);
 }
