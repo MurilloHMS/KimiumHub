@@ -13,6 +13,7 @@ import com.proautokimium.api.Infrastructure.services.email.AuthEmailService;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
 import com.proautokimium.api.Infrastructure.services.notification.NotificationService;
 import com.proautokimium.api.domain.entities.Employee;
+import com.proautokimium.api.Infrastructure.exceptions.auth.CredentialsIncorrectException;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.enums.NotificationType;
 import com.proautokimium.api.domain.enums.UserRole;
@@ -25,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -86,7 +88,12 @@ public class AuthenticationController {
                 : ResponseEntity.noContent().build();
     }
 
-    /** Vincula explicitamente um usuário a um funcionário (parceiro) pelo código do parceiro. */
+    /**
+     * Vincula um usuário a um funcionário (parceiro) pelo código do parceiro.
+     *
+     * Estava sem trava nenhuma até 2026-08-27.
+     */
+    @PreAuthorize("hasAuthority('settings/admin:CONFIGURAR')")
     @PutMapping("/users/{login}/employee")
     @Operation(summary = "Vincular funcionário", description = "Vincula explicitamente um usuário a um funcionário (parceiro) pelo código do parceiro")
     public ResponseEntity<Object> linkEmployee(@PathVariable String login,
@@ -97,6 +104,8 @@ public class AuthenticationController {
     }
 
     /** Remove o vínculo de um usuário com o funcionário. */
+    /** Desvincular. Mesmo caso, e mais perigoso: tira o acesso de alguém. */
+    @PreAuthorize("hasAuthority('settings/admin:CONFIGURAR')")
     @DeleteMapping("/users/{login}/employee")
     @Operation(summary = "Desvincula funcionário", description = "Realiza a exclusão do vínculo do funcionário")
     public ResponseEntity<Object> unlinkEmployee(@PathVariable String login) {
@@ -189,16 +198,50 @@ public class AuthenticationController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Trocar a **própria** senha.
+     *
+     * Duas coisas mudaram aqui em 2026-08-27, e a segunda é o motivo da
+     * primeira ser segura.
+     *
+     * Ele exigia `hasRole('ADMIN')`, o que quer dizer que ninguém trocava a
+     * própria senha. Só que o corpo também trazia o `login` de quem trocar, e
+     * o `currentPassword` **era ignorado** — abrir isso para todo mundo do
+     * jeito que estava daria a qualquer funcionário logado o poder de trocar a
+     * senha de qualquer pessoa, o administrador incluído.
+     *
+     * Agora o alvo é quem está autenticado, e a senha atual é conferida. É o
+     * que "todo mundo pode trocar a própria senha" precisa significar.
+     */
     @PostMapping("/change-password")
-    @Operation(summary = "Altera senha", description = "Altera a senha do usuário enviado")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Object> changePassword(@RequestBody @Valid ChangePasswordDTO dto) {
-        User user = (User) repository.findByLogin(dto.login());
+    @Operation(summary = "Altera a própria senha",
+               description = "Confere a senha atual e troca a senha de quem está autenticado")
+    public ResponseEntity<Object> changePassword(@RequestBody @Valid ChangePasswordDTO dto,
+                                                 Authentication authentication) {
+        // O login vem da autenticação, e não do corpo: aceitar o corpo aqui é
+        // deixar quem chama escolher a vítima.
+        User user = (User) repository.findByLogin(authentication.getName());
+        if (user == null) {
+            throw new CredentialsIncorrectException("Não foi possível trocar a senha.");
+        }
 
-        user.setPassword(new BCryptPasswordEncoder().encode(dto.newPassword()));
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        if (!encoder.matches(dto.currentPassword(), user.getPassword())) {
+            throw new CredentialsIncorrectException("A senha atual não confere.");
+        }
+
+        user.setPassword(encoder.encode(dto.newPassword()));
         repository.save(user);
         return ResponseEntity.ok("Senha alterada com sucesso.");
     }
+    /**
+     * Trocar as roles de alguém.
+     *
+     * **Estava sem trava nenhuma até 2026-08-27**: qualquer funcionário logado
+     * mudava a role de qualquer pessoa, inclusive se dando ADMIN. Não era
+     * decisão — ninguém tinha reparado.
+     */
+    @PreAuthorize("hasAuthority('settings/admin:CONFIGURAR')")
     @PutMapping("/users/{login}/roles")
     @Operation(summary = "Retorna roles", description = "Retorna as roles de um usuário pelo login")
     public ResponseEntity<Object> getUserRoles(@PathVariable String login, @RequestBody UpdateRolesRequest roles) {

@@ -27,6 +27,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -294,9 +295,16 @@ class AuthenticationControllerTest {
         return created;
     }
 
+    /**
+     * A permissão de configuração do Admin, e não mais a role.
+     *
+     * Este teste passava **sem authority nenhuma** até 2026-08-27, porque o
+     * endpoint não tinha `@PreAuthorize` — ele afirmava o buraco em vez de
+     * proteger contra ele. O par abaixo é o que faltava.
+     */
     @Test
     @DisplayName("Deve atualizar roles do usuário")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(username = "admin", authorities = {"settings/admin:CONFIGURAR"})
     void shouldUpdateUserRoles() throws Exception {
         User user = new User("admin", "admin", "hash", List.of(UserRole.ADMIN));
 
@@ -314,6 +322,107 @@ class AuthenticationControllerTest {
                 .andExpect(content().string("Roles Atualizadas com sucesso!"));
 
         verify(userRepository).save(user);
+    }
+
+    /**
+     * **O buraco que estava aberto.**
+     *
+     * Sem `settings/admin:CONFIGURAR`, qualquer funcionário logado mudava a
+     * role de qualquer pessoa — inclusive a própria, para ADMIN. Não era
+     * decisão: ninguém tinha reparado que a anotação faltava.
+     */
+    @Test
+    @DisplayName("funcionário comum não muda a role de ninguém")
+    @WithMockUser(username = "ricardo", authorities = {"ROLE_USER", "rh/hub:CONSULTAR"})
+    void funcionarioComumNaoMudaRoles() throws Exception {
+        mockMvc.perform(put("/api/auth/users/admin/roles")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "roles": ["ADMIN"]
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    /** Vincular funcionário a uma conta estava igualmente aberto. */
+    @Test
+    @DisplayName("funcionário comum não vincula funcionário a conta nenhuma")
+    @WithMockUser(username = "ricardo", authorities = {"ROLE_USER"})
+    void funcionarioComumNaoVincula() throws Exception {
+        mockMvc.perform(put("/api/auth/users/admin/employee")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        // Corpo VALIDO de proposito: a validacao roda antes do
+                        // @PreAuthorize, entao um corpo torto devolve 400 e o
+                        // teste mediria a validacao em vez da porta.
+                        .content("{\"codParceiro\":\"000123\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    /**
+     * Trocar a própria senha deixou de exigir ADMIN — e passou a ser a PRÓPRIA.
+     *
+     * O endpoint tirava o login do corpo e ignorava a senha atual. Só abrir o
+     * `@PreAuthorize` teria dado a qualquer funcionário logado o poder de
+     * trocar a senha de qualquer pessoa. Estes dois testes são o par: a porta
+     * abriu, e o alvo passou a ser quem está autenticado.
+     */
+    @Test
+    @DisplayName("qualquer pessoa logada troca a própria senha")
+    @WithMockUser(username = "ricardo", authorities = {"ROLE_USER"})
+    void qualquerUmTrocaAPropriaSenha() throws Exception {
+        User ricardo = new User("ricardo", "ricardo@teste.com",
+                new BCryptPasswordEncoder().encode("Antiga123@"), List.of(UserRole.USER));
+        when(userRepository.findByLogin("ricardo")).thenReturn(ricardo);
+
+        mockMvc.perform(post("/api/auth/change-password")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "login": "ricardo",
+                                  "currentPassword": "Antiga123@",
+                                  "newPassword": "Nova12345@"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        verify(userRepository).save(ricardo);
+    }
+
+    /**
+     * **O teste que impede a escalada.**
+     *
+     * O corpo manda `login: "admin"`, e quem está autenticado é o Ricardo. A
+     * senha trocada tem que ser a dele — e como a senha atual dele não confere
+     * com a mandada, nada é trocado.
+     */
+    @Test
+    @DisplayName("o login do corpo não escolhe a vítima")
+    @WithMockUser(username = "ricardo", authorities = {"ROLE_USER"})
+    void corpoNaoEscolheAVitima() throws Exception {
+        User ricardo = new User("ricardo", "ricardo@teste.com",
+                new BCryptPasswordEncoder().encode("Antiga123@"), List.of(UserRole.USER));
+        when(userRepository.findByLogin("ricardo")).thenReturn(ricardo);
+
+        mockMvc.perform(post("/api/auth/change-password")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "login": "admin",
+                                  "currentPassword": "SenhaDoAdmin1@",
+                                  "newPassword": "Invadida123@"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized());
+
+        verify(userRepository, never()).save(any(User.class));
+        verify(userRepository, never()).findByLogin("admin");
     }
 
     @Test
