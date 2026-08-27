@@ -15,7 +15,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/hr/calculators")
 @Tag(name = "Calculadoras", description = "Vale-transporte, vale-alimentação, combustível e CLT×PJ")
-@PreAuthorize("hasAnyRole('ADMIN', 'RH')")
 public class PayrollCalculatorController {
 
     private final PayrollCalculatorService service;

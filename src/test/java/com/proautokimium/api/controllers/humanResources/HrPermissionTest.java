@@ -4,6 +4,7 @@ import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.SecurityConfiguration;
 import com.proautokimium.api.Infrastructure.security.TokenService;
 import com.proautokimium.api.Infrastructure.services.humanResources.CompanyService;
+import com.proautokimium.api.Infrastructure.services.humanResources.HrDashboardService;
 import com.proautokimium.api.Infrastructure.services.humanResources.ReimbursementService;
 import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import org.junit.jupiter.api.DisplayName;
@@ -33,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * porque não havia nada olhando. Isto aqui é o mínimo que cobre as duas
  * decisões que podem quebrar tela sem dar erro.
  */
-@WebMvcTest({CompanyController.class, ReimbursementController.class})
+@WebMvcTest({CompanyController.class, ReimbursementController.class, HrDashboardController.class})
 @TestPropertySource(properties = {"server.port=0"})
 @Import(SecurityConfiguration.class)
 class HrPermissionTest {
@@ -42,6 +43,7 @@ class HrPermissionTest {
 
     @MockitoBean CompanyService companyService;
     @MockitoBean ReimbursementService reimbursementService;
+    @MockitoBean HrDashboardService hrDashboardService;
     @MockitoBean PermissionService permissionService;
     @MockitoBean UserRepository userRepository;
     @MockitoBean TokenService tokenService;
@@ -130,5 +132,26 @@ class HrPermissionTest {
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .content("{\"paidAt\":\"2026-08-27\"}"))
                 .andExpect(status().isForbidden());
+    }
+
+    // ─── A sobra do passo 5 ───────────────────────────────────────────────────
+
+    /**
+     * **Três controllers de RH tinham `@PreAuthorize` no nível da CLASSE.**
+     *
+     * O passo 5 anotou os métodos e deixou a anotação da classe para trás. Em
+     * Spring, a do método vence — então ela estava inerte, e o sistema
+     * funcionava. Mas era uma mina: método novo sem anotação própria herdaria
+     * `hasAnyRole('ADMIN','RH')`, e depois do passo 6 ninguém mais tem essas
+     * roles. O sintoma seria um endpoint novo que ninguém consegue chamar.
+     *
+     * Este teste prova que a permissão sozinha basta — sem role nenhuma.
+     */
+    @Test
+    @DisplayName("o painel do RH abre com a permissão, sem role de RH")
+    @WithMockUser(username = "ana", authorities = {"rh/hub:CONSULTAR"})
+    void permissaoBastaSemRole() throws Exception {
+        mockMvc.perform(get("/api/hr/dashboard-summary"))
+                .andExpect(status().isOk());
     }
 }

@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/hr/dashboard-summary")
-@PreAuthorize("hasAnyRole('ADMIN', 'RH')")
 @Tag(name = "Painel RH", description = "KPIs agregados de funcionários, folha e estrutura organizacional")
 public class HrDashboardController {
 

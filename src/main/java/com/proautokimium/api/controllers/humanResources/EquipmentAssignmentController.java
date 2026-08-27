@@ -18,7 +18,6 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/hr/equipment-assignments")
 @Tag(name = "Equipamentos", description = "Vínculo de equipamentos (celular, veículo etc.) aos funcionários")
-@PreAuthorize("hasAnyRole('ADMIN', 'RH')")
 public class EquipmentAssignmentController {
 
     private final EquipmentAssignmentService service;
