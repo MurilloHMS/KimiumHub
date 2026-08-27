@@ -51,7 +51,7 @@ public class GuideReportController {
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
             produces = MediaType.APPLICATION_PDF_VALUE
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'CONTRATOS')")
+    @PreAuthorize("hasAuthority('company/guide:INCLUIR')")
     @Operation(
             summary     = "Gerar Guia de Utilização",
             description = "Gera o PDF do Guia de Utilização com os produtos selecionados, na ordem enviada."

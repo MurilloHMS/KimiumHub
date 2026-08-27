@@ -34,7 +34,7 @@ public class ProductWebsiteController {
      * tela e um 403 no console.
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'DESIGN', 'CONTRATOS')")
+    @PreAuthorize("hasAuthority('settings/products/website:CONSULTAR')")
     public ResponseEntity<List<ProductWebSiteResponseDTO>> getAll() {
         return ResponseEntity.status(HttpStatus.OK).body(service.getAll());
     }
@@ -46,7 +46,7 @@ public class ProductWebsiteController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN', 'DESIGN')")
+    @PreAuthorize("hasAuthority('settings/products/website:INCLUIR')")
     public ResponseEntity<?> create(
             @RequestPart("dados") @Valid ProductWebSiteCreateDTO dto,
             @RequestPart(value = "imagem", required = false)MultipartFile file) throws IOException {
@@ -55,7 +55,7 @@ public class ProductWebsiteController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN', 'DESIGN')")
+    @PreAuthorize("hasAuthority('settings/products/website:ALTERAR')")
     public ResponseEntity<?> update(
             @RequestPart("dados") @Valid ProductWebSiteUpdateDTO dto,
             @PathVariable UUID id,
@@ -66,14 +66,14 @@ public class ProductWebsiteController {
     }
 
     @PutMapping("/{id}/hide")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DESIGN')")
+    @PreAuthorize("hasAuthority('settings/products/website:ALTERAR')")
     public ResponseEntity<?> hideProduct(@PathVariable UUID id) {
         service.hide(id);
         return ResponseEntity.status(HttpStatus.OK).body("Produto ocultado com sucesso");
     }
 
     @PutMapping("/{id}/unhide")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DESIGN')")
+    @PreAuthorize("hasAuthority('settings/products/website:ALTERAR')")
     public ResponseEntity<?> unhideProduct(@PathVariable UUID id){
         service.unhide(id);
         return ResponseEntity.status(HttpStatus.OK).body("Produto está visível no site novamente");

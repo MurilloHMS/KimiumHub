@@ -44,7 +44,7 @@ class EmailControllerTest {
 
     @Test
     @DisplayName("POST /api/email - deve criar email e retornar 200")
-    @WithMockUser
+    @WithMockUser(authorities = {"communication/email:ENVIAR", "communication/email:CONSULTAR"})
     void deveCriarEmailComSucesso() throws Exception {
         SmtpEmailRequestDTO dto = new SmtpEmailRequestDTO("remetente");
         doNothing().when(emailService).saveEmail(any(SmtpEmailRequestDTO.class));
@@ -70,7 +70,7 @@ class EmailControllerTest {
 
     @Test
     @DisplayName("GET /api/email - deve retornar todos os emails quando autenticado")
-    @WithMockUser
+    @WithMockUser(authorities = {"communication/email:ENVIAR", "communication/email:CONSULTAR"})
     void deveRetornarTodosOsEmailsAutenticado() throws Exception {
         EmailEntity entity = mock(EmailEntity.class);
         when(emailService.getAll()).thenReturn(Set.of(entity));

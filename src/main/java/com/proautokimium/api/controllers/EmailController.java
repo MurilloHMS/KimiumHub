@@ -10,6 +10,7 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Set;
@@ -30,6 +31,7 @@ public class EmailController {
      * @param dto Recebe nome do e-mail
      * @return HttpStatus Created (201)
      */
+    @PreAuthorize("hasAuthority('communication/email:ENVIAR')")
     @PostMapping
     @Operation(summary = "Cria email", description = "Cria email para envio SMTP")
     public ResponseEntity<Object> createEmail(@RequestBody @NotNull @Valid SmtpEmailRequestDTO dto){
@@ -41,6 +43,7 @@ public class EmailController {
      * Retorna lista de e-mails disponíveis
      * @return Lista de Emails
      */
+    @PreAuthorize("hasAuthority('communication/email:CONSULTAR')")
     @GetMapping
     @Operation(summary = "Obtém lista de Emails", description = "Retorna lista de e-mails disponíveis para envio SMTP")
     public ResponseEntity<Object> getAllEmails(){

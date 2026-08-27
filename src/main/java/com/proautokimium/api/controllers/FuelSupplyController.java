@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -51,6 +52,7 @@ public class FuelSupplyController {
 	 * @param file Arquivo xlsx com dados dos combustíveis
 	 * @return HttpStatus OK (200)
 	 */
+	@PreAuthorize("hasAuthority('company/fuel-supply:INCLUIR')")
 	@PostMapping("/upload")
 	@Operation(summary = "Upload Dados", description = "Upload dos dados de abastecimento")
 	public ResponseEntity<?> importFuel(@RequestParam MultipartFile file) {
@@ -106,6 +108,7 @@ public class FuelSupplyController {
 		return reportService.generateReport(dto);
 	}
 
+	@PreAuthorize("hasAnyAuthority('company/fuel-supply:CONSULTAR', 'company/fuel-hub:CONSULTAR')")
 	@GetMapping
 	@Operation(summary = "Listar abastecimentos", description = "Abastecimentos de um período")
 	public ResponseEntity<List<FuelSupplyDTO>> list(

@@ -6,6 +6,7 @@ import com.proautokimium.api.Infrastructure.services.processoSeletivo.Candidatur
 import com.proautokimium.api.domain.entities.processoSeletivo.Candidatura;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,6 +24,7 @@ public class CandidaturaController {
         this.candidaturaService = candidaturaService;
     }
 
+    @PreAuthorize("hasAuthority('rh/candidaturas:CONSULTAR')")
     @GetMapping("/{id}")
     public ResponseEntity<List<ResponseCandidaturaDTO>> getCandidaturasByVagaId(@PathVariable UUID id) {
         List<ResponseCandidaturaDTO> result = candidaturaService.getCandidaturaByVagaId(id);
@@ -37,24 +39,28 @@ public class CandidaturaController {
         return ResponseEntity.ok("Candidatura realizada com sucesso");
     }
 
+    @PreAuthorize("hasAuthority('rh/candidaturas:ALTERAR')")
     @PutMapping("/{id}/avancar")
     public ResponseEntity<?> avancarEtapa(@PathVariable UUID id){
         candidaturaService.avancarEtapa(id);
         return ResponseEntity.ok("Etapa avançada com sucesso");
     }
 
+    @PreAuthorize("hasAuthority('rh/candidaturas:ALTERAR')")
     @PutMapping("/{id}/aprovar")
     public ResponseEntity<?> aprovarCandidato(@PathVariable UUID id){
         candidaturaService.aprovarCandidatura(id);
         return ResponseEntity.ok("Candidatura aprovada com sucesso");
     }
 
+    @PreAuthorize("hasAuthority('rh/candidaturas:ALTERAR')")
     @PutMapping("/{id}/reprovar")
     public ResponseEntity<?> reprovarCandidato(@PathVariable UUID id){
         candidaturaService.reprovarCandidatura(id);
         return ResponseEntity.ok("Candidatura reprovada com sucesso");
     }
 
+    @PreAuthorize("hasAuthority('rh/candidaturas:ALTERAR')")
     @PutMapping("/{id}/encerrar")
     public ResponseEntity<?> encerrarCandidato(@PathVariable UUID id){
         candidaturaService.encerrarCandidatura(id);

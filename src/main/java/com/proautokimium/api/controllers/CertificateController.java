@@ -91,7 +91,7 @@ public class CertificateController {
     }
 
     @PostMapping("/batch")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('tools/certificados:INCLUIR')")
     @Operation(summary = "Cria certificados em lote", description = "Gera um certificado por nome e devolve um ZIP")
     public ResponseEntity<?> createCertificatesBatch(@RequestBody @NotNull @Valid CertificateBatchDTO dto){
         byte[] zip = generator.generateCertificatesZip(dto.names());

@@ -43,7 +43,7 @@ class SmtpControllerTest {
 
     @Test
     @DisplayName("POST /api/smtp/send - deve enviar e-mail e retornar 200")
-    @WithMockUser
+    @WithMockUser(authorities = {"settings/admin:CONFIGURAR"})
     void deveEnviarEmailComSucesso() throws Exception {
         SmtpMail mail = new SmtpMail(
                 List.of("destinatario@teste.com"),

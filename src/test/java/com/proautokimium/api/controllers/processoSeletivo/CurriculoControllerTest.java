@@ -37,7 +37,7 @@ class CurriculoControllerTest {
 
     @Test
     @DisplayName("GET /api/curriculos/{fileName} - deve retornar 404 quando arquivo não existe")
-    @WithMockUser
+    @WithMockUser(authorities = {"rh/candidaturas:BAIXAR"})
     void deveRetornar404QuandoArquivoNaoExiste() throws Exception {
         String fileName = "curriculo-inexistente.pdf";
         when(storageService.searchFile(fileName))

@@ -66,7 +66,7 @@ class ProductWebsiteControllerTest {
 
     @Test
     @DisplayName("GET /api/product/website - deve retornar a lista para ADMIN")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"settings/products/website:ALTERAR", "settings/products/website:CONSULTAR", "settings/products/website:INCLUIR"})
     void deveRetornarTodosOsProdutosParaAdmin() throws Exception {
         when(service.getAll()).thenReturn(List.of());
 
@@ -83,7 +83,7 @@ class ProductWebsiteControllerTest {
      */
     @Test
     @DisplayName("GET /api/product/website - CONTRATOS precisa ler para o Guia funcionar")
-    @WithMockUser(roles = "CONTRATOS")
+    @WithMockUser(authorities = {"settings/products/website:ALTERAR", "settings/products/website:CONSULTAR", "settings/products/website:INCLUIR"})
     void deveRetornarTodosOsProdutosParaContratos() throws Exception {
         when(service.getAll()).thenReturn(List.of());
 
@@ -100,7 +100,7 @@ class ProductWebsiteControllerTest {
 
     @Test
     @DisplayName("POST /api/product/website - deve criar produto e retornar 201 para ADMIN")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"settings/products/website:ALTERAR", "settings/products/website:CONSULTAR", "settings/products/website:INCLUIR"})
     void deveCriarProdutoComSucesso() throws Exception {
         doNothing().when(service).create(any(), any());
 
@@ -117,9 +117,9 @@ class ProductWebsiteControllerTest {
      * do Angular não para ninguém com um terminal.
      */
     @Test
-    @DisplayName("POST /api/product/website - usuário autenticado sem papel não publica")
-    @WithMockUser(roles = "VENDEDOR")
-    void deveRetornar403AoCriarComPapelSemPermissao() throws Exception {
+    @DisplayName("POST /api/product/website - quem só consulta não publica")
+    @WithMockUser(authorities = {"settings/products/website:CONSULTAR"})
+    void deveRetornar403AoCriarSemIncluir() throws Exception {
         mockMvc.perform(multipart("/api/product/website")
                         .file(dadosDeProduto())
                         .with(csrf()))
@@ -139,7 +139,7 @@ class ProductWebsiteControllerTest {
 
     @Test
     @DisplayName("PUT /api/product/website/{id}/hide - deve ocultar produto para ADMIN")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"settings/products/website:ALTERAR", "settings/products/website:CONSULTAR", "settings/products/website:INCLUIR"})
     void deveOcultarProdutoComSucesso() throws Exception {
         doNothing().when(service).hide(productId);
 
@@ -151,7 +151,7 @@ class ProductWebsiteControllerTest {
 
     @Test
     @DisplayName("PUT /api/product/website/{id}/unhide - deve tornar produto visível para ADMIN")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"settings/products/website:ALTERAR", "settings/products/website:CONSULTAR", "settings/products/website:INCLUIR"})
     void deveTornarProdutoVisivelComSucesso() throws Exception {
         doNothing().when(service).unhide(productId);
 
@@ -162,7 +162,7 @@ class ProductWebsiteControllerTest {
 
     @Test
     @DisplayName("PUT /api/product/website/{id}/hide - deve retornar 404 quando produto não existe")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"settings/products/website:ALTERAR", "settings/products/website:CONSULTAR", "settings/products/website:INCLUIR"})
     void deveRetornar404AoOcultarProdutoInexistente() throws Exception {
         doThrow(new ProductNotFoundException()).when(service).hide(productId);
 

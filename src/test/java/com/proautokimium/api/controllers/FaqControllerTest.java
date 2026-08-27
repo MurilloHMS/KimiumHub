@@ -60,7 +60,7 @@ class FaqControllerTest {
 
     @Test
     @DisplayName("GET /api/faq - deve retornar todos os FAQs quando autenticado")
-    @WithMockUser
+    @WithMockUser(authorities = {"faq/manager:ALTERAR", "faq/manager:CONSULTAR", "faq/manager:INCLUIR"})
     void deveRetornarTodosFaqsAutenticado() throws Exception {
         FaqResponseDTO dto = new FaqResponseDTO(UUID.randomUUID(), "Pergunta", "Resposta", StatusPostagem.RASCUNHO);
         when(faqService.getAll()).thenReturn(List.of(dto));
@@ -80,7 +80,7 @@ class FaqControllerTest {
 
     @Test
     @DisplayName("POST /api/faq - deve criar FAQ e retornar 201")
-    @WithMockUser
+    @WithMockUser(authorities = {"faq/manager:ALTERAR", "faq/manager:CONSULTAR", "faq/manager:INCLUIR"})
     void deveCriarFaqComSucesso() throws Exception {
         FaqCreateDTO dto = new FaqCreateDTO("Pergunta", "Resposta");
         doNothing().when(faqService).create(any(FaqCreateDTO.class));
@@ -95,7 +95,7 @@ class FaqControllerTest {
 
     @Test
     @DisplayName("PUT /api/faq/{id} - deve atualizar FAQ e retornar 200")
-    @WithMockUser
+    @WithMockUser(authorities = {"faq/manager:ALTERAR", "faq/manager:CONSULTAR", "faq/manager:INCLUIR"})
     void deveAtualizarFaqComSucesso() throws Exception {
         UUID id = UUID.randomUUID();
         FaqUpdateDTO dto = new FaqUpdateDTO("Novo Titulo", "Novo Body");
@@ -111,7 +111,7 @@ class FaqControllerTest {
 
     @Test
     @DisplayName("PUT /api/faq/{id}/arquivar - deve arquivar FAQ e retornar 200")
-    @WithMockUser
+    @WithMockUser(authorities = {"faq/manager:ALTERAR", "faq/manager:CONSULTAR", "faq/manager:INCLUIR"})
     void deveArquivarFaqComSucesso() throws Exception {
         UUID id = UUID.randomUUID();
         doNothing().when(faqService).setArchived(id);
@@ -124,7 +124,7 @@ class FaqControllerTest {
 
     @Test
     @DisplayName("PUT /api/faq/{id}/rascunho - deve marcar FAQ como rascunho e retornar 200")
-    @WithMockUser
+    @WithMockUser(authorities = {"faq/manager:ALTERAR", "faq/manager:CONSULTAR", "faq/manager:INCLUIR"})
     void deveMarcarFaqComoRascunhoComSucesso() throws Exception {
         UUID id = UUID.randomUUID();
         doNothing().when(faqService).setDraft(id);
@@ -137,7 +137,7 @@ class FaqControllerTest {
 
     @Test
     @DisplayName("PUT /api/faq/{id}/publicar - deve publicar FAQ e retornar 200")
-    @WithMockUser
+    @WithMockUser(authorities = {"faq/manager:ALTERAR", "faq/manager:CONSULTAR", "faq/manager:INCLUIR"})
     void devePublicarFaqComSucesso() throws Exception {
         UUID id = UUID.randomUUID();
         doNothing().when(faqService).setPublished(id);

@@ -10,6 +10,7 @@ import jakarta.mail.MessagingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,6 +31,7 @@ public class NewsletterController {
     @Autowired
     private NewsletterOrchestratorService newsletterOrchestratorService;
 
+    @PreAuthorize("hasAuthority('communication/newsletter:ENVIAR')")
     @PostMapping("send")
     @Operation(summary = "Envia Newsletter", description = "Envio Individual da Newsletter")
     public ResponseEntity<Object> sendNewsletter(@RequestBody Newsletter newsletter) throws MessagingException, UnsupportedEncodingException {
@@ -38,6 +40,7 @@ public class NewsletterController {
         return ResponseEntity.ok().build();
     }
 
+    @PreAuthorize("hasAuthority('communication/newsletter:INCLUIR')")
     @PostMapping("upload/one-file")
     @Operation(summary = "Cadastra Newsletters", description = "Recebe arquivo único para montar newsletter")
     public ResponseEntity<Object> includeNewsletters(@RequestParam MultipartFile file) {
@@ -45,6 +48,7 @@ public class NewsletterController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
     
+    @PreAuthorize("hasAuthority('communication/newsletter:CONSULTAR')")
     @GetMapping("pending")
     @Operation(summary = "Obtém Newsletters", description = "Retorna Newsletters pendentes de envio")
     public ResponseEntity<Object> getPendingEmails(){
@@ -54,6 +58,7 @@ public class NewsletterController {
     			: ResponseEntity.status(HttpStatus.NO_CONTENT).body("Não há emails pendentes");
     }
     
+    @PreAuthorize("hasAuthority('communication/newsletter:ENVIAR')")
     @PostMapping("pending/send")
     @Operation(summary = "Envia Newsletters Pendentes", description = "Envio das Newsletters pendentes")
     public ResponseEntity<Object> sentPendingNewsletter(){

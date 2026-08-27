@@ -43,7 +43,7 @@ class PublicSecretControllerTest {
 
     @Test
     @DisplayName("POST /api/public-secrets - deve criar segredo e retornar URL")
-    @WithMockUser
+    @WithMockUser(authorities = {"communication/secrets:INCLUIR"})
     void deveCriarSegredoComSucesso() throws Exception {
         CreateSecretRequestDTO dto = new CreateSecretRequestDTO("conteudo secreto");
         when(publicSecretService.create("conteudo secreto")).thenReturn("token-gerado");

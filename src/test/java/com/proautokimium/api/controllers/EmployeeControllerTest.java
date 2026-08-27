@@ -70,7 +70,7 @@ class EmployeeControllerTest {
 
     @Test
     @DisplayName("GET /api/employee - deve retornar lista de funcionários quando autenticado")
-    @WithMockUser
+    @WithMockUser(authorities = {"rh/employees:CONSULTAR", "rh/employees:INCLUIR", "rh/employees:ALTERAR"})
     void deveRetornarListaDeFuncionariosAutenticado() throws Exception {
         doReturn(List.of(buildResponseDto())).when(employeeService).getAllEmployes();
 
@@ -87,7 +87,7 @@ class EmployeeControllerTest {
 
     @Test
     @DisplayName("GET /api/employee/only-email - deve retornar emails dos funcionários")
-    @WithMockUser
+    @WithMockUser(authorities = {"rh/employees:CONSULTAR", "rh/employees:INCLUIR", "rh/employees:ALTERAR"})
     void deveRetornarEmailsDeFuncionarios() throws Exception {
         doReturn(List.of()).when(employeeService).getAllEmployesEmail();
 
@@ -97,7 +97,7 @@ class EmployeeControllerTest {
 
     @Test
     @DisplayName("POST /api/employee - deve criar funcionário e retornar 201")
-    @WithMockUser
+    @WithMockUser(authorities = {"rh/employees:CONSULTAR", "rh/employees:INCLUIR", "rh/employees:ALTERAR"})
     void deveCriarFuncionarioComSucesso() throws Exception {
         doReturn(buildResponseDto()).when(employeeService).createEmployee(any(CreateEmployeeRequestDTO.class));
 
@@ -120,7 +120,7 @@ class EmployeeControllerTest {
 
     @Test
     @DisplayName("PUT /api/employee - deve atualizar funcionário e retornar 200")
-    @WithMockUser
+    @WithMockUser(authorities = {"rh/employees:CONSULTAR", "rh/employees:INCLUIR", "rh/employees:ALTERAR"})
     void deveAtualizarFuncionarioComSucesso() throws Exception {
         doReturn(buildResponseDto()).when(employeeService).updateEmployee(any(EmployeeDTO.class));
 

@@ -21,6 +21,7 @@ public class PublicSecretController {
     private final PublicSecretService service;
     @Value("${app.base-url}") private String baseUrl;
 
+    @PreAuthorize("hasAuthority('communication/secrets:INCLUIR')")
     @PostMapping
     public ResponseEntity<CreateSecretResponseDTO> create (@Valid @RequestBody CreateSecretRequestDTO req) throws Exception{
         String token = service.create(req.content());

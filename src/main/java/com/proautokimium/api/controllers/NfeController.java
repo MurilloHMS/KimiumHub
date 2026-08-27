@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -27,6 +28,7 @@ public class NfeController {
     @Autowired
     NfseRenameService nfseRenameService;
 
+    @PreAuthorize("hasAuthority('company/nfe-collector:INCLUIR')")
     @PostMapping( value = "/icms/upload", consumes = "multipart/form-data")
     public ResponseEntity<byte[]> processIcmsFiles(@RequestParam List<MultipartFile> files) throws Exception{
     	
@@ -49,6 +51,7 @@ public class NfeController {
                 .body(excelFile);
     }
 
+    @PreAuthorize("hasAuthority('company/nfe-collector:INCLUIR')")
     @PostMapping(value = "/process/upload", consumes = "multipart/form-data")
     public ResponseEntity<byte[]> processNfeDataFiles(@RequestParam List<MultipartFile> files) throws Exception{
     	
@@ -71,6 +74,7 @@ public class NfeController {
                 .body(excelFile);
     }
 
+    @PreAuthorize("hasAnyAuthority('company/nfe-collector:INCLUIR', 'tools/pdf/nfse-rename:INCLUIR')")
     @PostMapping(value = "/nfse/upload", consumes = "multipart/form-data")
     public ResponseEntity<byte[]> renameNfseFileNames(@RequestParam List<MultipartFile> files) throws IOException {
         byte[] zipFile = nfseRenameService.renameFiles(files);

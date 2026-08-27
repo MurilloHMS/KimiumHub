@@ -62,7 +62,7 @@ class VagaControllerTest {
 
     @Test
     @DisplayName("GET /api/vaga/arquivadas - deve retornar lista de vagas arquivadas")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/painel-de-vagas:ALTERAR", "rh/painel-de-vagas:CONSULTAR", "rh/painel-de-vagas:INCLUIR"})
     void deveRetornarVagasArquivadas() throws Exception {
         when(vagaService.listarVagasArquivadas()).thenReturn(List.of());
 
@@ -74,7 +74,7 @@ class VagaControllerTest {
 
     @Test
     @DisplayName("GET /api/vaga/rascunhos - deve retornar vagas em rascunho")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/painel-de-vagas:ALTERAR", "rh/painel-de-vagas:CONSULTAR", "rh/painel-de-vagas:INCLUIR"})
     void deveRetornarVagasRascunho() throws Exception {
         when(vagaService.listarVagasEmRascunho()).thenReturn(List.of());
 
@@ -85,7 +85,7 @@ class VagaControllerTest {
 
     @Test
     @DisplayName("GET /api/vaga/encerradas - deve retornar vagas encerradas")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/painel-de-vagas:ALTERAR", "rh/painel-de-vagas:CONSULTAR", "rh/painel-de-vagas:INCLUIR"})
     void deveRetornarVagasEncerradas() throws Exception {
         when(vagaService.listarVagasEncerrados()).thenReturn(List.of());
 
@@ -96,7 +96,7 @@ class VagaControllerTest {
 
     @Test
     @DisplayName("POST /api/vaga - deve cadastrar vaga e retornar o ID")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/painel-de-vagas:ALTERAR", "rh/painel-de-vagas:CONSULTAR", "rh/painel-de-vagas:INCLUIR"})
     void deveCadastrarVaga() throws Exception {
         UUID id = UUID.randomUUID();
         CreateVagaDTO dto = new CreateVagaDTO("Dev Java", "Descrição", "Requisitos", "Beneficios", "area", LocalDateTime.now(), LocalDateTime.now().plusDays(2));
@@ -116,7 +116,7 @@ class VagaControllerTest {
 
     @Test
     @DisplayName("PUT /api/vaga - deve atualizar vaga com sucesso")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/painel-de-vagas:ALTERAR", "rh/painel-de-vagas:CONSULTAR", "rh/painel-de-vagas:INCLUIR"})
     void deveAtualizarVaga() throws Exception {
         UpdateVagaDTO dto = new UpdateVagaDTO(UUID.randomUUID(), "Novo Titulo", "Nova Desc", "Novos Req", "Beneficios", "area", LocalDateTime.now(), LocalDateTime.now().plusDays(2));
         doNothing().when(vagaService).update(any(UpdateVagaDTO.class));
@@ -131,7 +131,7 @@ class VagaControllerTest {
 
     @Test
     @DisplayName("PUT /api/vaga/{id}/publicar - deve publicar vaga com sucesso")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/painel-de-vagas:ALTERAR", "rh/painel-de-vagas:CONSULTAR", "rh/painel-de-vagas:INCLUIR"})
     void devePublicarVaga() throws Exception {
         UUID id = UUID.randomUUID();
         doNothing().when(vagaService).publicar(id);
@@ -144,7 +144,7 @@ class VagaControllerTest {
 
     @Test
     @DisplayName("PUT /api/vaga/{id}/arquivar - deve arquivar vaga com sucesso")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/painel-de-vagas:ALTERAR", "rh/painel-de-vagas:CONSULTAR", "rh/painel-de-vagas:INCLUIR"})
     void deveArquivarVaga() throws Exception {
         UUID id = UUID.randomUUID();
         doNothing().when(vagaService).arquivar(id);
@@ -156,7 +156,7 @@ class VagaControllerTest {
 
     @Test
     @DisplayName("PUT /api/vaga/{id}/encerrar - deve encerrar vaga com sucesso")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/painel-de-vagas:ALTERAR", "rh/painel-de-vagas:CONSULTAR", "rh/painel-de-vagas:INCLUIR"})
     void deveEncerrarVaga() throws Exception {
         UUID id = UUID.randomUUID();
         doNothing().when(vagaService).encerrar(id);

@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,6 +34,7 @@ public class EmailSignatureController {
      * @param dto dados do funcionário
      * @return Assinatura de Email em PNG
      */
+    @PreAuthorize("hasAuthority('communication/email-signature:INCLUIR')")
     @PostMapping()
     @Operation(summary = "Gera assinatura", description = "Recebe dados do funcionário e gera assinatura corporativa")
     public ResponseEntity<?> postEmailSignature(@RequestBody @Valid EmailSignatureDTO dto) {

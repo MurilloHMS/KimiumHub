@@ -49,7 +49,7 @@ class CandidaturaControllerTest {
 
     @Test
     @DisplayName("GET /api/candidatura/{id} - deve retornar candidaturas da vaga")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/candidaturas:ALTERAR", "rh/candidaturas:CONSULTAR"})
     void deveRetornarCandidaturasDaVaga() throws Exception {
         UUID vagaId = UUID.randomUUID();
         ResponseCandidaturaDTO dto = mock(ResponseCandidaturaDTO.class);
@@ -63,7 +63,7 @@ class CandidaturaControllerTest {
 
     @Test
     @DisplayName("POST /api/candidatura - deve criar candidatura com currículo")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/candidaturas:ALTERAR", "rh/candidaturas:CONSULTAR"})
     void deveCriarCandidaturaComCurriculo() throws Exception {
         CreateCandidaturaDTO dto = new CreateCandidaturaDTO(UUID.randomUUID(),
                 "João", "joao@email.com", "11999999999",
@@ -91,7 +91,7 @@ class CandidaturaControllerTest {
 
     @Test
     @DisplayName("POST /api/candidatura - deve retornar 4xx se candidatura duplicada")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/candidaturas:ALTERAR", "rh/candidaturas:CONSULTAR"})
     void deveRetornarErroCandidaturaDuplicada() throws Exception {
         CreateCandidaturaDTO dto = new CreateCandidaturaDTO(UUID.randomUUID(),
                 "João", "joao@email.com", "11999999999",
@@ -115,7 +115,7 @@ class CandidaturaControllerTest {
 
     @Test
     @DisplayName("PUT /api/candidatura/{id}/avancar - deve avançar etapa")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/candidaturas:ALTERAR", "rh/candidaturas:CONSULTAR"})
     void deveAvancarEtapa() throws Exception {
         UUID id = UUID.randomUUID();
         doNothing().when(candidaturaService).avancarEtapa(id);
@@ -128,7 +128,7 @@ class CandidaturaControllerTest {
 
     @Test
     @DisplayName("PUT /api/candidatura/{id}/aprovar - deve aprovar candidatura")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/candidaturas:ALTERAR", "rh/candidaturas:CONSULTAR"})
     void deveAprovarCandidatura() throws Exception {
         UUID id = UUID.randomUUID();
         doNothing().when(candidaturaService).aprovarCandidatura(id);
@@ -141,7 +141,7 @@ class CandidaturaControllerTest {
 
     @Test
     @DisplayName("PUT /api/candidatura/{id}/reprovar - deve reprovar candidatura")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/candidaturas:ALTERAR", "rh/candidaturas:CONSULTAR"})
     void deveReprovarCandidatura() throws Exception {
         UUID id = UUID.randomUUID();
         doNothing().when(candidaturaService).reprovarCandidatura(id);
@@ -154,7 +154,7 @@ class CandidaturaControllerTest {
 
     @Test
     @DisplayName("PUT /api/candidatura/{id}/encerrar - deve encerrar candidatura")
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(authorities = {"rh/candidaturas:ALTERAR", "rh/candidaturas:CONSULTAR"})
     void deveEncerrarCandidatura() throws Exception {
         UUID id = UUID.randomUUID();
         doNothing().when(candidaturaService).encerrarCandidatura(id);
