@@ -8,7 +8,7 @@ import java.util.UUID;
 public record CreateRegisterDTO(
         UUID machineId,
         String nomeCliente,
-        short tag,
+        String tag,
         String solicitante,
         MachineStatus status,
         String Observacao,

@@ -485,21 +485,31 @@ class AuthenticationControllerTest {
     }
 
     /**
-     * **E o convite, sim.**
+     * **O primeiro acesso tem que passar sem login.**
      *
-     * Disparar o e-mail de primeiro acesso era aberto por tabela — o `/**`
-     * cobria o caminho base. Qualquer um podia mandar convite para qualquer
-     * funcionário.
+     * Quem chama aqui ainda não tem usuário: é o funcionário pedindo o dele.
+     * Uma vez este endpoint foi fechado por engano, lido como convite do RH, e
+     * o fluxo inteiro ficou inalcançável — as duas etapas seguintes já eram
+     * públicas e ninguém conseguia chegar nelas.
+     *
+     * Fechar de novo é fácil, de dois jeitos independentes: uma anotação no
+     * método, ou tirar o caminho de `SecurityPaths.PUBLIC_POST`. Este teste
+     * pega os dois, porque afirma a resposta e não o caminho.
+     *
+     * A resposta esperada é `409` de propósito. Sem autenticação, o pedido tem
+     * que chegar ao corpo do método — e o método, com um CPF que não existe,
+     * responde conflito. Um `403` aqui significa que ele nem entrou.
      */
     @Test
-    @DisplayName("disparar o convite de primeiro acesso exige permissão")
-    @WithMockUser(username = "ricardo", authorities = {"ROLE_USER"})
-    void convidarExigePermissao() throws Exception {
+    @DisplayName("pedir o primeiro acesso não exige login")
+    void primeiroAcessoEhPublico() throws Exception {
+        when(employeeRepository.findByCpfDigits("00000000000")).thenReturn(Optional.empty());
+
         mockMvc.perform(post("/api/auth/first-access")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"employeeId\":\"00000000-0000-0000-0000-000000000001\"}"))
-                .andExpect(status().isForbidden());
+                        .content("{\"cpf\":\"00000000000\",\"email\":\"alguem@teste.com\"}"))
+                .andExpect(status().isConflict());
     }
 
     /**

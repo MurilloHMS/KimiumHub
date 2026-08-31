@@ -80,14 +80,14 @@ public class MachineController {
 
     @PreAuthorize("hasAuthority('stock/programacao:INCLUIR')")
     @PostMapping("/register")
-    public ResponseEntity<?> createRegister(@RequestBody CreateRegisterDTO dto){
+    public ResponseEntity<?> createRegister(@RequestBody @Valid CreateRegisterDTO dto){
         registerService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body("Registro da máquina incluído com sucesso");
     }
 
     @PreAuthorize("hasAuthority('stock/programacao:ALTERAR')")
     @PutMapping("/register/{id}")
-    public ResponseEntity<?> updateRegister(@RequestBody UpdateRegisterDTO dto, @PathVariable UUID id){
+    public ResponseEntity<?> updateRegister(@RequestBody @Valid UpdateRegisterDTO dto, @PathVariable UUID id){
         registerService.update(dto, id);
         return ResponseEntity.status(HttpStatus.OK).body("Registro da máquina atualizado com sucesso");
     }

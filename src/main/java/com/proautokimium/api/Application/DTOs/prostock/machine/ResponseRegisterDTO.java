@@ -9,7 +9,7 @@ public record ResponseRegisterDTO(
         UUID id,
         UUID machineId,
         String nomeCliente,
-        short tag,
+        String tag,
         String solicitante,
         MachineStatus status,
         String Observacao,
