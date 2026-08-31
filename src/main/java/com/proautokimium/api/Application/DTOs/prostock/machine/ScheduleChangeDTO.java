@@ -6,8 +6,9 @@ import java.util.UUID;
 /** Uma alteração de previsão, como a tela lê. */
 public record ScheduleChangeDTO(
         UUID id,
-        LocalDateTime previsaoAnterior,
-        LocalDateTime previsaoNova,
+        String campo,
+        String valorAnterior,
+        String valorNovo,
         String motivo,
         String changedBy,
         LocalDateTime changedAt

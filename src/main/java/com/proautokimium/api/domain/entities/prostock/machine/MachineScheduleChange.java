@@ -40,14 +40,16 @@ public class MachineScheduleChange {
     @JoinColumn(name = "register_id", nullable = false)
     private MachineRegister register;
 
-    @Column(name = "previsao_anterior", nullable = false)
-    private LocalDateTime previsaoAnterior;
+    @Column(name = "campo", length = 40, nullable = false)
+    private String campo;
 
-    /** Nulo quando alguém **apaga** a previsão em vez de trocar por outra. */
-    @Column(name = "previsao_nova")
-    private LocalDateTime previsaoNova;
+    @Column(name = "valor_anterior", length = 500)
+    private String valorAnterior;
 
-    @Column(name = "motivo", length = 500, nullable = false)
+    @Column(name = "valor_novo", length = 500)
+    private String valorNovo;
+
+    @Column(name = "motivo", length = 500)
     private String motivo;
 
     @CreatedBy
@@ -61,19 +63,22 @@ public class MachineScheduleChange {
     protected MachineScheduleChange() {}
 
     public MachineScheduleChange(MachineRegister register,
-                                 LocalDateTime previsaoAnterior,
-                                 LocalDateTime previsaoNova,
+                                 String campo,
+                                 String valorAnterior,
+                                 String valorNovo,
                                  String motivo) {
         this.register = register;
-        this.previsaoAnterior = previsaoAnterior;
-        this.previsaoNova = previsaoNova;
+        this.campo = campo;
+        this.valorAnterior = valorAnterior;
+        this.valorNovo = valorNovo;
         this.motivo = motivo;
     }
 
     public UUID getId() { return id; }
     public MachineRegister getRegister() { return register; }
-    public LocalDateTime getPrevisaoAnterior() { return previsaoAnterior; }
-    public LocalDateTime getPrevisaoNova() { return previsaoNova; }
+    public String getCampo() { return campo; }
+    public String getValorAnterior() { return valorAnterior; }
+    public String getValorNovo() { return valorNovo; }
     public String getMotivo() { return motivo; }
     public String getChangedBy() { return changedBy; }
     public LocalDateTime getChangedAt() { return changedAt; }
