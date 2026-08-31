@@ -29,13 +29,24 @@ public final class SecurityPaths {
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
             "/api/candidatura",
-            // As duas do fluxo de primeiro acesso, e só elas.
+            // As três do fluxo de primeiro acesso, e só elas.
             //
-            // Era "/api/auth/first-access/**", e esse padrão casa TAMBÉM o
-            // caminho base — o que deixava `POST /api/auth/first-access`, que
-            // dispara o e-mail de acesso, aberto para qualquer um. Quem valida
-            // o token e quem escolhe a senha ainda não fez login e precisa
-            // passar; quem MANDA o convite é o RH.
+            // O fluxo é auto-atendimento, não convite: o funcionário informa o
+            // próprio CPF, recebe o token por e-mail e escolhe a senha. As três
+            // etapas acontecem antes de existir usuário, então nenhuma delas
+            // pode exigir login — fechar a primeira torna as outras duas
+            // inalcançáveis.
+            //
+            // Listadas uma a uma, e não como "/api/auth/first-access/**",
+            // porque esse padrão casaria qualquer caminho novo pendurado aí
+            // embaixo. O `/**` já abriu um endpoint sem querer neste projeto.
+            //
+            // O que protege a primeira etapa é o CPF precisar existir em
+            // `employees`. É pouco: CPF não é segredo, e o token vai para o
+            // e-mail que o CHAMADOR digita, não para um endereço em ficha —
+            // `Employee` não tem coluna de e-mail. Mandar para o endereço
+            // cadastrado é o conserto certo e depende de migration.
+            "/api/auth/first-access",
             "/api/auth/first-access/*/is-valid",
             "/api/auth/first-access/*/sign-in"
     };

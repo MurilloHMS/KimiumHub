@@ -137,7 +137,13 @@ public class AuthenticationController {
         return ResponseEntity.ok("Token de redefinição enviado para o e-mail do usuário.");
     }
 
-    @PreAuthorize("hasAuthority('settings/admin:ENVIAR')")
+    /**
+     * Primeiro acesso: auto-atendimento, sem login.
+     *
+     * Quem chama aqui ainda não tem usuário — é o funcionário pedindo o dele.
+     * Por isso não há `@PreAuthorize`: exigir autoridade tornaria o cadastro
+     * impossível de começar. Ver a nota em `SecurityPaths.PUBLIC_POST`.
+     */
     @PostMapping("/first-access")
     @Operation(summary = "Cria o Primeiro Acesso", description = "Gera o token de primeiro acesso e envia via email")
     public ResponseEntity<Object> firstAccess(@RequestBody @Valid NewAccessDTO dto) {
