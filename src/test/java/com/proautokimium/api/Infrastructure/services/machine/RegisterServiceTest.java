@@ -171,26 +171,46 @@ class RegisterServiceTest {
     }
 
     /**
-     * Preencher um campo vazio **conta**, e isto é a regra invertida.
+     * Preencher um campo vazio **não** conta como alteração.
      *
-     * Antes, completar um cadastro não gerava histórico — a razão era não cobrar
-     * justificativa de quem só informa algo. Com o motivo opcional essa razão
-     * deixou de existir, e "consultor: — → Marcos" é justamente o que se procura
-     * ao abrir o histórico.
+     * Completar um cadastro não é decisão a justificar, e não há valor anterior
+     * de onde a mudança tenha partido. A tela segue a mesma regra e não abre o
+     * diálogo de motivo nesse caso — sem esta guarda, o banco guardaria
+     * justamente o que a tela decidiu não perguntar.
      */
     @Test
-    @DisplayName("Preencher um campo vazio gera linha, com valor anterior nulo")
-    void preencherCampoVazioContaComoAlteracao() {
+    @DisplayName("Preencher um campo vazio não gera linha")
+    void preencherCampoVazioNaoEhAlteracao() {
         MachineRegister register = registroCompleto(ONTEM);
         register.setConsultor(null);
         registroExistenteQueSalva(register);
 
         service.update(dto(ONTEM, null), REGISTER_ID);
 
+        verifyNoInteractions(scheduleChangeRepository);
+    }
+
+    /**
+     * **O par que protege a regra de cima.**
+     *
+     * Sozinho, aquele teste passa com uma implementação que ignora tudo que
+     * envolve vazio — e aí limpar o técnico de uma linha sumiria do histórico
+     * sem deixar rastro. Apagar é alteração, e no caso da previsão é a mais
+     * grave: a máquina some das próximas saídas sem ninguém perceber.
+     */
+    @Test
+    @DisplayName("Apagar um campo que tinha valor gera linha")
+    void apagarCampoEhAlteracao() {
+        registroExistenteQueSalva(registroCompleto(ONTEM));
+
+        service.update(new UpdateRegisterDTO("Cliente", "T-1", "Solicitante",
+                MachineStatus.DISPONIVEL, "Observação", ONTEM,
+                "", "Região", "Consultor", null, false), REGISTER_ID);
+
         MachineScheduleChange linha = linhasGravadas(1).get(0);
-        assertThat(linha.getCampo()).isEqualTo("consultor");
-        assertThat(linha.getValorAnterior()).isNull();
-        assertThat(linha.getValorNovo()).isEqualTo("Consultor");
+        assertThat(linha.getCampo()).isEqualTo("tecnico");
+        assertThat(linha.getValorAnterior()).isEqualTo("Técnico");
+        assertThat(linha.getValorNovo()).isNull();
     }
 
     // ─── O motivo, agora opcional ────────────────────────────────────────────

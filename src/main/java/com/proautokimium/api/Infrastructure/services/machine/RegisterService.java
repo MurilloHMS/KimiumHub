@@ -158,11 +158,13 @@ public class RegisterService {
      * linhas. Separar um motivo por campo exigiria um diálogo por campo, e
      * ninguém preencheria oito.
      *
-     * Preencher um campo em branco **conta** como alteração. Era o contrário
-     * até aqui, e a razão da exceção era não cobrar justificativa de quem
-     * completa um cadastro — agora que o motivo é opcional, essa razão não
-     * existe mais, e ver "consultor: — → Marcos" é exatamente o que se quer do
-     * histórico.
+     * Preencher um campo em branco **não** conta como alteração: completar um
+     * cadastro não é decisão a justificar, e não há valor anterior de onde a
+     * mudança tenha partido. Vale para os oito campos.
+     *
+     * Apagar conta. É o oposto e é o par que protege a regra: uma versão que
+     * ignorasse tudo que envolve vazio faria limpar o técnico de uma linha
+     * sumir do histórico sem deixar rastro.
      */
     private void registrarAlteracoes(MachineRegister register,
                                      Map<String, String> antes,
@@ -171,6 +173,11 @@ public class RegisterService {
         String justificativa = texto(motivo);
 
         antes.forEach((campo, anterior) -> {
+            // Preencher um campo vazio não é alteração: não havia valor de onde
+            // ter saído. A tela já não pergunta o motivo nesse caso, e sem esta
+            // guarda o banco guardaria o que a tela decidiu não perguntar.
+            if (anterior == null) return;
+
             String novo = depois.get(campo);
             if (Objects.equals(anterior, novo)) return;
 
