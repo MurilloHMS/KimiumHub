@@ -200,10 +200,6 @@ public class RegisterService {
                 // Adiamento é só previsão. Sem este filtro, trocar um técnico
                 // entraria na conta de "adiamentos no mês" do Hub.
                 .filter(c -> CAMPO_PREVISAO.equals(c.getCampo()))
-                // Preencher a data pela primeira vez não é adiamento: não havia
-                // de onde adiar. O histórico da linha guarda; a conta do Hub,
-                // não. É o que mantém o número igual ao de antes desta mudança.
-                .filter(c -> c.getValorAnterior() != null)
                 .map(c -> new ScheduleSlipDTO(
                         c.getRegister().getId(),
                         c.getRegister().getNomeCliente(),

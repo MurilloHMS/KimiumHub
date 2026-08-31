@@ -385,17 +385,27 @@ class RegisterServiceTest {
     }
 
     /**
-     * Preencher a data pela primeira vez entra no histórico da linha, mas não na
-     * conta do Hub: não havia de onde adiar. Sem este filtro `previsaoAnterior`
-     * chegaria nula na tela, e o cálculo do atraso mediano viria envenenado.
+     * **De onde vem a garantia de que o Hub nunca recebe data nula.**
+     *
+     * O `slipsSince` não filtra valor anterior nulo — ele confia que nenhuma
+     * linha dessas existe, e quem garante isso é a guarda em
+     * `registrarAlteracoes`. Este teste percorre o caminho inteiro, do update
+     * até o Hub, para que a confiança tenha prova: preencher uma previsão vazia
+     * não grava linha, e por isso não há o que chegar torto do outro lado.
+     *
+     * Uma segunda guarda no `slipsSince` seria código morto no dia em que
+     * fosse escrita. Este teste é o que a substitui — e falha se alguém tirar a
+     * regra da escrita, que é onde o defeito de verdade estaria.
      */
     @Test
-    @DisplayName("Primeiro preenchimento da previsão não conta como adiamento")
-    void slipsSinceIgnoraOPrimeiroPreenchimento() {
-        when(scheduleChangeRepository.findSince(any())).thenReturn(List.of(
-                alteracao("previsao", null, SEMANA_QUE_VEM.toString())));
+    @DisplayName("Previsão preenchida pela primeira vez não vira adiamento no Hub")
+    void primeiroPreenchimentoNaoChegaAoHub() {
+        MachineRegister register = registroCompleto(null);
+        registroExistenteQueSalva(register);
 
-        assertThat(service.slipsSince(ONTEM)).isEmpty();
+        service.update(dto(SEMANA_QUE_VEM, null), REGISTER_ID);
+
+        verifyNoInteractions(scheduleChangeRepository);
     }
 
     // ─── Parte 4: a programação mexendo no estoque ───────────────────────────
