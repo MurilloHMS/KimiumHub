@@ -27,7 +27,7 @@ public abstract class FileStorage {
             extension = "bin";
         }
 
-        return prefix + "-" + UUID.randomUUID() + "-" + extension;
+        return prefix + "-" + UUID.randomUUID() + "." + extension;
     }
 
     public String save(MultipartFile file, String prefix) throws IOException{
