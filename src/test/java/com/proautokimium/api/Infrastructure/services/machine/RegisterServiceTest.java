@@ -77,7 +77,7 @@ class RegisterServiceTest {
 
     /** `adjustStock` fica em false: estes testes são sobre o motivo, não estoque. */
     private UpdateRegisterDTO dto(LocalDateTime previsao, String motivo) {
-        return new UpdateRegisterDTO("Cliente", (short) 1, "Solicitante",
+        return new UpdateRegisterDTO("Cliente", "T-1", "Solicitante",
                 MachineStatus.DISPONIVEL, "Observação", previsao,
                 "Técnico", "Região", "Consultor", motivo, false);
     }
@@ -240,12 +240,12 @@ class RegisterServiceTest {
     }
 
     private CreateRegisterDTO createDto(MachineStatus status, boolean adjustStock) {
-        return new CreateRegisterDTO(MACHINE_ID, "Cliente", (short) 1, "Solicitante",
+        return new CreateRegisterDTO(MACHINE_ID, "Cliente", "T-1", "Solicitante",
                 status, "Observação", null, "Técnico", "Região", "Consultor", adjustStock);
     }
 
     private UpdateRegisterDTO updateDto(MachineStatus status, boolean adjustStock) {
-        return new UpdateRegisterDTO("Cliente", (short) 1, "Solicitante",
+        return new UpdateRegisterDTO("Cliente", "T-1", "Solicitante",
                 status, "Observação", ONTEM, "Técnico", "Região", "Consultor", null, adjustStock);
     }
 

@@ -28,8 +28,8 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
     private ProductInventory machine;
     @Column(name = "nome_cliente", length = 200)
     private String nomeCliente;
-    @Column(name = "tag")
-    private short tag;
+    @Column(name = "tag", length = 10)
+    private String tag;
     @Column(name = "solicitante", length = 100)
     private String solicitante;
     @Enumerated(EnumType.STRING)
@@ -108,9 +108,9 @@ public class MachineRegister extends com.proautokimium.api.domain.abstractions.E
         this.nomeCliente = nomeCliente;
     }
 
-    public short getTag(){ return tag; }
+    public String getTag(){ return tag; }
 
-    public void setTag(short tag){ this.tag = tag; }
+    public void setTag(String tag){ this.tag = tag; }
 
     public String getSolicitante() {
         return solicitante;

@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 public record UpdateRegisterDTO(
         String nomeCliente,
-        short tag,
+        String tag,
         String solicitante,
         MachineStatus status,
         String Observacao,
