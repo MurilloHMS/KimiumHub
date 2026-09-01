@@ -12,7 +12,6 @@ import com.proautokimium.api.domain.entities.permission.UserPermission;
 import com.proautokimium.api.domain.enums.Permission;
 import com.proautokimium.api.domain.enums.UserRole;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -96,22 +95,26 @@ public class PermissionProvisioningService {
     /**
      * Garante que a pessoa tenha a grade completa, e libera o que a V86 liberava.
      *
-     * <p><b>Transação PRÓPRIA, e isto não é detalhe de configuração.</b>
+     * <p><b>Junta-se à transação de quem chama, e isto já foi o contrário.</b>
      *
-     * O {@code userGrid} que chama este método é {@code readOnly = true}. Numa
-     * transação read-only o Hibernate põe o flush em manual e o driver marca a
-     * conexão como somente-leitura: o INSERT seria descartado em silêncio, ou
-     * estouraria na hora de gravar — e a leitura, que é o que a tela mostra,
-     * continuaria funcionando. O defeito apareceria como "abri a tela e não
-     * consertou", sem erro nenhum em lugar nenhum.
+     * Nasceu como {@code REQUIRES_NEW}, para escapar do {@code readOnly} do
+     * {@code userGrid}, e quebrou a criação de usuário em produção com violação
+     * de chave estrangeira. O motivo é isolamento: o {@code signInFirstAccess} é
+     * {@code @Transactional} e salva o usuário dentro da transação dele; uma
+     * transação NOVA não enxerga linha ainda não commitada por outra, então o
+     * {@code user_id} não existia do lado de cá.
      *
-     * {@code REQUIRES_NEW} também diz a verdade sobre o que isto é: uma unidade
-     * de trabalho independente. Se a leitura da grade falhar depois, o conserto
-     * já está gravado — e como o método é idempotente, isso não custa nada.
+     * Quem grava as células precisa estar na mesma transação de quem criou o
+     * usuário. O {@code userGrid} deixou de ser {@code readOnly} para caber
+     * nisso — e a anotação de lá descrevia mesmo algo que parou de ser verdade
+     * no dia em que o conserto entrou no caminho de leitura.
+     *
+     * <p><b>Nenhum teste de unidade pega isto.</b> Mock não tem transação;
+     * semântica de transação só falha contra banco de verdade.
      *
      * @return quantas células foram criadas — zero quando não havia nada a fazer
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public int provision(User user) {
         if (user == null || user.getId() == null || isClient(user)) return 0;
 
