@@ -39,6 +39,7 @@ public class PermissionAdminService {
     private final UserTemplateRepository applied;
     private final UserRepository users;
     private final PermissionService permissions;
+    private final PermissionProvisioningService permissionProvisioning;
 
     public PermissionAdminService(ScreenRepository screens,
                                   PermissionTemplateRepository templates,
@@ -46,7 +47,8 @@ public class PermissionAdminService {
                                   UserPermissionRepository userCells,
                                   UserTemplateRepository applied,
                                   UserRepository users,
-                                  PermissionService permissions) {
+                                  PermissionService permissions,
+                                  PermissionProvisioningService permissionProvisioning) {
         this.screens = screens;
         this.templates = templates;
         this.templateCells = templateCells;
@@ -54,6 +56,7 @@ public class PermissionAdminService {
         this.applied = applied;
         this.users = users;
         this.permissions = permissions;
+        this.permissionProvisioning = permissionProvisioning;
     }
 
     // ─── Catálogo ────────────────────────────────────────────────────────────
@@ -251,6 +254,14 @@ public class PermissionAdminService {
     @Transactional(readOnly = true)
     public UserGridDTO userGrid(String userId) {
         User user = requireUser(userId);
+
+        // Conserta quem ficou sem grade antes de o provisionamento existir.
+        //
+        // É aqui e não numa migration porque o método é idempotente: em quem já
+        // tem as 385 células ele não faz nada, e a pessoa quebrada se resolve na
+        // primeira vez que alguém abrir as permissões dela. Cobre também quem
+        // foi criado entre duas migrations e ficou sem as telas mais novas.
+        permissionProvisioning.provision(user);
 
         Map<String, List<String>> cells = new LinkedHashMap<>();
         for (UserPermission cell : userCells.findAllOfUser(userId)) {

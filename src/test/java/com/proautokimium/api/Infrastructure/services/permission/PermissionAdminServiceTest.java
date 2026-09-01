@@ -50,6 +50,11 @@ class PermissionAdminServiceTest {
     @Mock private UserRepository users;
     @Mock private PermissionService permissions;
 
+    // O userGrid conserta quem ficou sem grade antes de o provisionamento
+    // existir. Dublado aqui: o que ele grava tem teste proprio, e o que estes
+    // testes afirmam e a leitura da grade.
+    @Mock private PermissionProvisioningService permissionProvisioning;
+
     @InjectMocks private PermissionAdminService service;
 
     private static final String WESLLEY = "u-weslley";

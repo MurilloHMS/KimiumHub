@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionProvisioningService;
 
 class AuthenticationServiceTest {
 
@@ -49,6 +50,11 @@ class AuthenticationServiceTest {
     private final AuthEmailService authEmailService = mock(AuthEmailService.class);
     private final CustomerRepository customerRepository = mock(CustomerRepository.class);
 
+    // O provisionamento da grade de permissoes. Dublado e nao real: o que
+    // importa aqui e que a criacao de usuario CHAMA o servico — o que ele grava
+    // tem teste proprio em PermissionProvisioningServiceTest.
+    private final PermissionProvisioningService permissionProvisioning = mock(PermissionProvisioningService.class);
+
     private final AuthenticationService service = new AuthenticationService(
             authenticationManager,
             userRepository,
@@ -58,7 +64,8 @@ class AuthenticationServiceTest {
             tokenService,
             Clock.fixed(NOON, ZONE),
             authEmailService,
-            customerRepository
+            customerRepository,
+            permissionProvisioning
     );
 
     @Test
