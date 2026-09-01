@@ -55,6 +55,10 @@ class AuthenticationServiceTest {
     // tem teste proprio em PermissionProvisioningServiceTest.
     private final PermissionProvisioningService permissionProvisioning = mock(PermissionProvisioningService.class);
 
+    // A emissão do refresh token. Dublada: o que ela grava tem teste próprio
+    // em RefreshTokenServiceTest, e aqui o que importa é o login chamá-la.
+    private final RefreshTokenService refreshTokens = mock(RefreshTokenService.class);
+
     private final AuthenticationService service = new AuthenticationService(
             authenticationManager,
             userRepository,
@@ -65,7 +69,8 @@ class AuthenticationServiceTest {
             Clock.fixed(NOON, ZONE),
             authEmailService,
             customerRepository,
-            permissionProvisioning
+            permissionProvisioning,
+            refreshTokens
     );
 
     @Test

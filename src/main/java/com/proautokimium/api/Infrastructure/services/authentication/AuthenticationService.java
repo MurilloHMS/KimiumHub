@@ -41,6 +41,8 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import com.proautokimium.api.Application.DTOs.user.LoginResponseDTO;
+import com.proautokimium.api.domain.exceptions.auth.RefreshTokenInvalidoException;
 
 @Service
 public class AuthenticationService {
@@ -54,8 +56,9 @@ public class AuthenticationService {
     private final AuthEmailService authEmailService;
     private final CustomerRepository customerRepository;
     private final PermissionProvisioningService permissionProvisioning;
+    private final RefreshTokenService refreshTokens;
 
-    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository, TokenService tokenService, Clock clock, AuthEmailService authEmailService, CustomerRepository customerRepository, PermissionProvisioningService permissionProvisioning) {
+    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository, TokenService tokenService, Clock clock, AuthEmailService authEmailService, CustomerRepository customerRepository, PermissionProvisioningService permissionProvisioning, RefreshTokenService refreshTokens) {
         this.authenticationManager = authenticationManager;
         this.repository = repository;
         this.employeeRepository = employeeRepository;
@@ -66,9 +69,10 @@ public class AuthenticationService {
         this.authEmailService = authEmailService;
         this.customerRepository = customerRepository;
         this.permissionProvisioning = permissionProvisioning;
+        this.refreshTokens = refreshTokens;
     }
 
-    public String login(AuthenticationDTO dto){
+    public LoginResponseDTO login(AuthenticationDTO dto){
         UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(dto.login(), dto.password());
         Authentication authentication;
         try{
@@ -90,7 +94,45 @@ public class AuthenticationService {
         if(user.getCustomer() != null && !user.getCustomer().isAtivo()){
             throw new UserBlockedException();
         }
-        return tokenService.generateToken(user);
+        return new LoginResponseDTO(
+                tokenService.generateToken(user),
+                refreshTokens.emitir(user));
+    }
+
+    /**
+     * Troca o refresh token por um par novo.
+     *
+     * O access token nasce das roles ATUAIS do usuário, relidas do banco — não
+     * das que estavam no token velho. Sem isso, quem perdeu um acesso hoje o
+     * carregaria por mais uma semana, uma renovação de cada vez.
+     */
+    @Transactional
+    public LoginResponseDTO renovar(String refreshToken) {
+        RefreshTokenService.Renovacao renovacao = refreshTokens.renovar(refreshToken);
+
+        User user = repository.findById(renovacao.userId())
+                .orElseThrow(RefreshTokenInvalidoException::new);
+
+        // Conta bloqueada depois do login não pode renovar: é o único momento em
+        // que o sistema volta a olhar para ela antes dos sete dias.
+        if (!user.isActive()) {
+            refreshTokens.revogarTudo(user.getId());
+            throw new UserBlockedException();
+        }
+
+        return new LoginResponseDTO(tokenService.generateToken(user), renovacao.refreshToken());
+    }
+
+    /**
+     * Encerra a sessão do lado do servidor.
+     *
+     * Sem isto, "Sair" apagava só o que estava no navegador e o refresh token
+     * continuava válido por sete dias — em outro navegador, ou nas mãos de quem
+     * tivesse uma cópia. Apagar o que está na máquina não é encerrar sessão.
+     */
+    @Transactional
+    public void logout(String refreshToken) {
+        refreshTokens.encerrar(refreshToken);
     }
 
     public User signIn(RegisterDTO dto){
