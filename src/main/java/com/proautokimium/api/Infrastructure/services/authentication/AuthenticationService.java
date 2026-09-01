@@ -12,6 +12,7 @@ import com.proautokimium.api.Infrastructure.exceptions.auth.UserAlreadyExistsExc
 import com.proautokimium.api.Infrastructure.exceptions.auth.token.TokenExpiredException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.token.TokenInvalidException;
 import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionProvisioningService;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
@@ -52,8 +53,9 @@ public class AuthenticationService {
     private final Clock clock;
     private final AuthEmailService authEmailService;
     private final CustomerRepository customerRepository;
+    private final PermissionProvisioningService permissionProvisioning;
 
-    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository, TokenService tokenService, Clock clock, AuthEmailService authEmailService, CustomerRepository customerRepository) {
+    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository, TokenService tokenService, Clock clock, AuthEmailService authEmailService, CustomerRepository customerRepository, PermissionProvisioningService permissionProvisioning) {
         this.authenticationManager = authenticationManager;
         this.repository = repository;
         this.employeeRepository = employeeRepository;
@@ -63,6 +65,7 @@ public class AuthenticationService {
         this.clock = clock;
         this.authEmailService = authEmailService;
         this.customerRepository = customerRepository;
+        this.permissionProvisioning = permissionProvisioning;
     }
 
     public String login(AuthenticationDTO dto){
@@ -99,7 +102,12 @@ public class AuthenticationService {
 
         employeeRepository.findByUsername(dto.login()).ifPresent(newUser::setEmployee);
 
-        return this.repository.save(newUser);
+        User salvo = this.repository.save(newUser);
+
+        // Depois do save, nunca antes: as células levam o `user_id`, e antes do
+        // save ele ainda não existe — as linhas apontariam para nada.
+        permissionProvisioning.provision(salvo);
+        return salvo;
     }
 
     @Transactional
@@ -121,7 +129,14 @@ public class AuthenticationService {
 
         newUser.setPassword(new BCryptPasswordEncoder().encode(dto.password()));
         accessTokenService.markTokenUsed(firstAccessToken);
-        return repository.save(newUser);
+
+        User salvo = repository.save(newUser);
+
+        // Os dois primeiros acessos passam por aqui, e o serviço é quem decide
+        // que cliente não recebe grade — a decisão fica num lugar só, em vez de
+        // um `if` repetido em cada chamador.
+        permissionProvisioning.provision(salvo);
+        return salvo;
     }
 
     private User employeeFirstAccess(Employee employee, NewAccessPasswordDTO dto) {
