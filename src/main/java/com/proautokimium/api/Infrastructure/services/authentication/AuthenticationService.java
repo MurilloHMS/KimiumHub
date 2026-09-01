@@ -123,6 +123,18 @@ public class AuthenticationService {
         return new LoginResponseDTO(tokenService.generateToken(user), renovacao.refreshToken());
     }
 
+    /**
+     * Encerra a sessão do lado do servidor.
+     *
+     * Sem isto, "Sair" apagava só o que estava no navegador e o refresh token
+     * continuava válido por sete dias — em outro navegador, ou nas mãos de quem
+     * tivesse uma cópia. Apagar o que está na máquina não é encerrar sessão.
+     */
+    @Transactional
+    public void logout(String refreshToken) {
+        refreshTokens.encerrar(refreshToken);
+    }
+
     public User signIn(RegisterDTO dto){
         if(repository.findByLogin(dto.login()) != null)
             throw new UserAlreadyExistsException();

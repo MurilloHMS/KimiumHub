@@ -31,6 +31,11 @@ public final class SecurityPaths {
             // no único momento em que ele serve. Quem protege é o refresh token
             // ser válido, não usado e não revogado.
             "/api/auth/refresh",
+
+            // Sair também é público, e pelo mesmo motivo: quem aperta "Sair"
+            // pode estar com o access token vencido, e exigir autenticação
+            // impediria de sair justamente quem mais precisa.
+            "/api/auth/logout",
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
             "/api/candidatura",

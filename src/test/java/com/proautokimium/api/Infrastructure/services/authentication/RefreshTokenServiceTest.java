@@ -228,4 +228,45 @@ class RefreshTokenServiceTest {
 
         assertThat(service.revogarTudo(USER_ID)).isZero();
     }
+
+    // ─── Encerrar sessão ──────────────────────────────────────────────────────
+
+    /**
+     * **O teste que faz "Sair" significar alguma coisa.**
+     *
+     * Sem isto, sair apagava o que estava no navegador e o refresh continuava
+     * válido por sete dias — em outro navegador, ou nas mãos de quem tivesse uma
+     * cópia. Apagar o que está na máquina não é encerrar sessão.
+     */
+    @Test
+    @DisplayName("Encerrar revoga todas as sessões da pessoa")
+    void encerrarRevogaTudo() {
+        Emitido emitido = emitidoEReconhecido();
+
+        RefreshToken outroDispositivo = new RefreshToken();
+        outroDispositivo.setUserId(USER_ID);
+        when(tokens.findByUserIdAndUsedAtIsNullAndRevokedAtIsNull(USER_ID))
+                .thenReturn(List.of(emitido.entidade(), outroDispositivo));
+
+        assertThat(service.encerrar(emitido.cru())).isEqualTo(2);
+
+        // O celular também cai: quem sai costuma querer sair de tudo, e o caso
+        // que importa é o computador emprestado.
+        assertThat(outroDispositivo.getRevokedAt()).isEqualTo(AGORA);
+    }
+
+    /**
+     * Sair nunca reclama. Token desconhecido, nulo ou em branco sai pelo mesmo
+     * caminho silencioso — quem apertou "Sair" quer sair, e um erro ali só
+     * deixaria a pessoa presa na tela que está tentando abandonar.
+     */
+    @Test
+    @DisplayName("Encerrar com token desconhecido ou vazio não estoura")
+    void encerrarNuncaEstoura() {
+        when(tokens.findByTokenHash(any())).thenReturn(Optional.empty());
+
+        assertThat(service.encerrar("inventado")).isZero();
+        assertThat(service.encerrar(null)).isZero();
+        assertThat(service.encerrar("  ")).isZero();
+    }
 }

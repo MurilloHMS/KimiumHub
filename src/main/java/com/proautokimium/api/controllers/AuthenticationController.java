@@ -101,6 +101,24 @@ public class AuthenticationController {
         return ResponseEntity.ok(authService.renovar(dto.refreshToken()));
     }
 
+    /**
+     * Encerra a sessão: revoga os refresh tokens vivos da pessoa.
+     *
+     * <p>Público pelo mesmo motivo do refresh: quem aperta "Sair" pode estar com
+     * o access token já vencido, e exigir autenticação impediria justamente a
+     * pessoa que mais precisa sair de sair.
+     *
+     * <p>Devolve {@code 204} sempre. Token desconhecido ou já revogado não é
+     * erro de quem está saindo, e distinguir os casos diria a quem está testando
+     * tokens que acertou um valor real.
+     */
+    @PostMapping("/logout")
+    @Operation(summary = "Encerra a sessão", description = "Revoga os refresh tokens da pessoa")
+    public ResponseEntity<Void> logout(@RequestBody RefreshTokenDTO dto) {
+        authService.logout(dto.refreshToken());
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/register")
     @PreAuthorize("hasAuthority('settings/admin:INCLUIR')")
     public ResponseEntity<Object> Register(@RequestBody @Valid RegisterDTO data){

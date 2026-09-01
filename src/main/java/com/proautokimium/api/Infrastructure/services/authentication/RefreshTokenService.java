@@ -132,6 +132,29 @@ public class RefreshTokenService {
         return vivos.size();
     }
 
+    /**
+     * Encerra a sessão a partir do refresh token que o navegador tem.
+     *
+     * <p><b>Nunca reclama.</b> Token desconhecido, vencido ou já revogado sai
+     * pelo mesmo caminho silencioso — quem apertou "Sair" quer sair, e um erro
+     * ali só serviria para deixar a pessoa presa numa tela que ela está tentando
+     * abandonar. Idempotente por consequência: apertar duas vezes é inofensivo.
+     *
+     * <p>Revoga TODAS as sessões vivas da pessoa, e não só esta. Quem sai
+     * costuma querer sair de tudo, e o caso que importa é o computador
+     * emprestado: sair no celular precisa fechar a sessão que ficou aberta lá.
+     *
+     * @return quantas sessões caíram — zero quando não havia o que encerrar
+     */
+    @Transactional
+    public int encerrar(String cru) {
+        if (cru == null || cru.isBlank()) return 0;
+
+        return tokens.findByTokenHash(hash(cru))
+                .map(token -> revogarTudo(token.getUserId()))
+                .orElse(0);
+    }
+
     /** O par que a renovação devolve: de quem era, e o token que substitui. */
     public record Renovacao(String userId, String refreshToken) { }
 
