@@ -20,6 +20,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -261,5 +263,41 @@ class PermissionProvisioningServiceTest {
         assertThat(gravadas())
                 .noneMatch(cell -> cell.getScreenCode().equals("rh/hub")
                         && cell.getPermission() == Permission.CONSULTAR);
+    }
+
+    // ─── A transação ──────────────────────────────────────────────────────────
+
+    /**
+     * **A guarda do defeito que foi para produção em 01/09.**
+     *
+     * O método nasceu {@code REQUIRES_NEW}, para escapar do {@code readOnly} do
+     * `userGrid`, e derrubou a criação de usuário com violação de chave
+     * estrangeira: o `signInFirstAccess` é `@Transactional` e salva o usuário
+     * dentro da transação dele; uma transação NOVA não enxerga linha ainda não
+     * commitada por outra, e o `user_id` não existia do lado de cá.
+     *
+     * <p>Este teste é feio de propósito — ele lê uma anotação em vez de exercer
+     * comportamento. Existe porque **nada mais alcança isto**:
+     *
+     * <ul>
+     *   <li>os outros testes daqui usam mock, e mock não tem transação;</li>
+     *   <li>um teste de integração em H2 também não pegaria: a chave
+     *       estrangeira vive na migration V86, e o H2 monta o schema pelas
+     *       anotações — {@code UserPermission.userId} é uma String comum, não
+     *       um relacionamento, então em H2 não existe FK nenhuma para violar.</li>
+     * </ul>
+     *
+     * <p>Ou seja: só o Postgres de verdade reprova, e ele só é consultado depois
+     * do deploy. Uma asserção sobre a anotação é o que sobra.
+     */
+    @Test
+    @DisplayName("provision se junta à transação de quem chama, nunca abre uma nova")
+    void provisionNaoAbreTransacaoPropria() throws NoSuchMethodException {
+        Transactional anotacao = PermissionProvisioningService.class
+                .getMethod("provision", com.proautokimium.api.domain.entities.auth.User.class)
+                .getAnnotation(Transactional.class);
+
+        assertThat(anotacao).isNotNull();
+        assertThat(anotacao.propagation()).isEqualTo(Propagation.REQUIRED);
     }
 }

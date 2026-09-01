@@ -251,7 +251,15 @@ public class PermissionAdminService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    /**
+     * Deixou de ser {@code readOnly}: o {@code provision} logo abaixo escreve.
+     *
+     * A anotação descrevia um fato que parou de ser verdade quando o conserto
+     * entrou neste caminho. Mantê-la seria pior do que perdê-la — numa transação
+     * read-only o Hibernate põe o flush em manual, e o INSERT sumiria sem erro
+     * nenhum: a tela abriria, mostraria a grade, e não consertaria ninguém.
+     */
+    @Transactional
     public UserGridDTO userGrid(String userId) {
         User user = requireUser(userId);
 
