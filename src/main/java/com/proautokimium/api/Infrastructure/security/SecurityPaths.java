@@ -26,6 +26,11 @@ public final class SecurityPaths {
             "/api/contact",
             "/api/certificate",
             "/api/certificate/no-validation",
+            // Renovação de sessão. Quem chama está com o access token vencido,
+            // então exigir autenticação aqui tornaria o endpoint inalcançável
+            // no único momento em que ele serve. Quem protege é o refresh token
+            // ser válido, não usado e não revogado.
+            "/api/auth/refresh",
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
             "/api/candidatura",

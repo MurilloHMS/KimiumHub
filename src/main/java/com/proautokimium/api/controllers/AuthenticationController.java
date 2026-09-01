@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import com.proautokimium.api.Application.DTOs.authentication.RefreshTokenDTO;
 
 @RestController
 @RequestMapping("api/auth")
@@ -78,7 +79,26 @@ public class AuthenticationController {
     @PostMapping("/login")
     @Operation(summary = "Realiza login", description = "Verifica usuário e senha e autoriza o login")
     public ResponseEntity<Object> Login(@RequestBody @Valid AuthenticationDTO data){
-        return ResponseEntity.ok(new LoginResponseDTO(authService.login(data)));
+        return ResponseEntity.ok(authService.login(data));
+    }
+
+    /**
+     * Troca o refresh token por um par novo de tokens.
+     *
+     * <p><b>Público de propósito, e não é descuido.</b> Quem chama aqui está
+     * com o access token VENCIDO — é exatamente por isso que está chamando.
+     * Exigir autenticação tornaria o endpoint inalcançável no único momento em
+     * que ele serve para alguma coisa.
+     *
+     * <p>O que protege não é login: é o refresh token precisar existir, não ter
+     * vencido, não ter sido usado e não ter sido revogado. Ver
+     * {@code SecurityPaths.PUBLIC_POST}, onde o caminho também precisa estar —
+     * a rota é fechada em duas camadas e uma sozinha não abre nada.
+     */
+    @PostMapping("/refresh")
+    @Operation(summary = "Renova a sessão", description = "Troca um refresh token válido por um par novo de tokens")
+    public ResponseEntity<LoginResponseDTO> refresh(@RequestBody @Valid RefreshTokenDTO dto) {
+        return ResponseEntity.ok(authService.renovar(dto.refreshToken()));
     }
 
     @PostMapping("/register")

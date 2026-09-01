@@ -48,6 +48,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import com.proautokimium.api.Application.DTOs.user.LoginResponseDTO;
 
 
 @WebMvcTest(AuthenticationController.class)
@@ -104,7 +105,8 @@ class AuthenticationControllerTest {
     void shouldLoginSuccessfully() throws Exception {
         AuthenticationDTO dto = new AuthenticationDTO("admin", "123456");
 
-        when(authService.login(any(AuthenticationDTO.class))).thenReturn("jwt-token");
+        when(authService.login(any(AuthenticationDTO.class)))
+                .thenReturn(new LoginResponseDTO("jwt-token", "refresh-token"));
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
