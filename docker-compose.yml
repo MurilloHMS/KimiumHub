@@ -15,6 +15,7 @@ services:
       - /var/proauto/upload/images:/app/upload/images
       - /var/proauto/upload/equipment:/app/upload/equipment
       - /var/proauto/upload/profile:/app/upload/profile
+      - /var/proauto/upload/signature:/app/upload/signature
       - /var/proauto/funcionario/holerite:/app/funcionario/holerite
       - /var/proauto/funcionario/documentos:/app/funcionario/documentos
       - /var/proauto/funcionario/reembolsos:/app/funcionario/reembolsos

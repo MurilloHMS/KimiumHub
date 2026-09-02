@@ -9,26 +9,38 @@
 -- em x/y absolutos. O que muda não é o modelo, é onde ele mora e quem alcança.
 
 CREATE TABLE email_signature_template (
-    -- Um modelo só, e o banco é quem garante. A alternativa seria uma coluna
-    -- `ativo` e a disciplina de manter uma linha marcada — que é a mesma regra,
-    -- só que sem ninguém para aplicá-la.
-    id         SMALLINT     PRIMARY KEY DEFAULT 1,
+    -- UUID como todo id deste sistema, herdado de `domain.abstractions.Entity`.
+    id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
 
     -- TEXT, e não JSONB, de propósito. Nada consulta dentro do documento: ele
     -- é lido inteiro e gravado inteiro. JSONB exigiria mapeamento de tipo no
     -- Hibernate e um dialeto que o H2 dos testes não tem, para ganhar uma
     -- consulta que ninguém vai escrever.
-    documento  TEXT         NOT NULL,
+    document   TEXT         NOT NULL,
 
     updated_at TIMESTAMP    NOT NULL DEFAULT now(),
 
     -- Quem mexeu por último. Sem isto, "a assinatura mudou e ninguém sabe por
     -- quê" não tem por onde começar.
-    updated_by TEXT         REFERENCES users(id) ON DELETE SET NULL,
+    --
+    -- Guarda o LOGIN, e não uma FK para `users(id)`. É o que o token já traz
+    -- em `authentication.getName()` — com a FK, gravar exigiria uma consulta a
+    -- mais só para traduzir login em id, e ler exigiria um JOIN para voltar ao
+    -- nome. Coluna de auditoria se lê a olho: `murillo` responde a pergunta,
+    -- um UUID não.
+    updated_by VARCHAR(120),
 
-    CONSTRAINT ck_email_signature_template_unica CHECK (id = 1)
+    -- Um modelo só, e o banco é quem garante.
+    --
+    -- Com id UUID não dá para prender a linha por chave primária, então a
+    -- trava é esta coluna: só aceita TRUE, e TRUE só cabe uma vez. Uma segunda
+    -- linha esbarra no UNIQUE.
+    --
+    -- A alternativa seria uma coluna `ativo` e a disciplina de manter uma linha
+    -- marcada — que é a mesma regra, só que sem ninguém para aplicá-la.
+    singleton  BOOLEAN      NOT NULL DEFAULT TRUE UNIQUE,
+    CONSTRAINT ck_email_signature_template_singleton CHECK (singleton)
 );
-
 -- ── A semente: exatamente o que o jrxml desenha hoje ─────────────────────────
 --
 -- As coordenadas, os tamanhos e as cores são cópia literal do
@@ -43,7 +55,7 @@ CREATE TABLE email_signature_template (
 -- uma tela quebrada se alguém esquecesse. Com nulo, o dia um não depende de
 -- volume, de pasta nem de ninguém lembrar: a arte padrão está no bundle do
 -- front, na mesma origem, e nem contamina o canvas.
-INSERT INTO email_signature_template (id, documento) VALUES (1, '{
+INSERT INTO email_signature_template (document) VALUES ('{
     "versao": 1,
     "canvas": {
       "largura": 700,
