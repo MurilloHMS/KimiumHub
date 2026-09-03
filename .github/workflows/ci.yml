@@ -48,6 +48,18 @@ jobs:
           JENKINS_JOB: ${{ secrets.JENKINS_JOB }}
           JENKINS_TOKEN: ${{ secrets.JENKINS_TOKEN }}
         run: |
+          # Secret que nao existe chega aqui como string vazia, e o curl
+          # monta `.../job//buildWithParameters?token=` — que o Jenkins
+          # responde com 403. O erro fala de permissao e o problema e
+          # configuracao, entao o diagnostico vinha errado de fabrica.
+          for nome in JENKINS_URL JENKINS_JOB JENKINS_TOKEN; do
+            if [ -z "${!nome}" ]; then
+              echo "::error::O secret $nome nao esta definido no repositorio."
+              echo "Settings > Secrets and variables > Actions > New repository secret"
+              exit 1
+            fi
+          done
+
           # `-f` faz o passo falhar em resposta 4xx/5xx. Sem ele o curl sai com
           # sucesso mesmo quando o Jenkins recusa, e o workflow ficaria verde
           # anunciando um deploy que nunca comecou.
