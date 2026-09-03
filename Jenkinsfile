@@ -20,7 +20,17 @@
 // versão fazia isso, e era um caminho que o Jenkins nem enxerga.
 
 pipeline {
-  agent any
+  // **Preso ao controlador, e nao `agent any`.**
+  //
+  // Este Jenkins tem dois nos: o controlador (`jenkins_sandbox`), que monta
+  // o socket do Docker e o binario do host, e um agente SSH
+  // (`jenkins_sandbox_agent`) que nao tem nem um nem outro. Com `agent any`
+  // o build cai em qualquer um dos dois — e no agente ele morre no
+  // `docker build`, sem nada na mensagem apontando a causa.
+  //
+  // Se um dia o agente ganhar o socket, o binario e o `.env` montado, isto
+  // pode voltar a ser `agent any`.
+  agent { label 'built-in' }
 
   parameters {
     string(
