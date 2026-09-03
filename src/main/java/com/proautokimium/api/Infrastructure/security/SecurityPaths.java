@@ -18,7 +18,18 @@ public final class SecurityPaths {
             "/upload/profile/images/**",
             "/api/faq/public",
             "/api/profile/public/**",
-            "/ws/**"
+            "/ws/**",
+
+            // O health que o Docker consulta a cada 15s para saber se o
+            // container esta de pe. Sem isto ele levava 401, o healthcheck
+            // falhava com saida vazia, e o deploy era revertido mesmo com a
+            // API no ar.
+            //
+            // **`/actuator/health`, e nao `/actuator/**`.** O actuator pode
+            // expor `/env`, `/beans` e `/heapdump`; hoje so o health esta
+            // ligado, mas liberar o caminho inteiro deixaria a porta aberta
+            // no dia em que alguem ligar outro endpoint sem lembrar disto.
+            "/actuator/health"
     };
 
     public static final String[] PUBLIC_POST ={
