@@ -21,9 +21,17 @@ services:
     ports:
       - "8080:8080"
 
-    # O `.env` mora em /root/api e nunca entra no repositório nem no Jenkins.
+    # **Caminho absoluto, e nao `.env` solto.**
+    #
+    # Este caminho e relativo a pasta do ARQUIVO compose — que agora e o
+    # workspace do Jenkins, e nao `/root/api`. Escrito como `.env`, o compose
+    # procuraria no workspace e falharia com "env file not found".
+    #
+    # O arquivo mora no host e e lido pelo CLI dentro do container do
+    # Jenkins, entao ele precisa de `/root/api` montado la. O primeiro
+    # estagio do pipeline confere isso antes de chegar aqui.
     env_file:
-      - .env
+      - /root/api/.env
 
     mem_limit: 2g
 
