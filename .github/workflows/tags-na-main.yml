@@ -5,16 +5,23 @@ name: Tags voltaram para a main?
 #
 # O hotfix nasce da ÚLTIMA TAG e não da `main` — senão tagear para soltar a
 # correção levaria junto a feature que já foi mergeada e ainda não foi para
-# produção.
+# produção. O preço é que a correção fica fora da `main` até alguém fazer o
+# merge de volta, e **esquecer esse merge é silencioso**: a próxima release
+# reintroduz o bug, o sintoma volta, e ninguém liga uma coisa à outra.
 #
-# O preço disso é que a correção fica fora da `main` até alguém fazer o merge
-# de volta. **Esquecer esse merge é a armadilha**, e ela é silenciosa: a
-# próxima release reintroduz o bug corrigido, o sintoma volta, e ninguém liga
-# uma coisa à outra porque "isso já foi consertado".
+# ─── Por que este job compara ÁRVORE e não ancestralidade ───────────────────
 #
-# Este job é o alarme. Roda todo dia e a cada push na `main`: no push ele fica
-# verde assim que o merge acontece, e no diário ele pega o esquecimento antes
-# que a próxima release o transforme em bug de novo.
+# A primeira versão perguntava `git merge-base --is-ancestor <tag> main`, e
+# acusou **todas** as tags de junho. Não eram tags perdidas: o fluxo daqui
+# rebaseia antes de integrar, então o commit que recebeu a tag vira órfão e a
+# main ganha um commit novo, com SHA e data diferentes, e o mesmo conteúdo.
+#
+# Medido: a tag `2.33.4` aponta para `3a0b4e6` (30/06); a main tem `098934a`
+# (08/07) com a **mesma árvore**. O conteúdo chegou; o commit não.
+#
+# Por isso a pergunta certa não é "este commit está na main?", e sim "**este
+# conteúdo está na main?**". Ancestralidade continua valendo como atalho
+# barato, e a árvore responde quando ela falha.
 # ═══════════════════════════════════════════════════════════════════════════
 
 on:
@@ -25,36 +32,51 @@ on:
     - cron: '0 12 * * *'
   workflow_dispatch:
 
+env:
+  # Só tags criadas a partir daqui.
+  #
+  # A regra do hotfix passa a valer agora; cobrar o histórico anterior faria o
+  # job nascer vermelho por decisões que ninguém tomou sob esta regra — e
+  # alarme que nasce vermelho é alarme que se aprende a ignorar.
+  DESDE: '2026-09-03'
+
 jobs:
   conferir:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          # Histórico inteiro: `merge-base --is-ancestor` precisa enxergar os
-          # commits antigos, e o checkout raso traz só o último.
+          # Histórico inteiro: comparar árvores exige enxergar os commits
+          # antigos, e o checkout raso traz só o último.
           fetch-depth: 0
 
-      - name: Toda tag recente precisa estar na main
+      - name: Todo conteúdo publicado precisa estar na main
         run: |
           set -euo pipefail
 
-          # Só as dos últimos 90 dias. Tag antiga de antes desta regra existir
-          # não é problema a resolver hoje, e faria o job nascer vermelho.
-          limite=$(date -u -d '90 days ago' +%s)
+          # Todas as árvores que a main já teve, uma vez só. Consultar por tag
+          # seria varrer o histórico inteiro a cada volta do laço.
+          git log origin/main --format='%T' | sort -u > /tmp/arvores-da-main
+
+          limite=$(date -u -d "${DESDE}" +%s)
           faltando=""
 
           for tag in $(git tag --sort=-creatordate); do
             quando=$(git log -1 --format=%ct "$tag")
             [ "$quando" -lt "$limite" ] && continue
 
-            if ! git merge-base --is-ancestor "$tag" origin/main; then
-              faltando="${faltando}  - ${tag}  ($(git log -1 --format=%cs "$tag"))"$'\n'
-            fi
+            # Atalho barato: fluxo com merge commit resolve aqui.
+            git merge-base --is-ancestor "$tag" origin/main 2>/dev/null && continue
+
+            # E a pergunta que vale: o conteúdo chegou, mesmo com outro SHA?
+            arvore=$(git rev-parse "${tag}^{tree}")
+            grep -qx "$arvore" /tmp/arvores-da-main && continue
+
+            faltando="${faltando}  - ${tag}  ($(git log -1 --format=%cs "$tag"))"$'\n'
           done
 
           if [ -n "$faltando" ]; then
-            echo "::error::Tag publicada que não está na main:"
+            echo "::error::Tag publicada cujo conteúdo não está na main:"
             echo "$faltando"
             echo "Provável hotfix sem merge de volta. Sem isso, a próxima"
             echo "release reintroduz o bug que essa tag corrigiu."
@@ -63,4 +85,4 @@ jobs:
             exit 1
           fi
 
-          echo "Todas as tags dos últimos 90 dias estão na main."
+          echo "Todo conteúdo publicado desde ${DESDE} está na main."
