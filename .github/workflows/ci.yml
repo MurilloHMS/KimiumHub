@@ -42,20 +42,23 @@ jobs:
       name: production
 
     steps:
-      - name: Avisar o Jenkins que a tag está liberada
+      - name: Avisar o Jenkins que a tag esta liberada
         env:
           JENKINS_URL: ${{ secrets.JENKINS_URL }}
           JENKINS_JOB: ${{ secrets.JENKINS_JOB }}
           JENKINS_TOKEN: ${{ secrets.JENKINS_TOKEN }}
         run: |
-          # `-f` faz o passo falhar em resposta 4xx/5xx: sem ele, o curl sai
-          # com sucesso mesmo quando o Jenkins recusa, e o workflow ficaria
-          # verde anunciando um deploy que nunca começou.
+          # `-f` faz o passo falhar em resposta 4xx/5xx. Sem ele o curl sai com
+          # sucesso mesmo quando o Jenkins recusa, e o workflow ficaria verde
+          # anunciando um deploy que nunca comecou.
           #
-          # `--data-urlencode` porque a tag vai na query string: um dia alguém
-          # cria `v1.0+hotfix`, e `+` na URL vira espaço.
-          curl -fsS -X POST \
-            --get \
+          # `--get` manda os parametros na query string, e o
+          # `buildWithParameters` aceita GET quando a autenticacao e o token de
+          # build — assim nao e preciso lidar com o crumb de CSRF.
+          #
+          # `--data-urlencode` porque a tag viaja na URL: no dia em que alguem
+          # criar `v1.0+hotfix`, o `+` cru viraria espaco.
+          curl -fsS --get \
             --data-urlencode "token=${JENKINS_TOKEN}" \
             --data-urlencode "TAG=${GITHUB_REF_NAME}" \
             "${JENKINS_URL}/job/${JENKINS_JOB}/buildWithParameters"
