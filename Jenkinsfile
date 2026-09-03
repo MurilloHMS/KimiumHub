@@ -143,17 +143,41 @@ pipeline {
 
     stage('Conferir se subiu') {
       steps {
-        // O `healthcheck` do compose é quem sabe: aqui só esperamos ele dizer
-        // `healthy`. Conferir a porta responder não bastaria — a API atende
-        // antes de o banco estar pronto.
+        // **Pergunta direto a API, e nao ao `{{.State.Health.Status}}`.**
+        //
+        // A primeira versao lia o status do healthcheck do Docker, e isso
+        // falhou de um jeito traicoeiro: quando o container nao tem
+        // healthcheck registrado, o `inspect` devolve `<no value>` — que nao e
+        // `healthy` nem e erro. O laco girava os 200s e desistia, o pipeline
+        // revertia, e a API que estava NO AR voltava uma versao. Falso
+        // negativo que desfaz deploy bom e pior que nao verificar nada.
+        //
+        // Perguntando por dentro do container, a resposta e sempre uma das
+        // tres que interessam: a API respondeu UP, respondeu outra coisa (e
+        // imprimimos o que veio), ou nem respondeu.
         sh '''
+          resposta=""
           for i in $(seq 1 40); do
-            estado=$(docker inspect -f '{{.State.Health.Status}}' proauto-api 2>/dev/null || echo missing)
-            [ "$estado" = "healthy" ] && echo "API no ar." && exit 0
-            [ "$estado" = "missing" ] && echo "Container nem existe." && exit 1
+            if ! docker ps --format '{{.Names}}' | grep -qx proauto-api; then
+              echo "O container proauto-api nao esta rodando."
+              exit 1
+            fi
+
+            resposta=$(docker exec proauto-api \
+              wget -qO- http://localhost:8080/actuator/health 2>&1 || true)
+
+            case "$resposta" in
+              *'"status":"UP"'*) echo "API no ar: $resposta"; exit 0 ;;
+            esac
+
             sleep 5
           done
-          echo "Passou de 200s sem ficar saudavel. Ultimas linhas:"
+
+          echo "Passou de 200s sem responder UP."
+          echo "Ultima resposta do /actuator/health: [$resposta]"
+          echo "Resposta vazia costuma ser 401: o Spring Security esta"
+          echo "bloqueando /actuator/health, e ele precisa ser publico."
+          echo "--- ultimas linhas da API ---"
           docker logs --tail 40 proauto-api 2>&1 || true
           exit 1
         '''
