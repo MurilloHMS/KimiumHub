@@ -1,0 +1,66 @@
+name: Tags voltaram para a main?
+
+# ═══════════════════════════════════════════════════════════════════════════
+# A guarda do hotfix.
+#
+# O hotfix nasce da ÚLTIMA TAG e não da `main` — senão tagear para soltar a
+# correção levaria junto a feature que já foi mergeada e ainda não foi para
+# produção.
+#
+# O preço disso é que a correção fica fora da `main` até alguém fazer o merge
+# de volta. **Esquecer esse merge é a armadilha**, e ela é silenciosa: a
+# próxima release reintroduz o bug corrigido, o sintoma volta, e ninguém liga
+# uma coisa à outra porque "isso já foi consertado".
+#
+# Este job é o alarme. Roda todo dia e a cada push na `main`: no push ele fica
+# verde assim que o merge acontece, e no diário ele pega o esquecimento antes
+# que a próxima release o transforme em bug de novo.
+# ═══════════════════════════════════════════════════════════════════════════
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # 12h UTC = 9h de Brasília: aparece no começo do dia, não de madrugada.
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+
+jobs:
+  conferir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Histórico inteiro: `merge-base --is-ancestor` precisa enxergar os
+          # commits antigos, e o checkout raso traz só o último.
+          fetch-depth: 0
+
+      - name: Toda tag recente precisa estar na main
+        run: |
+          set -euo pipefail
+
+          # Só as dos últimos 90 dias. Tag antiga de antes desta regra existir
+          # não é problema a resolver hoje, e faria o job nascer vermelho.
+          limite=$(date -u -d '90 days ago' +%s)
+          faltando=""
+
+          for tag in $(git tag --sort=-creatordate); do
+            quando=$(git log -1 --format=%ct "$tag")
+            [ "$quando" -lt "$limite" ] && continue
+
+            if ! git merge-base --is-ancestor "$tag" origin/main; then
+              faltando="${faltando}  - ${tag}  ($(git log -1 --format=%cs "$tag"))"$'\n'
+            fi
+          done
+
+          if [ -n "$faltando" ]; then
+            echo "::error::Tag publicada que não está na main:"
+            echo "$faltando"
+            echo "Provável hotfix sem merge de volta. Sem isso, a próxima"
+            echo "release reintroduz o bug que essa tag corrigiu."
+            echo
+            echo "Conserto:  git switch main && git merge <tag> && git push"
+            exit 1
+          fi
+
+          echo "Todas as tags dos últimos 90 dias estão na main."
