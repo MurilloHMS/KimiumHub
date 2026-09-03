@@ -46,13 +46,13 @@ jobs:
         env:
           JENKINS_URL: ${{ secrets.JENKINS_URL }}
           JENKINS_JOB: ${{ secrets.JENKINS_JOB }}
+          JENKINS_USER: ${{ secrets.JENKINS_USER }}
           JENKINS_TOKEN: ${{ secrets.JENKINS_TOKEN }}
         run: |
-          # Secret que nao existe chega aqui como string vazia, e o curl
-          # monta `.../job//buildWithParameters?token=` — que o Jenkins
-          # responde com 403. O erro fala de permissao e o problema e
-          # configuracao, entao o diagnostico vinha errado de fabrica.
-          for nome in JENKINS_URL JENKINS_JOB JENKINS_TOKEN; do
+          # Secret que nao existe chega aqui como string vazia, e o Jenkins
+          # responde 403 — um erro que fala de permissao quando o problema e
+          # configuracao, mandando quem le procurar no lugar errado.
+          for nome in JENKINS_URL JENKINS_JOB JENKINS_USER JENKINS_TOKEN; do
             if [ -z "${!nome}" ]; then
               echo "::error::O secret $nome nao esta definido no repositorio."
               echo "Settings > Secrets and variables > Actions > New repository secret"
@@ -60,18 +60,21 @@ jobs:
             fi
           done
 
-          # `-f` faz o passo falhar em resposta 4xx/5xx. Sem ele o curl sai com
-          # sucesso mesmo quando o Jenkins recusa, e o workflow ficaria verde
+          # **Autentica como usuario, com token de API.**
+          #
+          # A primeira versao usava o "token de build" do job, que dispara sem
+          # login. So que o Jenkins continua perguntando se o ANONIMO pode
+          # construir aquele job — e na configuracao padrao ele nao pode. O
+          # resultado era 403 mesmo com o token certo.
+          #
+          # Token de API resolve os dois lados: identifica o usuario, que tem
+          # permissao, e dispensa o crumb de CSRF que o POST exigiria.
+          #
+          # `-f` faz o passo falhar em 4xx/5xx. Sem ele o curl sai com sucesso
+          # mesmo quando o Jenkins recusa, e o workflow ficaria verde
           # anunciando um deploy que nunca comecou.
-          #
-          # `--get` manda os parametros na query string, e o
-          # `buildWithParameters` aceita GET quando a autenticacao e o token de
-          # build — assim nao e preciso lidar com o crumb de CSRF.
-          #
-          # `--data-urlencode` porque a tag viaja na URL: no dia em que alguem
-          # criar `v1.0+hotfix`, o `+` cru viraria espaco.
-          curl -fsS --get \
-            --data-urlencode "token=${JENKINS_TOKEN}" \
+          curl -fsS -X POST \
+            --user "${JENKINS_USER}:${JENKINS_TOKEN}" \
             --data-urlencode "TAG=${GITHUB_REF_NAME}" \
             "${JENKINS_URL}/job/${JENKINS_JOB}/buildWithParameters"
 
