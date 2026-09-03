@@ -19,3 +19,45 @@ jobs:
       - run: mvn install:install-file -Dfile="libs/montserrat-font.jar" -DgroupId="custom.fonts" -DartifactId=montserrat -Dversion="1.0" -Dpackaging=jar
 
       - run: ./mvnw verify
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # O deploy.
+  #
+  # **O `needs: test` é o ponto deste job.** Até 2026-09-03 o build da imagem
+  # vivia num workflow separado, também disparado por push de tag — os dois
+  # corriam lado a lado, sem nada ligando um ao outro. Uma tag num commit com
+  # teste quebrado publicava a imagem quebrada, e ninguém via.
+  #
+  # Agora não há como: sem o `test` verde, este job nem existe.
+  #
+  # Quem constrói e sobe é o Jenkins, na própria VPS. O GitHub só avisa que a
+  # tag passou nos testes — a imagem nunca sai da máquina, então não há Docker
+  # Hub no caminho.
+  # ═══════════════════════════════════════════════════════════════════════════
+  deploy:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    steps:
+      - name: Avisar o Jenkins que a tag está liberada
+        env:
+          JENKINS_URL: ${{ secrets.JENKINS_URL }}
+          JENKINS_JOB: ${{ secrets.JENKINS_JOB }}
+          JENKINS_TOKEN: ${{ secrets.JENKINS_TOKEN }}
+        run: |
+          # `-f` faz o passo falhar em resposta 4xx/5xx: sem ele, o curl sai
+          # com sucesso mesmo quando o Jenkins recusa, e o workflow ficaria
+          # verde anunciando um deploy que nunca começou.
+          #
+          # `--data-urlencode` porque a tag vai na query string: um dia alguém
+          # cria `v1.0+hotfix`, e `+` na URL vira espaço.
+          curl -fsS -X POST \
+            --get \
+            --data-urlencode "token=${JENKINS_TOKEN}" \
+            --data-urlencode "TAG=${GITHUB_REF_NAME}" \
+            "${JENKINS_URL}/job/${JENKINS_JOB}/buildWithParameters"
+
+          echo "Deploy da ${GITHUB_REF_NAME} pedido ao Jenkins."

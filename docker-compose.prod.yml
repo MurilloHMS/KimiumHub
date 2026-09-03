@@ -1,0 +1,67 @@
+# Compose de produção.
+#
+# **Existe aqui, e não só na VPS, de propósito.** Até 2026-09-03 a definição do
+# deploy morava apenas no servidor: sem histórico, sem revisão, e perdida junto
+# com a máquina. Automatizar em cima de um arquivo que ninguém revisa é
+# automatizar o erro.
+#
+# Não tem `build:`. Quem constrói é o Jenkins, na própria VPS — a imagem nasce
+# lá e nunca sai da máquina, então não há registry no caminho.
+#
+# Uso:
+#   TAG=v2.28.5 docker compose -f docker-compose.prod.yml up -d
+services:
+  api:
+    # **Sempre a tag do git, nunca `latest`.** É o que responde "o que está
+    # rodando" e o que torna rollback um `up` com outro número, em vez de
+    # editar arquivo no servidor. Sem valor padrão de propósito: subir sem
+    # dizer a versão tem que falhar, não tem que adivinhar.
+    image: proauto-api:${TAG:?defina TAG com a versão a subir}
+    container_name: proauto-api
+    ports:
+      - "5007:5007"
+
+    # O `.env` mora na VPS e nunca entra no repositório nem no Jenkins.
+    env_file:
+      - .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=America/Sao_Paulo
+      # Carimba a versão dentro do container: `docker inspect` responde o que
+      # está rodando mesmo que alguém tenha retagueado a imagem por fora.
+      - APP_VERSION=${TAG}
+
+    volumes:
+      - /var/proauto/curriculos:/app/curriculos
+      - /var/proauto/upload/images:/app/upload/images
+      - /var/proauto/upload/equipment:/app/upload/equipment
+      - /var/proauto/upload/profile:/app/upload/profile
+      - /var/proauto/upload/signature:/app/upload/signature
+      - /var/proauto/funcionario/holerite:/app/funcionario/holerite
+      - /var/proauto/funcionario/documentos:/app/funcionario/documentos
+      - /var/proauto/funcionario/reembolsos:/app/funcionario/reembolsos
+      - /var/proauto/funcionario/atestados:/app/funcionario/atestados
+      - /var/proauto/recibos-locacao:/app/recibos-locacao
+      - /var/proauto/upload/gallery:/app/galeria
+
+    restart: always
+
+    # O que diz ao pipeline se o deploy deu certo.
+    #
+    # `start_period` generoso porque a API sobe Flyway e Hibernate antes de
+    # responder: sem ele, o health falharia durante a partida normal e o
+    # pipeline reverteria um deploy que estava dando certo.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5007/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+
+    networks:
+      - db-network
+
+networks:
+  db-network:
+    external: true
+    name: api_postgres-compose-network
