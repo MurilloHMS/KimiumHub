@@ -80,7 +80,7 @@ public class AuthenticationService {
         }catch (BadCredentialsException e){
             throw new CredentialsIncorrectException(e.getMessage());
         }catch (Exception e){
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException(e);
         }
 
         User user = (User) authentication.getPrincipal();
