@@ -4,7 +4,7 @@ import com.proautokimium.api.Application.DTOs.fuelsupply.FuelSupplyReportFilterD
 import com.proautokimium.api.Infrastructure.exceptions.fuelSupply.GenerateReportErrorException;
 import com.proautokimium.api.Infrastructure.repositories.FuelSupplyRepository;
 import com.proautokimium.api.domain.entities.FuelSupply;
-import com.proautokimium.api.domain.enums.Department;
+import com.proautokimium.api.domain.entities.humanResources.Department;
 import com.proautokimium.api.domain.enums.ReportFormat;
 import net.sf.jasperreports.engine.*;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
@@ -47,7 +47,7 @@ public class FuelSupplyReportService {
             List<Department> departments = result.stream()
                     .map(FuelSupply::getDepartment)
                     .distinct()
-                    .sorted(Comparator.comparing(Department::name))
+                    .sorted(Comparator.comparing(Department::getName))
                     .toList();
 
             List<JasperPrint> prints = new ArrayList<>();
@@ -55,7 +55,7 @@ public class FuelSupplyReportService {
 
             for(Department dept : departments){
                 List<FuelSupply> deptData = result.stream()
-                        .filter(fs -> fs.getDepartment() == dept)
+                        .filter(fs -> dept.equals(fs.getDepartment()))
                         .sorted(Comparator
                                 .comparing(FuelSupply::getPlate)
                                 .thenComparing(FuelSupply::getDriverName)
@@ -92,7 +92,7 @@ public class FuelSupplyReportService {
     private JasperPrint buildGeralPrint(List<FuelSupply> data, int month, int year) throws Exception {
         List<FuelSupply> sorted = data.stream()
                 .sorted(Comparator
-                        .comparing(FuelSupply::getDepartment)
+                        .comparing(FuelSupply::getDepartmentName)
                         .thenComparing(FuelSupply::getPlate)
                         .thenComparing(FuelSupply::getFuelSupplyDate))
                 .toList();
@@ -103,7 +103,7 @@ public class FuelSupplyReportService {
                                              Department dept,
                                              int mes, int ano) throws Exception {
         Map<String, Object> params = buildParams(deptData, mes, ano);
-        params.put("DEPARTMENT_NAME", dept.name());
+        params.put("DEPARTMENT_NAME", dept.getName());
         return fill("fuel_supply_by_department", deptData, params);
     }
 
@@ -132,7 +132,7 @@ public class FuelSupplyReportService {
 
         List<String> sheetNames = new ArrayList<>();
         sheetNames.add("Geral");
-        departments.forEach(d -> sheetNames.add(d.name()));
+        departments.forEach(d -> sheetNames.add(d.getName()));
 
         SimpleXlsxReportConfiguration config = new SimpleXlsxReportConfiguration();
         config.setOnePagePerSheet(true);

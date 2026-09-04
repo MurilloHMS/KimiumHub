@@ -17,7 +17,7 @@ public record EmployeeResponseDTO(
 		String email,
 		Boolean ativo,
 		String managerCode,
-		Hierarchy hierarchy,
+		UUID hierarchyId,
 		LocalDate birthday,
 		Department department,
 		UUID companyId,

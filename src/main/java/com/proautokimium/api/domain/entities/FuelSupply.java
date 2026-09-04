@@ -4,9 +4,12 @@ import java.time.LocalDate;
 
 import com.proautokimium.api.Application.DTOs.fuelsupply.FuelSupplyDTO;
 import com.proautokimium.api.domain.abstractions.Entity;
-import com.proautokimium.api.domain.enums.Department;
+import com.proautokimium.api.domain.entities.humanResources.Department;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
@@ -32,9 +35,17 @@ public class FuelSupply extends Entity{
     @Column(name = "drivername")
 	private String driverName;
 	
-	@Enumerated(EnumType.STRING)
-    @Column(name = "department", nullable = false)
-	private Department department = Department.SEM_DEPARTAMENTO;
+    /**
+     * O departamento do abastecimento, agora ligado ao cadastro.
+     *
+     * Era enum numa coluna de texto. O funcionario deixou de ter departamento
+     * proprio — quem decide e o SETOR dele, que pertence a um departamento —,
+     * entao o abastecimento passa a apontar para a mesma linha que todo o
+     * resto do sistema enxerga.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id", nullable = false)
+	private Department department;
     @Column(name = "actualhodometer")
 	private double actualHodometer;
     @Column(name = "lasthodometer")
@@ -57,7 +68,9 @@ public class FuelSupply extends Entity{
         this.uf = dto.uf();
         this.plate = dto.plate();
         this.driverName = dto.driverName();
-        this.department = dto.department();
+        // `department` NAO sai do DTO: la viaja o nome, e resolver nome para
+        // linha do cadastro precisa de repositorio, que entidade nao tem.
+        // Quem monta um FuelSupply por este caminho preenche depois.
         this.actualHodometer = dto.actualHodometer();
         this.lastHodometer = dto.lastHodometer();
         this.diferenceHodometer = dto.diferenceHodometer();
@@ -69,7 +82,7 @@ public class FuelSupply extends Entity{
     }
 
     public String getDepartmentName() {
-        return department != null ? department.name() : "";
+        return department != null ? department.getName() : "";
     }
 
     public FuelSupplyDTO toDto(){
@@ -78,7 +91,7 @@ public class FuelSupply extends Entity{
                 this.uf,
                 this.plate,
                 this.driverName,
-                this.department,
+                getDepartmentName(),
                 this.actualHodometer,
                 this.lastHodometer,
                 this.diferenceHodometer,

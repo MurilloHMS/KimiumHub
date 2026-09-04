@@ -10,7 +10,9 @@ import com.proautokimium.api.Application.DTOs.fuelsupply.FuelSupplyDTO;
 import com.proautokimium.api.Application.DTOs.fuelsupply.FuelSupplyReportFilterDTO;
 import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyReaderService;
 import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyReportService;
-import com.proautokimium.api.domain.enums.Department;
+import com.proautokimium.api.Infrastructure.exceptions.humanResources.DepartmentNotFoundException;
+import com.proautokimium.api.Infrastructure.repositories.humanResources.DepartmentRepository;
+import com.proautokimium.api.domain.entities.humanResources.Department;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +49,9 @@ public class FuelSupplyController {
 	@Autowired
 	EmployeeRepository employeeRepository;
 
+	@Autowired
+	DepartmentRepository departmentRepository;
+
 	/**
 	 * Coleta dados via planilha
 	 * @param file Arquivo xlsx com dados dos combustíveis
@@ -77,12 +82,7 @@ public class FuelSupplyController {
 						? null
 						: employeeMap.get(driverName.toLowerCase().trim());
 
-				Department department =
-						(emp != null && emp.getDepartment() != null)
-								? emp.getDepartment()
-								: Department.SEM_DEPARTAMENTO;
-
-				fs.setDepartment(department);
+				fs.setDepartment(departamentoDoFuncionario(emp));
 			});
 
 			service.insertByRange(fuelSupplies);
@@ -117,5 +117,25 @@ public class FuelSupplyController {
 			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
 
 		return ResponseEntity.ok(service.listByPeriod(start, end));
+	}
+
+	/**
+	 * O departamento do abastecimento, vindo do SETOR do funcionario.
+	 *
+	 * O funcionario nao guarda mais departamento proprio — quem decide e o
+	 * setor, que pertence a um departamento.
+	 *
+	 * Motorista sem funcionario casado, funcionario sem setor: a planilha vem
+	 * de fora e as tres coisas acontecem. Cai no balde SEM_DEPARTAMENTO, que
+	 * existe no cadastro desde a V54, em vez de estourar a importacao inteira
+	 * ou gravar nulo numa coluna que nao aceita.
+	 */
+	private Department departamentoDoFuncionario(Employee emp) {
+		if (emp != null && emp.getTeam() != null && emp.getTeam().getDepartment() != null) {
+			return emp.getTeam().getDepartment();
+		}
+
+		return departmentRepository.findByName("SEM_DEPARTAMENTO")
+				.orElseThrow(DepartmentNotFoundException::new);
 	}
 }
