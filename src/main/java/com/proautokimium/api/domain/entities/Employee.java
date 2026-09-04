@@ -1,9 +1,9 @@
 package com.proautokimium.api.domain.entities;
 
 import com.proautokimium.api.domain.entities.humanResources.Company;
+import com.proautokimium.api.domain.entities.humanResources.Hierarchy;
 import com.proautokimium.api.domain.entities.humanResources.Team;
 import com.proautokimium.api.domain.enums.Department;
-import com.proautokimium.api.domain.enums.Hierarchy;
 import com.proautokimium.api.domain.enums.humanResources.TransportType;
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
@@ -31,8 +31,8 @@ public class Employee extends Partner {
     @Column(name = "codigo_gerente", length = 9)
     private String codigoGerente;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "hierarquia", length = 15)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hierarchy_id")
     private Hierarchy hierarquia;
 
     @Column(name = "data_aniversario")

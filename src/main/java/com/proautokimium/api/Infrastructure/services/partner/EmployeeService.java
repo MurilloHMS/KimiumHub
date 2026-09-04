@@ -5,12 +5,14 @@ import com.proautokimium.api.Application.DTOs.partners.EmployeeDTO;
 import com.proautokimium.api.Application.DTOs.partners.EmployeeResponseDTO;
 import com.proautokimium.api.Application.DTOs.partners.PartnerRecipientDTO;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.CompanyNotFoundException;
+import com.proautokimium.api.Infrastructure.exceptions.humanResources.HierarchyNotFoundException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.PositionLevelNotFoundException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.PositionNotFoundException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.TeamNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.CareerHistoryRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.CompanyRepository;
+import com.proautokimium.api.Infrastructure.repositories.humanResources.HierarchyRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.PositionLevelRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.PositionRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.TeamRepository;
@@ -18,6 +20,7 @@ import com.proautokimium.api.Infrastructure.services.humanResources.PositionLeve
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.humanResources.CareerHistory;
 import com.proautokimium.api.domain.entities.humanResources.Company;
+import com.proautokimium.api.domain.entities.humanResources.Hierarchy;
 import com.proautokimium.api.domain.entities.humanResources.Position;
 import com.proautokimium.api.domain.entities.humanResources.PositionLevel;
 import com.proautokimium.api.domain.entities.humanResources.Team;
@@ -41,6 +44,7 @@ public class EmployeeService {
     private final PositionLevelRepository positionLevelRepository;
     private final CompanyRepository companyRepository;
     private final TeamRepository teamRepository;
+    private final HierarchyRepository hierarchyRepository;
     private final CareerHistoryRepository careerHistoryRepository;
     private final PositionLevelSalaryResolver salaryResolver;
 
@@ -50,6 +54,7 @@ public class EmployeeService {
             PositionLevelRepository positionLevelRepository,
             CompanyRepository companyRepository,
             TeamRepository teamRepository,
+            HierarchyRepository hierarchyRepository,
             CareerHistoryRepository careerHistoryRepository,
             PositionLevelSalaryResolver salaryResolver
     ) {
@@ -58,6 +63,7 @@ public class EmployeeService {
         this.positionLevelRepository = positionLevelRepository;
         this.companyRepository = companyRepository;
         this.teamRepository = teamRepository;
+        this.hierarchyRepository = hierarchyRepository;
         this.careerHistoryRepository = careerHistoryRepository;
         this.salaryResolver = salaryResolver;
     }
@@ -77,6 +83,13 @@ public class EmployeeService {
         PositionLevel positionLevel = positionLevelRepository.findById(dto.positionLevelId())
                 .orElseThrow(PositionLevelNotFoundException::new);
 
+        // `hierarchyId` nao tem @NotNull, entao id ausente e id desconhecido sao
+        // coisas diferentes: o primeiro e "sem hierarquia", o segundo e erro.
+        Hierarchy hierarchy = dto.hierarchyId() == null
+                ? null
+                : hierarchyRepository.findById(dto.hierarchyId())
+                        .orElseThrow(HierarchyNotFoundException::new);
+
         Employee employee = new Employee();
         employee.setCodParceiro(dto.partnerCode());
         employee.setCodigoGerente(dto.managerCode());
@@ -84,7 +97,7 @@ public class EmployeeService {
         employee.setBirthday(dto.birthday());
         employee.setDocumento(dto.document());
         employee.setEmail(new Email(dto.email()));
-        employee.setHierarquia(dto.hierarchy());
+        employee.setHierarquia(hierarchy);
         employee.setName(dto.name());
         employee.setDepartment(dto.department());
         employee.setCompany(company);
@@ -132,9 +145,16 @@ public class EmployeeService {
         employee.setBirthday(dto.birthday());
         employee.setDocumento(dto.document());
         employee.setEmail(new Email(dto.email()));
-        employee.setHierarquia(dto.hierarchy());
         employee.setName(dto.name());
         employee.setDepartment(dto.department());
+
+        // Mesmo formato de company/team logo abaixo: id ausente deixa como
+        // esta, em vez de apagar o que ja estava gravado.
+        if (dto.hierarchyId() != null) {
+            Hierarchy hierarchy = hierarchyRepository.findById(dto.hierarchyId())
+                    .orElseThrow(HierarchyNotFoundException::new);
+            employee.setHierarquia(hierarchy);
+        }
 
         if (dto.companyId() != null) {
             Company company = companyRepository.findById(dto.companyId())
@@ -189,7 +209,7 @@ public class EmployeeService {
                 employee.getEmail().getAddress(),
                 employee.isAtivo(),
                 employee.getCodigoGerente(),
-                employee.getHierarquia(),
+                employee.getHierarquia() != null ? employee.getHierarquia().getId() : null,
                 employee.getBirthday(),
                 employee.getDepartment(),
                 employee.getCompany() != null ? employee.getCompany().getId() : null,

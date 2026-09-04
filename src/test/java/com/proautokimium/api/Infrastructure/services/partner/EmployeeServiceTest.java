@@ -11,6 +11,7 @@ import com.proautokimium.api.Infrastructure.exceptions.humanResources.TeamNotFou
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.CareerHistoryRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.CompanyRepository;
+import com.proautokimium.api.Infrastructure.repositories.humanResources.HierarchyRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.PositionLevelRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.PositionRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.TeamRepository;
@@ -52,6 +53,7 @@ class EmployeeServiceTest {
     @Mock private PositionLevelRepository positionLevelRepository;
     @Mock private CompanyRepository companyRepository;
     @Mock private TeamRepository teamRepository;
+    @Mock private HierarchyRepository hierarchyRepository;
     @Mock private CareerHistoryRepository careerHistoryRepository;
     @Mock private PositionLevelSalaryResolver salaryResolver;
 
@@ -71,7 +73,8 @@ class EmployeeServiceTest {
     void setUp() throws Exception {
         employeeService = new EmployeeService(
                 employeeRepository, positionRepository, positionLevelRepository,
-                companyRepository, teamRepository, careerHistoryRepository, salaryResolver
+                companyRepository, teamRepository, hierarchyRepository,
+                careerHistoryRepository, salaryResolver
         );
 
         companyId = UUID.randomUUID();

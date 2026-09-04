@@ -16,7 +16,7 @@ public record EmployeeDTO(
 		String email,
 		Boolean ativo,
 		String managerCode,
-		Hierarchy hierarchy,
+		UUID hierarchyId,
 		@JsonFormat(pattern = "yyyy-MM-dd")
 		LocalDate birthday,
 		Department department,
