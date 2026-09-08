@@ -25,4 +25,19 @@ public class Team extends Entity {
         this.name = name;
         this.department = department;
     }
+
+    /**
+     * Renomeia o setor e/ou o move de departamento.
+     *
+     * Metodo de dominio em vez de `@Setter`: o setor sempre teve um construtor
+     * que exige departamento, e um setter solto abriria a porta para setor sem
+     * departamento — que a coluna nem aceita (`nullable = false`).
+     *
+     * **Mover de departamento move junto todo mundo que esta no setor**, ja que
+     * o departamento do funcionario e lido pelo setor desde a migracao das FKs.
+     */
+    public void alterar(String name, Department department) {
+        this.name = name;
+        this.department = department;
+    }
 }

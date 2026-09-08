@@ -44,4 +44,23 @@ public class PositionLevelController {
     public ResponseEntity<List<PositionLevelResponseDTO>> listByPosition(@RequestParam UUID positionId) {
         return ResponseEntity.ok(positionLevelService.listByPosition(positionId));
     }
+
+    /**
+     * Altera o nivel — inclusive o valor base.
+     *
+     * Permissao de `rh/career-structure`, e nao da Estrutura: quem organiza a
+     * empresa nao e necessariamente quem mexe em salario.
+     *
+     * A resposta traz o `resolvedSalary` deste nivel recalculado; os demais
+     * niveis do cargo tambem mudam, porque nivel percentual resolve sobre o
+     * anterior. Quem chama relê a lista.
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('rh/career-structure:ALTERAR')")
+    public ResponseEntity<PositionLevelResponseDTO> update(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreatePositionLevelRequestDTO request
+    ) {
+        return ResponseEntity.ok(positionLevelService.update(id, request));
+    }
 }
