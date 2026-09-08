@@ -2,6 +2,7 @@ package com.proautokimium.api.Infrastructure.utils;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import java.time.LocalTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -31,6 +32,43 @@ class TimeParserUtilTest {
     void leDoisPontos() {
         assertThat(TimeParserUtil.interpret("13:00")).isPresent();
         assertThat(TimeParserUtil.interpret("08:50")).isPresent();
+    }
+
+    /**
+     * **Hora de uma casa só.**
+     *
+     * `LocalTime.parse` é ISO-8601 e exige duas casas: `08:00` passa, `8:00`
+     * estoura. Quem digita no ERP escreve das duas formas, e a segunda é a mais
+     * natural — foi a OS 20043 da FRIMESA, `8:00 até 12:00`, que apareceu como
+     * pendência sendo perfeitamente legível.
+     *
+     * É pior que uma pendência a mais: a OS legível vira trabalho manual, e
+     * quem revisa aprende a ignorar a lista.
+     */
+    @Test
+    @DisplayName("hora de uma casa só é lida, com dois-pontos ou com h")
+    void horaDeUmaCasa() {
+        assertThat(TimeParserUtil.interpret("8:00"))
+                .contains(LocalTime.of(8, 0));
+        assertThat(TimeParserUtil.interpret("8h20"))
+                .contains(LocalTime.of(8, 20));
+        assertThat(TimeParserUtil.interpret("9:5"))
+                .as("minuto de uma casa também: 9:5 é 09:05")
+                .contains(LocalTime.of(9, 5));
+    }
+
+    /**
+     * Número solto continua pendência.
+     *
+     * `8` tanto pode ser oito horas quanto oito horas de trabalho, e é a mesma
+     * ambiguidade de `5:00 horas`. Adivinhar produziria um valor errado que
+     * ninguém confere; pendência é visível e corrigível.
+     */
+    @Test
+    @DisplayName("número sem dois-pontos não vira hora")
+    void numeroSoltoNaoViraHora() {
+        assertThat(TimeParserUtil.interpret("8")).isEmpty();
+        assertThat(TimeParserUtil.interpret("12")).isEmpty();
     }
 
     /** **O caso que o SQL antigo perdia.** */
