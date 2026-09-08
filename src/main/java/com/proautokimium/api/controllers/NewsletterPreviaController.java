@@ -31,13 +31,13 @@ public class NewsletterPreviaController {
      * e criar é o caso comum, não a exceção.
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('comunicacao/newsletter-revisao:CONSULTAR')")
+    @PreAuthorize("hasAuthority('communication/newsletter-revisao:CONSULTAR')")
     public ResponseEntity<PreviaResponseDTO> buscar(@RequestBody @Valid PreviaRequestDTO dto) {
         return ResponseEntity.ok(service.buscarOuCriar(dto.mes(), dto.ano()));
     }
 
     @PutMapping("/{previaId}/os/{numeroOs}")
-    @PreAuthorize("hasAuthority('comunicacao/newsletter-revisao:ALTERAR')")
+    @PreAuthorize("hasAuthority('communication/newsletter-revisao:ALTERAR')")
     public ResponseEntity<ClienteDaNewsletterDTO> corrigirHora(
             @PathVariable UUID previaId,
             @PathVariable int numeroOs,
@@ -46,7 +46,7 @@ public class NewsletterPreviaController {
     }
 
     @PutMapping("/{previaId}/emails")
-    @PreAuthorize("hasAuthority('comunicacao/newsletter-revisao:ALTERAR')")
+    @PreAuthorize("hasAuthority('communication/newsletter-revisao:ALTERAR')")
     public ResponseEntity<List<ClienteDaNewsletterDTO>> preencherEmails(
             @PathVariable UUID previaId,
             @RequestBody @Valid PreencherEmailsDTO dto) {
@@ -58,7 +58,7 @@ public class NewsletterPreviaController {
      * e-mail. Quem confere os números não é necessariamente quem decide mandar.
      */
     @PostMapping("/{previaId}/confirmar")
-    @PreAuthorize("hasAuthority('comunicacao/newsletter-revisao:ENVIAR')")
+    @PreAuthorize("hasAuthority('communication/newsletter-revisao:ENVIAR')")
     public ResponseEntity<Void> confirmar(@PathVariable UUID previaId) {
         service.confirmar(previaId);
         return ResponseEntity.noContent().build();

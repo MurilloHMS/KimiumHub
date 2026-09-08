@@ -106,11 +106,16 @@ CREATE INDEX idx_previa_os_cliente ON newsletter_previa_os (previa_id, codigo_cl
 -- tela de acessos não desenha a linha, ninguém consegue conceder, e os quatro
 -- endpoints respondem 403 para todo mundo.
 --
--- A ordem 335 fica logo depois de comunicacao/newsletter; confira o
--- sort_order da sua base se a faixa mudou.
+-- Módulo Comunicação, que vai de 420 a 460 desde a V84. A 425 põe a revisão
+-- logo depois de communication/newsletter (420), que é a tela com que ela se
+-- confunde — e é entre as duas que o olho procura.
+--
+-- `active` não vai na lista porque nasce TRUE (V84), e é isso que faz a conta
+-- DEVELOPER enxergar a tela assim que a migration sobe: as authorities dela
+-- são montadas varrendo `screens` com active = true, sem passar por concessão.
 
 INSERT INTO screens (code, label, module, sort_order) VALUES
-  ('comunicacao/newsletter-revisao', 'Revisão da Newsletter', 'Comunicação', 335);
+  ('communication/newsletter-revisao', 'Revisão da Newsletter', 'Comunicação', 425);
 
 -- As sete permissões em todos os modelos, todas negadas.
 --
@@ -124,7 +129,7 @@ INSERT INTO screens (code, label, module, sort_order) VALUES
 INSERT INTO template_permissions (template_id, screen_code, permission, allowed)
 SELECT t.id, s.code, p.permission, FALSE
   FROM permission_templates t
- CROSS JOIN (VALUES ('comunicacao/newsletter-revisao')) AS s(code)
+ CROSS JOIN (VALUES ('communication/newsletter-revisao')) AS s(code)
  CROSS JOIN (VALUES ('ALTERAR'), ('EXCLUIR'), ('CONSULTAR'), ('CONFIGURAR'),
                     ('INCLUIR'), ('ENVIAR'), ('BAIXAR')) AS p(permission);
 
