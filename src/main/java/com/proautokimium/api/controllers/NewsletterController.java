@@ -1,7 +1,7 @@
 package com.proautokimium.api.controllers;
 
-import com.proautokimium.api.Infrastructure.services.email.newsletter.NewsletterOrchestratorService;
-import com.proautokimium.api.Infrastructure.services.email.newsletter.NewsletterService;
+import com.proautokimium.api.Infrastructure.services.newsletter.NewsletterOrchestratorService;
+import com.proautokimium.api.Infrastructure.services.newsletter.NewsletterService;
 import com.proautokimium.api.domain.entities.Newsletter;
 
 import io.swagger.v3.oas.annotations.Operation;

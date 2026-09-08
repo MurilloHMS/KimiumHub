@@ -1,4 +1,4 @@
-package com.proautokimium.api.Infrastructure.services.email.newsletter;
+package com.proautokimium.api.Infrastructure.services.newsletter;
 
 import java.io.IOException;
 import java.util.List;
@@ -7,7 +7,7 @@ import com.proautokimium.api.Infrastructure.abstractions.excel.SheetSource;
 import com.proautokimium.api.Infrastructure.abstractions.excel.SheetSourceFactory;
 import com.proautokimium.api.Infrastructure.exceptions.newsletter.NewsletterFileNotValidException;
 import com.proautokimium.api.Infrastructure.exceptions.newsletter.NewsletterNullException;
-import com.proautokimium.api.Infrastructure.services.email.newsletter.reader.NewsletterOneFileReaderService;
+import com.proautokimium.api.Infrastructure.services.newsletter.reader.NewsletterOneFileReaderService;
 import com.proautokimium.api.domain.entities.Newsletter;
 import com.proautokimium.api.domain.enums.EmailStatus;
 

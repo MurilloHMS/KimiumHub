@@ -1,4 +1,4 @@
-package com.proautokimium.api.Infrastructure.services.email.newsletter.reader;
+package com.proautokimium.api.Infrastructure.services.newsletter.reader;
 
 import com.proautokimium.api.Infrastructure.abstractions.excel.SheetRow;
 import com.proautokimium.api.domain.entities.Newsletter;
