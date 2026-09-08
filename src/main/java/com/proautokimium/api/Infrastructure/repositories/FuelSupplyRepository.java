@@ -12,4 +12,7 @@ public interface FuelSupplyRepository extends JpaRepository<FuelSupply, UUID>{
 
 
     List<FuelSupply> findByFuelSupplyDateBetween(LocalDate start, LocalDate end);
+
+    /** Abastecimentos ligados a um departamento — usado antes de excluir. */
+    long countByDepartmentId(UUID departmentId);
 }

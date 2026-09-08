@@ -14,6 +14,12 @@ import com.proautokimium.api.domain.enums.humanResources.TransportType;
 public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
 	Employee findByCodParceiro(String codParceiro);
 
+    /** Funcionarios num setor — usado antes de excluir o setor. */
+    long countByTeamId(UUID teamId);
+
+    /** Funcionarios numa hierarquia — usado antes de excluir a hierarquia. */
+    long countByHierarquiaId(UUID hierarchyId);
+
     Optional<Employee> findByEmail_Address(String emailAdress);
     Optional<Employee> findByUsername(String username);
     List<Employee> findByAtivoTrue();

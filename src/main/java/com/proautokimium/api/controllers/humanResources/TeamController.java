@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/hr/teams")
@@ -42,5 +43,25 @@ public class TeamController {
     @PreAuthorize(LER_ESTRUTURA_RH)
     public ResponseEntity<List<TeamResponseDTO>> listAll() {
         return ResponseEntity.ok(teamService.listAll());
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('rh/organizational-structure:ALTERAR')")
+    public ResponseEntity<TeamResponseDTO> update(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateTeamRequestDTO request
+    ) {
+        return ResponseEntity.ok(teamService.update(id, request));
+    }
+
+    /**
+     * Recusa com 409 quando o cadastro esta em uso, e a mensagem diz por quem —
+     * o front mostra essa frase inteira.
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('rh/organizational-structure:EXCLUIR')")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        teamService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

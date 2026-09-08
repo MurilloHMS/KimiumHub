@@ -54,6 +54,24 @@ public class PositionLevel extends com.proautokimium.api.domain.abstractions.Ent
     }
 
     /**
+     * Altera o nivel, **trocando de regime quando preciso**.
+     *
+     * Zerar o outro campo nao e limpeza opcional: e o que os dois construtores
+     * `fixed`/`percentage` ja garantiam. Um nivel FIXED com
+     * `percentageIncrease` sobrando mentiria para quem lesse a linha, e o
+     * resolver de salario escolhe a estrategia pelo `adjustmentType` — o campo
+     * orfao ficaria la, invisivel e errado.
+     */
+    public void alterar(String name, Integer levelOrder, SalaryAdjustmentType adjustmentType,
+                        BigDecimal fixedAmount, BigDecimal percentageIncrease) {
+        this.name = name;
+        this.levelOrder = levelOrder;
+        this.adjustmentType = adjustmentType;
+        this.fixedAmount = adjustmentType == SalaryAdjustmentType.FIXED ? fixedAmount : null;
+        this.percentageIncrease = adjustmentType == SalaryAdjustmentType.PERCENTAGE ? percentageIncrease : null;
+    }
+
+    /**
      * Aplica um reajuste (dissídio) multiplicando o valor fixo atual.
      * Só existe pra nível FIXED — níveis PERCENTAGE se ajustam sozinhos,
      * porque são relativos ao nível anterior, não a um valor absoluto.

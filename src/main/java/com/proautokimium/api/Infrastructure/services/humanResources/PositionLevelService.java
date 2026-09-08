@@ -2,6 +2,7 @@ package com.proautokimium.api.Infrastructure.services.humanResources;
 
 import com.proautokimium.api.Application.DTOs.humanResources.PositionLevel.CreatePositionLevelRequestDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.PositionLevel.PositionLevelResponseDTO;
+import com.proautokimium.api.Infrastructure.exceptions.humanResources.PositionLevelNotFoundException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.PositionNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.PositionLevelRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.PositionRepository;
@@ -41,6 +42,29 @@ public class PositionLevelService {
 
         PositionLevel saved = positionLevelRepository.save(level);
         return toResponse(saved);
+    }
+
+    /**
+     * Altera o nivel — e e por aqui que o valor base muda.
+     *
+     * A resposta traz o `resolvedSalary` recalculado deste nivel. **Os outros
+     * niveis do cargo tambem mudam**: nivel PERCENTAGE resolve sobre o
+     * imediatamente anterior, entao mexer no valor base do primeiro reprecifica
+     * a escala inteira. Quem chama precisa reler a lista do cargo; a tela ja
+     * faz isso.
+     */
+    public PositionLevelResponseDTO update(UUID id, CreatePositionLevelRequestDTO request) {
+        PositionLevel level = positionLevelRepository.findById(id)
+                .orElseThrow(PositionLevelNotFoundException::new);
+
+        level.alterar(
+                request.name(),
+                request.levelOrder(),
+                request.adjustmentType(),
+                request.fixedAmount(),
+                request.percentageIncrease());
+
+        return toResponse(positionLevelRepository.save(level));
     }
 
     public List<PositionLevelResponseDTO> listByPosition(UUID positionId) {

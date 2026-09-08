@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/hr/departments")
@@ -44,4 +45,24 @@ public class DepartmentController {
         return ResponseEntity.ok(departmentService.listAll());
     }
 
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('rh/organizational-structure:ALTERAR')")
+    public ResponseEntity<DepartmentResponseDTO> update(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateDepartmentRequestDTO request
+    ) {
+        return ResponseEntity.ok(departmentService.update(id, request));
+    }
+
+    /**
+     * Recusa com 409 quando o cadastro esta em uso, e a mensagem diz por quem —
+     * o front mostra essa frase inteira.
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('rh/organizational-structure:EXCLUIR')")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        departmentService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }
