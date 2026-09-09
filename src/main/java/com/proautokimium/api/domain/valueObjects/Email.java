@@ -1,5 +1,6 @@
 package com.proautokimium.api.domain.valueObjects;
 
+import com.proautokimium.api.domain.exceptions.email.EmailInvalidException;
 import jakarta.persistence.Embeddable;
 
 import java.util.Objects;
@@ -19,11 +20,11 @@ public final class Email {
 
     public Email(String value) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Email address cannot be null or empty : " + value);
+            throw new EmailInvalidException("Email address cannot be null or empty : " + value);
         }
 
         if (!isValid(value)) {
-            throw new IllegalArgumentException("Invalid email address");
+            throw new EmailInvalidException("Email address isn't valid: " + value);
         }
 
         this.address = value;
@@ -49,8 +50,7 @@ public final class Email {
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
-        if (!(obj instanceof Email)) return false;
-        Email other = (Email) obj;
+        if (!(obj instanceof Email other)) return false;
         return Objects.equals(address, other.address);
     }
 
