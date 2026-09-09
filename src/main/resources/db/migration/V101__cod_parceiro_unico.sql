@@ -104,6 +104,57 @@ DELETE FROM parceiros c
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
+-- Passo 3.5 — `codigo_matriz` deixa de ser um double
+-- ═══════════════════════════════════════════════════════════════════════════
+--
+-- 7149 das 7471 linhas têm o código gravado como "7.0" em vez de "7". Veio do
+-- importador de Excel, que antes do commit `edec663` fazia
+-- `String.valueOf(cell.getNumericCellValue())` — sem o cast para int. O
+-- importador já foi corrigido; o dado nunca foi.
+--
+-- ISTO ESTÁ QUEBRANDO O PORTAL DO CLIENTE HOJE, EM SILÊNCIO.
+-- `ClientAccessService.visibleUnits()` chama
+-- `findByCodigoMatriz(customer.getCodParceiro())` — procura "7" numa coluna onde
+-- está gravado "7.0", e nunca casa. Toda matriz enxerga só a si mesma e nenhuma
+-- unidade do grupo aparece. O comportamento parece plausível, então ninguém
+-- abriu chamado.
+--
+-- `cod_parceiro` foi conferido e está limpo: zero linhas com ponto. Só a coluna
+-- da matriz pegou o defeito.
+--
+-- O padrão casa QUALQUER parte decimal, e não só `.0`. Ele e a conferência do
+-- fim precisam concordar: mais estrito aqui, a conferência aborta por causa de
+-- uma linha que o UPDATE se recusou a tocar. Foi exatamente o que aconteceu na
+-- validação contra banco descartável.
+UPDATE parceiros
+   SET codigo_matriz = split_part(codigo_matriz, '.', 1)
+ WHERE codigo_matriz ~ '^\d+\.\d+$';
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Passo 3.6 — `is_matriz` passa a sair do dado, e não de um checkbox
+-- ═══════════════════════════════════════════════════════════════════════════
+--
+-- REGRA: matriz é quando `cod_parceiro = codigo_matriz`. É o que o ERP faz
+-- (CODPARCMATRIZ = CODPARC para a matriz) e o que o código já assumia:
+-- `visibleUnits()` busca as unidades pelo próprio código e depois FILTRA a
+-- própria linha do resultado — esse filtro só existe porque a matriz aponta
+-- para si mesma.
+--
+-- Até agora `is_matriz` era um segundo lugar guardando a mesma verdade,
+-- alimentado por um checkbox do formulário, e nada obrigava os dois a
+-- concordarem. Estavam TODOS em `false`: 7471 de 7471.
+--
+-- Depois da normalização, 4623 viram matriz — 62% da base, contra 58% no
+-- Sankhya. Os dois lados concordam, o que é a melhor evidência de que a
+-- normalização acertou.
+UPDATE parceiros
+   SET is_matriz = (cod_parceiro = codigo_matriz)
+ WHERE perfil = 'CLIENTE'
+   AND coalesce(codigo_matriz, '') <> '';
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
 -- Passo 4 — o índice
 -- ═══════════════════════════════════════════════════════════════════════════
 --
@@ -129,10 +180,29 @@ CREATE UNIQUE INDEX ux_parceiros_cod_parceiro
 -- invertido, e as 9 linhas terem sumido em vez de virarem cliente.
 DO $$
 DECLARE sobrou_service integer;
+        com_ponto      integer;
+        matrizes       integer;
 BEGIN
     SELECT count(*) INTO sobrou_service FROM parceiros WHERE perfil = 'SERVICE';
 
     IF sobrou_service > 0 THEN
         RAISE EXCEPTION 'V101: sobraram % linhas SERVICE — o passo 2 não fez o que devia.', sobrou_service;
     END IF;
+
+    SELECT count(*) INTO com_ponto FROM parceiros WHERE codigo_matriz ~ '\.';
+
+    IF com_ponto > 0 THEN
+        RAISE EXCEPTION 'V101: % linhas ainda têm ponto em codigo_matriz — a normalização não pegou tudo.', com_ponto;
+    END IF;
+
+    -- Nenhuma matriz depois de normalizar significa que a regra não achou nada:
+    -- ou a coluna está vazia, ou o formato é outro. Melhor recusar do que subir
+    -- com o portal continuando a não mostrar unidade nenhuma.
+    SELECT count(*) INTO matrizes FROM parceiros WHERE perfil = 'CLIENTE' AND is_matriz;
+
+    IF matrizes = 0 THEN
+        RAISE EXCEPTION 'V101: nenhuma matriz depois do backfill — a regra cod_parceiro = codigo_matriz não achou nada.';
+    END IF;
+
+    RAISE NOTICE 'V101 concluída: % matrizes marcadas.', matrizes;
 END $$;
