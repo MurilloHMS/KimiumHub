@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,6 +23,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
+import com.proautokimium.api.Application.DTOs.partners.ErpPartnerDTO;
+import com.proautokimium.api.Infrastructure.services.partner.ErpPartnerLookupService;
 
 /**
  * Responsável pelo cadastro dos funcionários
@@ -49,8 +52,10 @@ public class EmployeeController {
 
 
 	private final EmployeeService service;
+	private final ErpPartnerLookupService erpPartnerLookup;
 
-	public EmployeeController(EmployeeService service) {
+	public EmployeeController(EmployeeService service, ErpPartnerLookupService erpPartnerLookup) {
+		this.erpPartnerLookup = erpPartnerLookup;
 		this.service = service;
 	}
 
@@ -91,4 +96,24 @@ public class EmployeeController {
 	public ResponseEntity<EmployeeResponseDTO> updateEmploye(@RequestBody @Valid @NotNull EmployeeDTO dto){
 		return ResponseEntity.status(HttpStatus.OK).body(service.updateEmployee(dto));
 	}
+
+    /**
+     * Um parceiro do Sankhya, para preencher o cadastro.
+     *
+     * <p><b>Exige INCLUIR, e não CONSULTAR.</b> Com CONSULTAR, qualquer um que
+     * vê a lista de funcionários poderia varrer o ERP um código por vez colhendo
+     * nome, CPF e e-mail. A rota existe dentro do formulário de cadastro, e a
+     * permissão acompanha o uso.
+     *
+     * <p>O código é {@code int} na assinatura: ele vem da URL, e um
+     * {@code @PathVariable} concatenado direto no SQL é injeção. Não numérico o
+     * Spring recusa com 400 antes de o método rodar — e antes de qualquer coisa
+     * chegar ao Sankhya.
+     */
+    @PreAuthorize("hasAuthority('rh/employees:INCLUIR')")
+    @GetMapping("erp/{codParceiro}")
+    @Operation(summary = "Busca um parceiro no Sankhya", description = "Preenche o cadastro de funcionário a partir do CODPARC")
+    public ResponseEntity<ErpPartnerDTO> fromErp(@PathVariable int codParceiro) {
+        return ResponseEntity.ok(erpPartnerLookup.byCode(codParceiro));
+    }
 }
