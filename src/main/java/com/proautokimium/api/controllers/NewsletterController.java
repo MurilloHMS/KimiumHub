@@ -1,7 +1,9 @@
 package com.proautokimium.api.controllers;
 
-import com.proautokimium.api.Infrastructure.services.email.newsletter.NewsletterOrchestratorService;
-import com.proautokimium.api.Infrastructure.services.email.newsletter.NewsletterService;
+import com.proautokimium.api.Infrastructure.services.newsletter.NewsletterOrchestratorService;
+import com.proautokimium.api.Infrastructure.services.newsletter.NewsletterResumoService;
+import com.proautokimium.api.Infrastructure.services.newsletter.NewsletterService;
+import com.proautokimium.api.Application.DTOs.newsletter.ResumoDoMesDTO;
 import com.proautokimium.api.domain.entities.Newsletter;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 
 @RestController
 @RequestMapping("api/newsletter")
@@ -30,6 +33,32 @@ public class NewsletterController {
     
     @Autowired
     private NewsletterOrchestratorService newsletterOrchestratorService;
+
+    @Autowired
+    private NewsletterResumoService newsletterResumoService;
+
+    /**
+     * A fila contada por mês.
+     *
+     * A tela de envio abre por aqui: um cartão por mês com o que já saiu e o que
+     * falta. `pending` continua existindo e continua servindo para a lista de
+     * pendentes — o que ele não responde é "a de junho já saiu?", porque só
+     * enxerga o que ainda não saiu.
+     */
+    @PreAuthorize("hasAuthority('communication/newsletter:CONSULTAR')")
+    @GetMapping("resumo")
+    @Operation(summary = "Contagem da fila por mês e status")
+    public ResponseEntity<List<ResumoDoMesDTO>> resumoPorMes() {
+        return ResponseEntity.ok(newsletterResumoService.porMes());
+    }
+
+    /** As linhas de um mês, todos os status, do maior faturamento para o menor. */
+    @PreAuthorize("hasAuthority('communication/newsletter:CONSULTAR')")
+    @GetMapping("mes")
+    @Operation(summary = "As newsletters de um mês")
+    public ResponseEntity<List<Newsletter>> doMes(@RequestParam int mes, @RequestParam int ano) {
+        return ResponseEntity.ok(newsletterResumoService.doMes(mes, ano));
+    }
 
     @PreAuthorize("hasAuthority('communication/newsletter:ENVIAR')")
     @PostMapping("send")

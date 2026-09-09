@@ -1,6 +1,6 @@
 package com.proautokimium.api.Infrastructure.schedulers;
 
-import com.proautokimium.api.Infrastructure.services.email.newsletter.NewsletterOrchestratorService;
+import com.proautokimium.api.Infrastructure.services.newsletter.NewsletterOrchestratorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
