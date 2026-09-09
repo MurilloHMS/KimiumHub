@@ -3,7 +3,9 @@ package com.proautokimium.api.controllers;
 import com.proautokimium.api.Application.DTOs.client.ClientInviteDTO;
 import com.proautokimium.api.Application.DTOs.client.ClientUserDTO;
 import com.proautokimium.api.Application.DTOs.partners.CustomerRequestDTO;
+import com.proautokimium.api.Application.DTOs.partners.reconciliation.ReconciliationApplyDTO;
 import com.proautokimium.api.Application.DTOs.partners.reconciliation.ReconciliationDTO;
+import com.proautokimium.api.Application.DTOs.partners.reconciliation.ReconciliationResultDTO;
 import com.proautokimium.api.Infrastructure.services.partner.CustomerReconciliationService;
 import com.proautokimium.api.Infrastructure.services.partner.CustomerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -146,6 +148,27 @@ public class CustomerController {
     public ResponseEntity<ReconciliationDTO> reconciliation(
             @RequestParam(defaultValue = "12") @Min(1) @Max(120) int months) {
         return ResponseEntity.ok(reconciliationService.preview(LocalDate.now().minusMonths(months)));
+    }
+
+    /**
+     * Grava as linhas escolhidas na conciliação.
+     *
+     * <p>Exige as <b>duas</b> permissões de escrita: o mesmo lote pode criar
+     * cliente e alterar cliente, e separar em dois endpoints faria a pessoa
+     * aplicar duas vezes para uma decisão só.
+     *
+     * <p>O corpo diz apenas QUEM foi marcado. O servidor reconsulta o ERP e
+     * decide o que fazer — se a tela mandasse "criar" e a linha já existisse,
+     * obedecer criaria duplicata.
+     */
+    @PreAuthorize("hasAuthority('company/customers:INCLUIR') and hasAuthority('company/customers:ALTERAR')")
+    @PostMapping("reconciliation")
+    @Operation(summary = "Aplica a conciliação", description = "Grava as linhas escolhidas, uma transação por linha")
+    public ResponseEntity<ReconciliationResultDTO> applyReconciliation(
+            @RequestParam(defaultValue = "12") @Min(1) @Max(120) int months,
+            @RequestBody @Valid ReconciliationApplyDTO body) {
+        return ResponseEntity.ok(
+                reconciliationService.apply(LocalDate.now().minusMonths(months), body));
     }
 
     /** Convida uma pessoa desta empresa para o portal do cliente. */

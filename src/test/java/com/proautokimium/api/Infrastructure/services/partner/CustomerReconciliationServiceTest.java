@@ -48,6 +48,7 @@ class CustomerReconciliationServiceTest {
     @Mock PartnerSankhyaQueryService sankhya;
     @Mock CustomerRepository customerRepository;
     @Mock EmployeeRepository employeeRepository;
+    @Mock CustomerReconciliationWriter writer;
 
     private CustomerReconciliationService service;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -56,7 +57,7 @@ class CustomerReconciliationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CustomerReconciliationService(sankhya, customerRepository, employeeRepository);
+        service = new CustomerReconciliationService(sankhya, customerRepository, employeeRepository, writer);
         when(customerRepository.findAll()).thenReturn(List.of());
         when(employeeRepository.findAll()).thenReturn(List.of());
     }

@@ -3,7 +3,12 @@ package com.proautokimium.api.Infrastructure.services.partner;
 import com.proautokimium.api.Application.DTOs.partners.reconciliation.FieldDiffDTO;
 import com.proautokimium.api.Application.DTOs.partners.reconciliation.ImpedimentDTO;
 import com.proautokimium.api.Application.DTOs.partners.reconciliation.ReconciliationDTO;
+import com.proautokimium.api.Application.DTOs.partners.reconciliation.ReconciliationApplyDTO;
+import com.proautokimium.api.Application.DTOs.partners.reconciliation.ReconciliationChoiceDTO;
+import com.proautokimium.api.Application.DTOs.partners.reconciliation.ReconciliationOutcomeDTO;
+import com.proautokimium.api.Application.DTOs.partners.reconciliation.ReconciliationResultDTO;
 import com.proautokimium.api.Application.DTOs.partners.reconciliation.ReconciliationRowDTO;
+import com.proautokimium.api.domain.enums.ReconciliationOutcome;
 import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.utils.LinhaSankhya;
@@ -48,11 +53,13 @@ public class CustomerReconciliationService {
     private final PartnerSankhyaQueryService sankhyaQueryService;
     private final CustomerRepository customerRepository;
     private final EmployeeRepository employeeRepository;
+    private final CustomerReconciliationWriter writer;
 
-    public CustomerReconciliationService(PartnerSankhyaQueryService sankhyaQueryService, CustomerRepository customerRepository, EmployeeRepository employeeRepository) {
+    public CustomerReconciliationService(PartnerSankhyaQueryService sankhyaQueryService, CustomerRepository customerRepository, EmployeeRepository employeeRepository, CustomerReconciliationWriter writer) {
         this.sankhyaQueryService = sankhyaQueryService;
         this.customerRepository = customerRepository;
         this.employeeRepository = employeeRepository;
+        this.writer = writer;
     }
 
     // ── A prévia ─────────────────────────────────────────────────────────────
@@ -100,6 +107,88 @@ public class CustomerReconciliationService {
         }
 
         return new ReconciliationDTO(toCreate, toUpdate, toDeactivate, unchanged);
+    }
+
+    // ── O aplicar ────────────────────────────────────────────────────────────
+
+    /**
+     * Grava as linhas escolhidas, uma por uma.
+     *
+     * <p><b>Este método não é transacional de propósito.</b> Quem abre transação
+     * é o {@link CustomerReconciliationWriter}, uma por linha. O importador de
+     * Excel faz o contrário — {@code @Transactional} sobre o lote — e por isso
+     * um e-mail ruim derruba 300 linhas boas com um 500 mudo.
+     *
+     * <p><b>O ERP é reconsultado.</b> A escolha diz só QUEM, e o servidor decide
+     * o que fazer a partir do que o ERP tem agora. Se a assinatura não bater, a
+     * linha mudou desde que a pessoa olhou e não grava: ela aprovou aquela
+     * mudança, não outra.
+     */
+    public ReconciliationResultDTO apply(LocalDate since, ReconciliationApplyDTO request) {
+        ReconciliationDTO fresh = preview(since);
+
+        Map<String, ReconciliationRowDTO> byCode = new java.util.HashMap<>();
+        for (ReconciliationRowDTO row : fresh.toCreate()) byCode.put(row.code(), row);
+        for (ReconciliationRowDTO row : fresh.toUpdate()) byCode.put(row.code(), row);
+        for (ReconciliationRowDTO row : fresh.toDeactivate()) byCode.put(row.code(), row);
+
+        Set<String> toCreate = fresh.toCreate().stream().map(ReconciliationRowDTO::code).collect(Collectors.toSet());
+        Set<String> toDeactivate = fresh.toDeactivate().stream().map(ReconciliationRowDTO::code).collect(Collectors.toSet());
+
+        Map<String, Customer> local = loadLocalState().byCode();
+
+        int created = 0, updated = 0, deactivated = 0, skipped = 0;
+        List<ReconciliationOutcomeDTO> lines = new ArrayList<>();
+
+        for (ReconciliationChoiceDTO choice : request.choices()) {
+            ReconciliationRowDTO row = byCode.get(choice.code());
+
+            if (row == null) {
+                skipped++;
+                lines.add(new ReconciliationOutcomeDTO(choice.code(), null,
+                        ReconciliationOutcome.SKIPPED_GONE_FROM_ERP,
+                        "O código não está mais entre os que o ERP devolve, ou já está igual."));
+                continue;
+            }
+
+            if (!row.signature().equals(choice.signature())) {
+                skipped++;
+                lines.add(new ReconciliationOutcomeDTO(row.code(), row.name(),
+                        ReconciliationOutcome.SKIPPED_CHANGED_IN_ERP,
+                        "A linha mudou no Sankhya depois que a prévia foi aberta. Refaça a conciliação."));
+                continue;
+            }
+
+            if (!row.impediments().isEmpty()) {
+                skipped++;
+                lines.add(new ReconciliationOutcomeDTO(row.code(), row.name(),
+                        ReconciliationOutcome.REFUSED_IMPEDIMENT,
+                        row.impediments().getFirst().detail()));
+                continue;
+            }
+
+            try {
+                if (toCreate.contains(row.code())) {
+                    writer.create(row);
+                    created++;
+                } else if (toDeactivate.contains(row.code())) {
+                    writer.deactivate(local.get(row.code()));
+                    deactivated++;
+                } else {
+                    writer.update(local.get(row.code()), row);
+                    updated++;
+                }
+            } catch (RuntimeException e) {
+                // Uma linha que falha não leva as outras. O catch existe para a
+                // corrida entre duas pessoas aplicando ao mesmo tempo — as
+                // checagens acima tornam o resto raro.
+                skipped++;
+                lines.add(new ReconciliationOutcomeDTO(row.code(), row.name(),
+                        ReconciliationOutcome.REFUSED_ERROR, e.getMessage()));
+            }
+        }
+
+        return new ReconciliationResultDTO(created, updated, deactivated, skipped, lines);
     }
 
     // ── As diferenças ────────────────────────────────────────────────────────
