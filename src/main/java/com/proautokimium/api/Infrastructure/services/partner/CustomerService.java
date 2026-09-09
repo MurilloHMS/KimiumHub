@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -148,7 +149,7 @@ public class CustomerService {
         customer.setDocumento(dto.documento());
         customer.setRecebeEmail(dto.recebeEmail());
         customer.setName(dto.nome());
-		customer.setMatriz(dto.isMatriz());
+		customer.setMatriz(Customer.isMatriz(dto.codParceiro(), dto.codMatriz()));
 
         this.repository.save(customer);
     }
