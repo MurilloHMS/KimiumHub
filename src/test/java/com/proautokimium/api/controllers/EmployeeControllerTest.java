@@ -40,6 +40,7 @@ class EmployeeControllerTest {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @MockitoBean EmployeeService employeeService;
+    @MockitoBean com.proautokimium.api.Infrastructure.services.partner.ErpPartnerLookupService erpPartnerLookup;
     @MockitoBean TokenService tokenService;
     // O SecurityFilter passa a somar as permissões de tela às roles.
     @MockitoBean PermissionService permissionService;
@@ -129,5 +130,60 @@ class EmployeeControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(buildUpdateDto())))
                 .andExpect(status().isOk());
+    }
+
+    // ── Buscar parceiro no Sankhya ───────────────────────────────────────────
+
+    /**
+     * <b>INCLUIR, e não CONSULTAR.</b> Com CONSULTAR, qualquer um que vê a lista
+     * de funcionários poderia varrer o ERP um código por vez colhendo nome, CPF
+     * e e-mail. A rota existe dentro do formulário de cadastro, e a permissão
+     * acompanha o uso.
+     */
+    @Test
+    @DisplayName("GET /api/employee/erp/{cod} - 403 para quem só consulta")
+    @WithMockUser(authorities = {"rh/employees:CONSULTAR"})
+    void erpLookupDeniedForReadOnly() throws Exception {
+        mockMvc.perform(get("/api/employee/erp/3418"))
+                .andExpect(status().isForbidden());
+
+        verify(erpPartnerLookup, never()).byCode(anyInt());
+    }
+
+    @Test
+    @DisplayName("GET /api/employee/erp/{cod} - devolve o parceiro com INCLUIR")
+    @WithMockUser(authorities = {"rh/employees:INCLUIR"})
+    void erpLookupReturnsPartner() throws Exception {
+        when(erpPartnerLookup.byCode(3418)).thenReturn(
+                new com.proautokimium.api.Application.DTOs.partners.ErpPartnerDTO(
+                        "3418", "JOSE CARLOS", "82111440830", "jose@x.com", true, null, null));
+
+        mockMvc.perform(get("/api/employee/erp/3418"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("JOSE CARLOS"))
+                .andExpect(jsonPath("$.document").value("82111440830"));
+    }
+
+    /**
+     * <b>A guarda contra injeção.</b> O código vem da URL e vira parte de um
+     * DECLARE no SQL. Com o parâmetro tipado como int, o Spring recusa o que não
+     * for numérico ANTES de o método rodar — e antes de qualquer coisa chegar ao
+     * Sankhya.
+     *
+     * <p>O {@code verify} é a metade que importa: sem ele, o teste passaria
+     * mesmo que o texto fosse concatenado e a consulta saísse.
+     */
+    @Test
+    @DisplayName("GET /api/employee/erp/{cod} - código não numérico não chega ao ERP")
+    @WithMockUser(authorities = {"rh/employees:INCLUIR"})
+    void erpLookupRejectsNonNumeric() throws Exception {
+        // "abc" e não uma URL com aspas e ponto-e-vírgula: aquela é rejeitada
+        // antes de chegar ao handler, e o teste passaria com qualquer
+        // implementação. Esta chega, e separa `int` de String com parseInt —
+        // que daria 500.
+        mockMvc.perform(get("/api/employee/erp/abc"))
+                .andExpect(status().isBadRequest());
+
+        verify(erpPartnerLookup, never()).byCode(anyInt());
     }
 }
