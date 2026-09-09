@@ -3,10 +3,16 @@ package com.proautokimium.api.controllers;
 import com.proautokimium.api.Application.DTOs.client.ClientInviteDTO;
 import com.proautokimium.api.Application.DTOs.client.ClientUserDTO;
 import com.proautokimium.api.Application.DTOs.partners.CustomerRequestDTO;
+import com.proautokimium.api.Application.DTOs.partners.reconciliation.ReconciliationApplyDTO;
+import com.proautokimium.api.Application.DTOs.partners.reconciliation.ReconciliationDTO;
+import com.proautokimium.api.Application.DTOs.partners.reconciliation.ReconciliationResultDTO;
+import com.proautokimium.api.Infrastructure.services.partner.CustomerReconciliationService;
 import com.proautokimium.api.Infrastructure.services.partner.CustomerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +22,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -33,6 +40,9 @@ public class CustomerController {
 
     @Autowired
     CustomerService service;
+
+    @Autowired
+    CustomerReconciliationService reconciliationService;
 
     /**
      * Recebe dados e registra cliente
@@ -114,6 +124,51 @@ public class CustomerController {
     @Operation(summary = "Acessos do cliente")
     public ResponseEntity<List<ClientUserDTO>> users(@PathVariable String codParceiro) {
         return ResponseEntity.ok(service.listAccess(codParceiro));
+    }
+
+    /**
+     * O que o Sankhya tem e o cadastro daqui não tem, e vice-versa.
+     *
+     * <p><b>{@code GET} porque não grava nada.</b> A prévia mostra o que
+     * aconteceria; quem escreve é o aplicar, e ele exigirá {@code INCLUIR} e
+     * {@code ALTERAR}. Por isso aqui basta {@code CONSULTAR}.
+     *
+     * <p><b>Recebe meses, e não uma data.</b> A tela oferece "últimos 12/24/36
+     * meses", e quem deriva a data é a API — do mesmo jeito que a prévia da
+     * newsletter recebe mês e ano em vez de intervalo. Com a data vindo pronta,
+     * a tela e o servidor podem discordar sobre o que é "12 meses"; assim, não.
+     *
+     * <p>O mínimo é 1: com zero ou negativo a data cairia no futuro, a consulta
+     * voltaria vazia, e a tela diria "nada mudou" quando o errado era o
+     * parâmetro. O máximo evita pedir a base inteira sem querer.
+     */
+    @PreAuthorize("hasAuthority('company/customers:CONSULTAR')")
+    @GetMapping("reconciliation")
+    @Operation(summary = "Concilia com o Sankhya", description = "Compara o cadastro com o ERP e devolve o que mudou, sem gravar")
+    public ResponseEntity<ReconciliationDTO> reconciliation(
+            @RequestParam(defaultValue = "12") @Min(1) @Max(120) int months) {
+        return ResponseEntity.ok(reconciliationService.preview(LocalDate.now().minusMonths(months)));
+    }
+
+    /**
+     * Grava as linhas escolhidas na conciliação.
+     *
+     * <p>Exige as <b>duas</b> permissões de escrita: o mesmo lote pode criar
+     * cliente e alterar cliente, e separar em dois endpoints faria a pessoa
+     * aplicar duas vezes para uma decisão só.
+     *
+     * <p>O corpo diz apenas QUEM foi marcado. O servidor reconsulta o ERP e
+     * decide o que fazer — se a tela mandasse "criar" e a linha já existisse,
+     * obedecer criaria duplicata.
+     */
+    @PreAuthorize("hasAuthority('company/customers:INCLUIR') and hasAuthority('company/customers:ALTERAR')")
+    @PostMapping("reconciliation")
+    @Operation(summary = "Aplica a conciliação", description = "Grava as linhas escolhidas, uma transação por linha")
+    public ResponseEntity<ReconciliationResultDTO> applyReconciliation(
+            @RequestParam(defaultValue = "12") @Min(1) @Max(120) int months,
+            @RequestBody @Valid ReconciliationApplyDTO body) {
+        return ResponseEntity.ok(
+                reconciliationService.apply(LocalDate.now().minusMonths(months), body));
     }
 
     /** Convida uma pessoa desta empresa para o portal do cliente. */

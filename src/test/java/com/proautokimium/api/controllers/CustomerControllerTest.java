@@ -7,6 +7,8 @@ import com.proautokimium.api.Application.DTOs.partners.PartnerRecipientDTO;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.SecurityConfiguration;
 import com.proautokimium.api.Infrastructure.security.TokenService;
+import com.proautokimium.api.Application.DTOs.partners.reconciliation.ReconciliationDTO;
+import com.proautokimium.api.Infrastructure.services.partner.CustomerReconciliationService;
 import com.proautokimium.api.Infrastructure.services.partner.CustomerService;
 import com.proautokimium.api.domain.exceptions.customer.CustomerAlreadyExistsException;
 import com.proautokimium.api.domain.exceptions.customer.CustomerNotFoundException;
@@ -41,11 +43,59 @@ class CustomerControllerTest {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @MockitoBean CustomerService customerService;
+    @MockitoBean CustomerReconciliationService reconciliationService;
     @MockitoBean TokenService tokenService;
     // O SecurityFilter passa a somar as permissões de tela às roles.
     @MockitoBean PermissionService permissionService;
     @MockitoBean AuthenticationManager authenticationManager;
     @MockitoBean UserRepository userRepository;
+
+    // ── A conciliação com o Sankhya ──────────────────────────────────────────
+
+    @Test
+    @DisplayName("GET /api/customer/reconciliation - devolve a prévia com CONSULTAR")
+    @WithMockUser(authorities = {"company/customers:CONSULTAR"})
+    void reconciliationReturnsPreview() throws Exception {
+        when(reconciliationService.preview(any()))
+                .thenReturn(new ReconciliationDTO(List.of(), List.of(), List.of(), 1734));
+
+        mockMvc.perform(get("/api/customer/reconciliation"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unchanged").value(1734));
+    }
+
+    /**
+     * A prévia só lê. Quem vai exigir INCLUIR e ALTERAR é o aplicar — dar a
+     * permissão de escrita a quem só confere seria abrir mais que o necessário.
+     */
+    @Test
+    @DisplayName("GET /api/customer/reconciliation - 403 sem a permissão da tela")
+    @WithMockUser(authorities = {"stock/products:CONSULTAR"})
+    void reconciliationDeniedWithoutPermission() throws Exception {
+        mockMvc.perform(get("/api/customer/reconciliation"))
+                .andExpect(status().isForbidden());
+
+        verify(reconciliationService, never()).preview(any());
+    }
+
+    /**
+     * <b>Zero meses cairia numa data no futuro</b>, a consulta voltaria vazia, e
+     * a tela diria "nada mudou" quando o errado era o parâmetro.
+     *
+     * <p>O {@code @Min} funciona sem {@code @Validated} porque a validação de
+     * parâmetro é nativa desde o Spring 6.1, e o
+     * {@code HandlerMethodValidationException} já tem handler — 11 endpoints
+     * dependem disso hoje. Este teste é o que prova que continua verdade.
+     */
+    @Test
+    @DisplayName("GET /api/customer/reconciliation - meses fora da faixa dá 400")
+    @WithMockUser(authorities = {"company/customers:CONSULTAR"})
+    void reconciliationRejectsBadMonths() throws Exception {
+        mockMvc.perform(get("/api/customer/reconciliation").param("months", "0"))
+                .andExpect(status().isBadRequest());
+
+        verify(reconciliationService, never()).preview(any());
+    }
 
     private CustomerRequestDTO buildDto() {
         return new CustomerRequestDTO("COD001", "12345678000100", "Cliente Teste", "cliente@teste.com", "user", true, true, "MAT001", true);
