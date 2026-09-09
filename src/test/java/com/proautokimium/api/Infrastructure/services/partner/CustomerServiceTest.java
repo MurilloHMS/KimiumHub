@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.proautokimium.api.Application.DTOs.partners.CustomerRequestDTO;
 import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
 import com.proautokimium.api.domain.entities.Customer;
+import com.proautokimium.api.domain.valueObjects.Email;
 import com.proautokimium.api.domain.exceptions.customer.CustomerAlreadyExistsException;
 import com.proautokimium.api.domain.exceptions.customer.CustomerNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -110,6 +111,51 @@ class CustomerServiceTest {
         customerService.UpdateCustomer(dto);
 
         verify(repository).save(customer);
+    }
+
+    /**
+     * <b>A edição não pode desfazer o que a V101 fez.</b>
+     *
+     * <p>Esta era a brecha: {@code UpdateCustomer} escrevia
+     * {@code setMatriz(dto.isMatriz())}, direto do checkbox do formulário. A
+     * migration marca 4623 matrizes, e a primeira edição de cada uma reverteria
+     * — uma linha por vez, sem erro nenhum, e o portal do cliente voltaria a não
+     * mostrar unidade nenhuma.
+     */
+    @Test
+    @DisplayName("Editar não desfaz o is_matriz: quem decide é o código, não o checkbox")
+    void updateDoesNotUndoIsMatriz() {
+        Customer existing = new Customer("1708", "12345678000199", "ACME", null,
+                new Email("acme@x.com"), true, true, "1708", false);
+        when(repository.findByCodParceiro("1708")).thenReturn(Optional.of(existing));
+
+        // O formulário afirma que NÃO é matriz, e o código diz que é.
+        CustomerRequestDTO lying = new CustomerRequestDTO("1708", "12345678000199",
+                "ACME", "acme@x.com", null, true, true, "1708", false);
+
+        customerService.UpdateCustomer(lying);
+
+        assertThat(existing.isMatriz())
+                .as("o checkbox não manda mais")
+                .isTrue();
+        verify(repository).save(existing);
+    }
+
+    /** E o contrário também: deixar de ser matriz sai do dado, não do formulário. */
+    @Test
+    @DisplayName("Editar apontando para outro grupo tira a marca de matriz")
+    void updateToAnotherGroupClearsIsMatriz() {
+        Customer existing = new Customer("505", "12345678000199", "PGR SINTER", null,
+                new Email("pgr@x.com"), true, true, "505", true);
+        when(repository.findByCodParceiro("505")).thenReturn(Optional.of(existing));
+
+        CustomerRequestDTO becomesUnit = new CustomerRequestDTO("505", "12345678000199",
+                "PGR SINTER", "pgr@x.com", null, true, true, "1708", true);
+
+        customerService.UpdateCustomer(becomesUnit);
+
+        assertThat(existing.isMatriz()).isFalse();
+        assertThat(existing.getCodigoMatriz()).isEqualTo("1708");
     }
 
     @Test
