@@ -9,9 +9,12 @@ import com.proautokimium.api.domain.enums.Hierarchy;
 import com.proautokimium.api.domain.enums.humanResources.ContractType;
 import com.proautokimium.api.domain.enums.humanResources.TransportType;
 import java.math.BigDecimal;
+
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record CreateEmployeeRequestDTO(
+		@NotBlank(message = "Código do parceiro é obrigatório")
 		String partnerCode,
 		String document,
 		String name,

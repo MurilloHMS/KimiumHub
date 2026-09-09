@@ -25,6 +25,7 @@ import com.proautokimium.api.domain.entities.humanResources.Position;
 import com.proautokimium.api.domain.entities.humanResources.PositionLevel;
 import com.proautokimium.api.domain.entities.humanResources.Team;
 import com.proautokimium.api.domain.enums.humanResources.CareerChangeReason;
+import com.proautokimium.api.domain.exceptions.partners.EmployeeAlreadyExistsException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import com.proautokimium.api.domain.valueObjects.Email;
 import jakarta.transaction.Transactional;
@@ -74,6 +75,16 @@ public class EmployeeService {
      */
     @Transactional
     public EmployeeResponseDTO createEmployee(CreateEmployeeRequestDTO dto) {
+        // Antes de qualquer busca: e a checagem mais barata e o erro mais
+        // provavel de quem cadastra. Deixada para o fim, a pessoa so descobriria
+        // depois de a empresa, o setor, o cargo e o nivel terem sido resolvidos.
+        //
+        // Espelha o `createCustomer`, que ja faz isso. `!= null` e nao
+        // `ifPresent` porque `findByCodParceiro` devolve `Employee` cru aqui.
+        if (employeeRepository.findByCodParceiro(dto.partnerCode()) != null) {
+            throw new EmployeeAlreadyExistsException(dto.partnerCode());
+        }
+
         Company company = companyRepository.findById(dto.companyId())
                 .orElseThrow(CompanyNotFoundException::new);
         Team team = teamRepository.findById(dto.teamId())
