@@ -15,6 +15,9 @@ DECLARE @CODPARC INT=0;
 -- O @CODPARC é montado em Java a partir de um int já convertido — nunca de
 -- texto vindo da URL.
 --
+-- Esta consulta foi rodada contra a produção em 2026-09-09 e voltou o parceiro
+-- certo: as sete colunas existem e os formatos são os esperados.
+--
 -- Só colunas já medidas contra a base em 2026-09-09. RAZAOSOCIAL ficou de fora
 -- de propósito: nunca foi confirmada, e coluna inexistente derruba a consulta
 -- inteira com um erro que fala de sintaxe.
