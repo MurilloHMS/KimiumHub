@@ -16,6 +16,7 @@ import com.proautokimium.api.Infrastructure.repositories.humanResources.Position
 import com.proautokimium.api.Infrastructure.repositories.humanResources.PositionRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.TeamRepository;
 import com.proautokimium.api.Infrastructure.services.humanResources.PositionLevelSalaryResolver;
+import com.proautokimium.api.domain.exceptions.partners.EmployeeAlreadyExistsException;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.humanResources.CareerHistory;
 import com.proautokimium.api.domain.entities.humanResources.Company;
@@ -43,6 +44,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -104,6 +106,50 @@ class EmployeeServiceTest {
         Field field = com.proautokimium.api.domain.abstractions.Entity.class.getDeclaredField("id");
         field.setAccessible(true);
         field.set(entity, id);
+    }
+
+    /**
+     * <b>O código de parceiro é o CODPARC do Sankhya, onde ele é chave.</b>
+     *
+     * <p>Dois funcionários com o mesmo código não são um cadastro duplicado
+     * qualquer: são duas linhas apontando para o mesmo parceiro do ERP. A partir
+     * daí, {@code findByCodParceiro} devolve uma das duas — sem erro nenhum — e
+     * o vínculo com usuário, o holerite e o histórico passam a poder cair no
+     * funcionário errado.
+     *
+     * <p>Não havia guarda nenhuma aqui até 2026-09-09, enquanto o
+     * {@code createCustomer} já tinha a dele desde sempre.
+     */
+    @Test
+    @DisplayName("Não cria funcionário com código de parceiro que já existe")
+    void naoCriaComCodigoRepetido() {
+        when(employeeRepository.findByCodParceiro("EMP001")).thenReturn(new Employee());
+
+        assertThatThrownBy(() -> employeeService.createEmployee(createDto))
+                .isInstanceOf(EmployeeAlreadyExistsException.class)
+                .hasMessageContaining("EMP001");
+
+        verify(employeeRepository, never()).save(any(Employee.class));
+        verify(careerHistoryRepository, never()).save(any(CareerHistory.class));
+    }
+
+    /**
+     * A guarda vem antes das buscas de empresa, setor, cargo e nível.
+     *
+     * <p>É a checagem mais barata e o erro mais provável de quem cadastra.
+     * Deixada para o fim, a pessoa só descobriria depois de quatro consultas —
+     * e um id de empresa errado esconderia o problema real.
+     */
+    @Test
+    @DisplayName("A checagem de duplicado acontece antes de resolver empresa e setor")
+    void checaDuplicadoAntesDeTudo() {
+        when(employeeRepository.findByCodParceiro("EMP001")).thenReturn(new Employee());
+
+        assertThatThrownBy(() -> employeeService.createEmployee(createDto))
+                .isInstanceOf(EmployeeAlreadyExistsException.class);
+
+        verify(companyRepository, never()).findById(any());
+        verify(teamRepository, never()).findById(any());
     }
 
     @Test
