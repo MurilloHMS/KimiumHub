@@ -37,6 +37,8 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, SecurityPaths.PUBLIC_POST).permitAll()
                         .requestMatchers(HttpMethod.GET, SecurityPaths.PUBLIC_GET).permitAll()
+                        .requestMatchers(HttpMethod.PUT, SecurityPaths.PUBLIC_PUT).permitAll()
+                        .requestMatchers(HttpMethod.DELETE, SecurityPaths.PUBLIC_DELETE).permitAll()
                         .requestMatchers(SecurityPaths.SWAGGER).permitAll()
                         .requestMatchers("api/client/**").hasRole("CLIENTE")
                         .anyRequest().access(new WebExpressionAuthorizationManager("isAuthenticated() and !hasRole('CLIENTE')"))

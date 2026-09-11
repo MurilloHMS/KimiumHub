@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -19,6 +20,17 @@ public class VagaController {
 
     public VagaController(VagaService vagaService) {
         this.vagaService = vagaService;
+    }
+
+    /**
+     * As areas cadastradas, para o formulario publico.
+     *
+     * <p>Publica, como o {@code /publicadas} ao lado: e a lista de um combo
+     * num formulario aberto, e nao diz nada sobre candidato nenhum.
+     */
+    @GetMapping("/areas")
+    public ResponseEntity<List<String>> listarAreas(){
+        return ResponseEntity.ok(vagaService.listarAreas());
     }
 
     @GetMapping("/publicadas")

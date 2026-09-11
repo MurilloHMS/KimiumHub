@@ -23,9 +23,20 @@ public class EmailTemplates {
                 "Bem-vindo(a) à Proauto Kimium";
     }
 
+    /**
+     * A confirmação, com um aviso opcional sobre o currículo.
+     *
+     * <p>O aviso é o que responde ao caso "já estou no banco e me candidatei
+     * de novo": <b>a pergunta viaja por e-mail</b>, e não pela tela. Perguntar
+     * na tela exigiria dizer à pessoa o que temos guardado, e essa frase é um
+     * oráculo de enumeração numa rota pública.
+     *
+     * @param aviso HTML já pronto, ou vazio quando não há nada a dizer
+     */
     public static String confirmacaoCandidatura(
             String nome,
-            String vaga
+            String vaga,
+            String aviso
     ) {
         return """
             <div style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333;">
@@ -43,6 +54,8 @@ public class EmailTemplates {
                     entraremos em contato.
                 </p>
 
+                %s
+
                 <br>
 
                 <p>
@@ -51,7 +64,7 @@ public class EmailTemplates {
                 </p>
 
             </div>
-            """.formatted(nome, vaga);
+            """.formatted(nome, vaga, aviso);
     }
 
     public static String avancouEtapa(
