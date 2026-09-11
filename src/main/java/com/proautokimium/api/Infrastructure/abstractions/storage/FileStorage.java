@@ -63,6 +63,18 @@ public abstract class FileStorage {
     }
 
     /**
+     * Apaga o arquivo, se ele existir.
+     *
+     * <p>{@code deleteIfExists} e nao {@code delete}: registro orfao -- linha
+     * apontando para arquivo que sumiu do disco -- ja e caso real neste projeto,
+     * e nesse estado o "apagar meus dados" nao pode estourar. Passa pela mesma
+     * guarda de travessia do resto.
+     */
+    public boolean delete(String filename) throws IOException {
+        return Files.deleteIfExists(resolverDentroDaPasta(filename));
+    }
+
+    /**
      * Resolve o nome dentro da pasta de armazenamento, e recusa o que sair dela.
      *
      * <p>Até 2026-09-11 isto era um {@code resolve} cru, e o {@code filename}

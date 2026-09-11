@@ -19,4 +19,25 @@ public interface CandidaturaRepository extends JpaRepository<Candidatura, UUID> 
     where c.vaga.id = :vagaId
 """)
     List<Candidatura> findCandidaturasByVagaId(UUID vagaId);
+
+    /**
+     * As candidaturas de uma pessoa.
+     *
+     * <p>Decide o caminho do "apagar meus dados": sem nenhuma, a linha sai
+     * inteira; com alguma, ela e anonimizada -- um DELETE duro estouraria a FK,
+     * ou levaria junto historico e respostas de uma contratacao real.
+     */
+    @Query("""
+    select c
+    from Candidatura c
+    join fetch c.vaga
+    where c.candidato = :candidato
+""")
+    List<Candidatura> findAllByCandidato(Candidato candidato);
+
+    boolean existsByCandidato(Candidato candidato);
+
+    /** Quantas cada candidato tem, para a aba interna nao fazer N+1. */
+    @Query("select c.candidato.id, count(c) from Candidatura c group by c.candidato.id")
+    List<Object[]> contarPorCandidato();
 }

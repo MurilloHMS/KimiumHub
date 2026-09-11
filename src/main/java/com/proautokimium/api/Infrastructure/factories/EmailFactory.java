@@ -10,12 +10,19 @@ public class EmailFactory {
     @Value("${mail.from}")
     private String from;
 
-    public EmailQueue candidaturaConfirmada(String to, String nome, String vaga){
+    /**
+     * A confirmacao com um aviso sobre o curriculo.
+     *
+     * <p>E por aqui que a pessoa que ja esta no banco fica sabendo o que
+     * aconteceu com o curriculo dela -- se reaproveitamos o antigo, se
+     * substituimos pelo novo, ou se nao achamos nenhum.
+     */
+    public EmailQueue candidaturaConfirmada(String to, String nome, String vaga, String aviso){
         return new EmailQueue(
                 to,
                 from,
                 EmailTemplates.Subjects.CONFIRMACAO_CANDIDATURA,
-                EmailTemplates.confirmacaoCandidatura(nome, vaga)
+                EmailTemplates.confirmacaoCandidatura(nome, vaga, aviso)
             );
     }
     public EmailQueue candidaturaAprovada(String to, String nome, String vaga){

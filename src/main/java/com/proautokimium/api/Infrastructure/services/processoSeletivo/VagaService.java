@@ -71,6 +71,11 @@ public class VagaService {
         return converter.toDto(vaga);
     }
 
+    /** Alimenta o combo de area do formulario publico. */
+    public List<String> listarAreas(){
+        return vagaRepository.listarAreas();
+    }
+
     public List<ResponseVagaDTO> listarVagasPublicadas() {
         List<Vaga> byStatus = this.vagaRepository.findByStatus(StatusVaga.PUBLICADA);
         return byStatus.stream().map(converter::toDto).toList();

@@ -16,6 +16,11 @@ public final class SecurityPaths {
             "/upload/equipment/images/**",
             "/upload/profile/images/**",
             "/api/faq/public",
+            "/api/vaga/areas",
+            // Um segmento, nunca `/**`: o token e a chave do dossie pessoal de
+            // alguem, e um caminho novo pendurado aqui embaixo nasceria aberto.
+            "/api/talent-bank/public/*",
+            "/api/talent-bank/public/*/curriculo",
             "/api/profile/public/**",
             "/ws/**",
 
@@ -49,6 +54,8 @@ public final class SecurityPaths {
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
             "/api/candidatura",
+            "/api/talent-bank/public",
+            "/api/talent-bank/public/access-link",
             // As três do fluxo de primeiro acesso, e só elas.
             //
             // O fluxo é auto-atendimento, não convite: o funcionário informa o
@@ -69,6 +76,27 @@ public final class SecurityPaths {
             "/api/auth/first-access",
             "/api/auth/first-access/*/is-valid",
             "/api/auth/first-access/*/sign-in"
+    };
+
+    /**
+     * PUT publico, e ele nao existia neste projeto ate 2026-09-11.
+     *
+     * <p>So havia lista para GET e POST; qualquer outro verbo caia no
+     * {@code anyRequest()}. Acrescentar a lista sozinha nao basta: o
+     * {@code PublicPathsHaveNoPreAuthorizeTest} varre por verbo, e o
+     * {@code publicasDoVerbo()} dele so conhecia GET e POST. Sem estender o
+     * teste junto, anotar por engano um destes caminhos com
+     * {@code @PreAuthorize} deixaria a suite <b>verde</b> e quebraria o
+     * formulario no deploy -- o incidente de 2026-08-27 de novo, com o mesmo
+     * teste, num buraco novo.
+     */
+    public static final String[] PUBLIC_PUT = {
+            "/api/talent-bank/public/*"
+    };
+
+    /** Ver {@link #PUBLIC_PUT}: a mesma armadilha, o mesmo cuidado. */
+    public static final String[] PUBLIC_DELETE = {
+            "/api/talent-bank/public/*"
     };
 
     private SecurityPaths(){}

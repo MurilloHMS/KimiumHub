@@ -71,10 +71,25 @@ class PublicPathsHaveNoPreAuthorizeTest {
                 .isEmpty();
     }
 
+    /**
+     * <b>PUT e DELETE entraram aqui em 2026-09-11, e a omissao era o buraco.</b>
+     *
+     * <p>Ate entao este metodo so conhecia GET e POST — porque so existiam
+     * {@code PUBLIC_GET} e {@code PUBLIC_POST}. No dia em que o banco de
+     * talentos precisou de um PUT e de um DELETE publicos, anotar um deles com
+     * {@code @PreAuthorize} por engano deixaria esta suite <b>verde</b>: o
+     * verbo simplesmente nao era consultado. Seria o incidente de 2026-08-27
+     * de novo, com o mesmo teste, num buraco novo.
+     *
+     * <p>Regra que sai daqui: <b>lista publica nova no {@code SecurityPaths}
+     * exige uma linha aqui, no mesmo commit.</b>
+     */
     private static List<String> publicasDoVerbo(String verbo) {
         List<String> todas = new ArrayList<>();
         if ("GET".equals(verbo)) todas.addAll(Arrays.asList(SecurityPaths.PUBLIC_GET));
         if ("POST".equals(verbo)) todas.addAll(Arrays.asList(SecurityPaths.PUBLIC_POST));
+        if ("PUT".equals(verbo)) todas.addAll(Arrays.asList(SecurityPaths.PUBLIC_PUT));
+        if ("DELETE".equals(verbo)) todas.addAll(Arrays.asList(SecurityPaths.PUBLIC_DELETE));
         return todas;
     }
 

@@ -67,7 +67,7 @@ class CandidaturaControllerTest {
     void deveCriarCandidaturaComCurriculo() throws Exception {
         CreateCandidaturaDTO dto = new CreateCandidaturaDTO(UUID.randomUUID(),
                 "João", "joao@email.com", "11999999999",
-                "linkedin.com/in/joao"
+                "linkedin.com/in/joao", false
         );
 
         MockMultipartFile dados = new MockMultipartFile(
@@ -95,7 +95,7 @@ class CandidaturaControllerTest {
     void deveRetornarErroCandidaturaDuplicada() throws Exception {
         CreateCandidaturaDTO dto = new CreateCandidaturaDTO(UUID.randomUUID(),
                 "João", "joao@email.com", "11999999999",
-                "linkedin.com/in/joao"
+                "linkedin.com/in/joao", false
         );
 
         MockMultipartFile dados = new MockMultipartFile(

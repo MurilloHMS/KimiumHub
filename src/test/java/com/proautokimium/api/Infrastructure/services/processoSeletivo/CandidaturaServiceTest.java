@@ -75,7 +75,8 @@ class CandidaturaServiceTest {
     @BeforeEach
     void setUp() {
         candidaturaService = new CandidaturaService(candidatoRepository, candidaturaRepository,
-                vagaRepository, storageService, emailService, emailFactory, converter, RELOGIO);
+                vagaRepository, storageService, emailService, emailFactory, converter, RELOGIO,
+                "https://proautokimium.com.br", 24);
 
         vagaId = UUID.randomUUID();
         candidaturaId = UUID.randomUUID();
@@ -95,7 +96,7 @@ class CandidaturaServiceTest {
         createDto = new CreateCandidaturaDTO(vagaId,
                 "João Silva", "joao@email.com", "11999999999",
                 "linkedin.com/in/joao"
-        );
+        , false);
     }
 
     // ─── getCandidaturaByVagaId ───────────────────────────────────────────────
@@ -131,7 +132,7 @@ class CandidaturaServiceTest {
         when(vagaRepository.findById(vagaId)).thenReturn(Optional.of(vaga));
         when(candidaturaRepository.existsByCandidatoAndVaga(candidato, vaga)).thenReturn(false);
         when(candidaturaRepository.save(any(Candidatura.class))).thenReturn(candidatura);
-        when(emailFactory.candidaturaConfirmada(anyString(), anyString(), anyString()))
+        when(emailFactory.candidaturaConfirmada(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(mock(EmailQueue.class));
 
         candidaturaService.create(createDto, null);
@@ -146,7 +147,7 @@ class CandidaturaServiceTest {
         assertThat(saved.getStatus()).isEqualTo(StatusCandidatura.EM_ANDAMENTO);
 
         verify(emailService).create(any(EmailQueue.class));
-        verify(emailFactory).candidaturaConfirmada(eq("joao@email.com"), eq("João Silva"), eq("Desenvolvedor Java"));
+        verify(emailFactory).candidaturaConfirmada(eq("joao@email.com"), eq("João Silva"), eq("Desenvolvedor Java"), anyString());
         verify(storageService, never()).save(any(), any());
     }
 
@@ -173,7 +174,7 @@ class CandidaturaServiceTest {
         when(vagaRepository.findById(vagaId)).thenReturn(Optional.of(vaga));
         when(candidaturaRepository.existsByCandidatoAndVaga(any(), any())).thenReturn(false);
         when(candidaturaRepository.save(any(Candidatura.class))).thenReturn(candidatura);
-        when(emailFactory.candidaturaConfirmada(anyString(), anyString(), anyString()))
+        when(emailFactory.candidaturaConfirmada(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(mock(EmailQueue.class));
 
         candidaturaService.create(createDto, curriculo);
@@ -187,7 +188,7 @@ class CandidaturaServiceTest {
 
         verify(candidaturaRepository).save(any(Candidatura.class));
 
-        verify(emailFactory).candidaturaConfirmada(eq("joao@email.com"), eq("João Silva"), eq("Desenvolvedor Java"));
+        verify(emailFactory).candidaturaConfirmada(eq("joao@email.com"), eq("João Silva"), eq("Desenvolvedor Java"), anyString());
         verify(emailService).create(any(EmailQueue.class));
     }
 
@@ -348,13 +349,13 @@ class CandidaturaServiceTest {
 
         CreateCandidaturaDTO comDadosNovos = new CreateCandidaturaDTO(vagaId,
                 "Joao Pedro da Silva", "joao@email.com", "11999997777",
-                "linkedin.com/in/joao-pedro");
+                "linkedin.com/in/joao-pedro", false);
 
         when(candidatoRepository.findByEmail_AddressIgnoreCase(anyString())).thenReturn(Optional.of(candidato));
         when(vagaRepository.findById(vagaId)).thenReturn(Optional.of(vaga));
         when(candidaturaRepository.existsByCandidatoAndVaga(any(), any())).thenReturn(false);
         when(candidaturaRepository.save(any(Candidatura.class))).thenReturn(candidatura);
-        when(emailFactory.candidaturaConfirmada(anyString(), anyString(), anyString()))
+        when(emailFactory.candidaturaConfirmada(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(mock(EmailQueue.class));
 
         candidaturaService.create(comDadosNovos, null);
@@ -394,7 +395,7 @@ class CandidaturaServiceTest {
         when(vagaRepository.findById(vagaId)).thenReturn(Optional.of(vaga));
         when(candidaturaRepository.existsByCandidatoAndVaga(any(), any())).thenReturn(false);
         when(candidaturaRepository.save(any(Candidatura.class))).thenReturn(candidatura);
-        when(emailFactory.candidaturaConfirmada(anyString(), anyString(), anyString()))
+        when(emailFactory.candidaturaConfirmada(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(mock(EmailQueue.class));
 
         candidaturaService.create(createDto, null);

@@ -23,4 +23,20 @@ public interface CandidatoRepository extends JpaRepository<Candidato, UUID> {
      * <p>O {@code _Address} navega para dentro do {@code @Embedded Email}.
      */
     Optional<Candidato> findByEmail_AddressIgnoreCase(String address);
+
+    /** A aba interna: anonimizado nao aparece, porque nao ha nada para ver. */
+    java.util.List<Candidato> findAllByAnonimizadoEmIsNull();
+
+    /**
+     * O expurgo, e a condicao esta escrita por extenso de proposito.
+     *
+     * <p>{@code expira_em IS NOT NULL} e redundante hoje — NULL nunca satisfaz
+     * {@code <}. Ela existe para o dia em que alguem "melhorar" a consulta com
+     * {@code COALESCE(expira_em, criado_em + 2 anos)} e apagar exatamente as
+     * linhas cujo consentimento nos nunca tivemos.
+     */
+    @org.springframework.data.jpa.repository.Query(
+        "select c from Candidato c where c.expiraEm is not null and c.expiraEm < :agora")
+    java.util.List<Candidato> vencidosEm(
+        @org.springframework.data.repository.query.Param("agora") java.time.LocalDateTime agora);
 }

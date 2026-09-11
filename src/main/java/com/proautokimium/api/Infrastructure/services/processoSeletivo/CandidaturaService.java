@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -40,8 +41,15 @@ public class CandidaturaService {
     private final EmailFactory emailFactory;
     private final CandidaturaConverter converter;
     private final Clock clock;
+    private final String websiteBaseUrl;
+    private final int mesesDeRetencao;
 
-    public CandidaturaService(CandidatoRepository candidatoRepository, CandidaturaRepository candidaturaRepository, VagaRepository vagaRepository, StorageService storageService, EmailQueueService emailService, EmailFactory emailFactory, CandidaturaConverter converter, Clock clock) {
+    private static final java.time.format.DateTimeFormatter DATA =
+            java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    public CandidaturaService(CandidatoRepository candidatoRepository, CandidaturaRepository candidaturaRepository, VagaRepository vagaRepository, StorageService storageService, EmailQueueService emailService, EmailFactory emailFactory, CandidaturaConverter converter, Clock clock,
+                              @org.springframework.beans.factory.annotation.Value("${app.base-url}") String websiteBaseUrl,
+                              @org.springframework.beans.factory.annotation.Value("${talent-bank.retention-months:24}") int mesesDeRetencao) {
         this.candidatoRepository = candidatoRepository;
         this.candidaturaRepository = candidaturaRepository;
         this.vagaRepository = vagaRepository;
@@ -50,6 +58,8 @@ public class CandidaturaService {
         this.emailFactory = emailFactory;
         this.converter = converter;
         this.clock = clock;
+        this.websiteBaseUrl = websiteBaseUrl;
+        this.mesesDeRetencao = mesesDeRetencao;
     }
 
     public List<ResponseCandidaturaDTO> getCandidaturaByVagaId(UUID vagaId) {
@@ -81,18 +91,36 @@ public class CandidaturaService {
         Vaga vaga = vagaRepository.findById(dto.vagaID())
                 .orElseThrow(VagaNotFoundException::new);
 
-        Candidato candidato = candidatoRepository
-                .findByEmail_AddressIgnoreCase(normalizar(dto.email()))
-                .map(existente -> atualizarDados(existente, dto))
-                .orElseGet(() -> novoCandidato(dto));
+        LocalDateTime agora = LocalDateTime.now(clock);
+        boolean enviouArquivo = curriculo != null && !curriculo.isEmpty();
+
+        Optional<Candidato> jaCadastrado =
+                candidatoRepository.findByEmail_AddressIgnoreCase(normalizar(dto.email()));
+
+        // Lidos ANTES de qualquer escrita: depois de atualizar, a data vira
+        // "agora" e o aviso do e-mail passaria a mentir.
+        boolean tinhaCurriculo = jaCadastrado.map(c -> c.getPathCurriculo() != null).orElse(false);
+        LocalDateTime dataDoCurriculo = jaCadastrado.map(CandidaturaService::ultimaAtualizacaoDe).orElse(null);
+
+        Candidato candidato = jaCadastrado
+                .map(existente -> atualizarDados(existente, dto, agora))
+                .orElseGet(() -> novoCandidato(dto, agora));
 
         if (candidaturaRepository.existsByCandidatoAndVaga(candidato, vaga)) {
             throw new CandidaturaAlreadyExistsException("Candidato já se candidatou para essa vaga");
         }
 
-        if (curriculo != null && !curriculo.isEmpty()) {
+        if (enviouArquivo) {
             String nomeArquivo = storageService.save(curriculo, candidato.getId().toString());
             candidato.setPathCurriculo(nomeArquivo);
+            candidatoRepository.save(candidato);
+        }
+
+        // Marcar a caixa aqui e OPCIONAL: candidatar-se a uma vaga e finalidade
+        // legitima por si so. O que o aceite acrescenta e permanecer disponivel
+        // para vagas futuras.
+        if (dto.consentimento()) {
+            candidato.registrarConsentimento(agora, mesesDeRetencao);
             candidatoRepository.save(candidato);
         }
 
@@ -106,7 +134,9 @@ public class CandidaturaService {
         EmailQueue emailQueue = emailFactory.candidaturaConfirmada(
                 saved.getCandidato().getEmail().getAddress(),
                 saved.getCandidato().getNome(),
-                saved.getVaga().getTitulo());
+                saved.getVaga().getTitulo(),
+                avisoSobreOCurriculo(enviouArquivo, jaCadastrado.isPresent(),
+                        tinhaCurriculo, dataDoCurriculo));
         emailService.create(emailQueue);
     }
 
@@ -120,10 +150,11 @@ public class CandidaturaService {
      * <p>O e-mail <b>não</b> é atualizado — ele é a identidade da linha, e é o
      * que casou esta busca.
      */
-    private Candidato atualizarDados(Candidato candidato, CreateCandidaturaDTO dto) {
+    private Candidato atualizarDados(Candidato candidato, CreateCandidaturaDTO dto, LocalDateTime agora) {
         candidato.setNome(dto.nome());
         candidato.setTelefone(dto.telefone());
         candidato.setUrlLinkedin(dto.urlLinkedin());
+        candidato.setAtualizadoEm(agora);
         candidatoRepository.save(candidato);
         // Devolve a instância que já temos, e não o retorno do save: a entidade
         // veio gerenciada do repositório, e reatribuir só acrescenta um jeito
@@ -139,14 +170,65 @@ public class CandidaturaService {
      * INSERT estático com todas as colunas e emite {@code NULL}. Nenhum
      * {@code ALTER ... SET DEFAULT} conserta isso.
      */
-    private Candidato novoCandidato(CreateCandidaturaDTO dto) {
+    private Candidato novoCandidato(CreateCandidaturaDTO dto, LocalDateTime agora) {
         Candidato novo = new Candidato();
         novo.setNome(dto.nome());
         novo.setEmail(new Email(normalizar(dto.email())));
         novo.setTelefone(dto.telefone());
         novo.setUrlLinkedin(dto.urlLinkedin());
-        novo.setCriadoEm(LocalDateTime.now(clock));
+        novo.setCriadoEm(agora);
         return candidatoRepository.save(novo);
+    }
+
+    /**
+     * O que o e-mail de confirmacao diz sobre o curriculo.
+     *
+     * <p><b>A escolha "usar o que ja tenho" ou "mandar outro" e expressa por
+     * anexar ou nao o arquivo</b>, e nao por um radio-button. Um radio
+     * informado teria que dizer a pessoa o que esta guardado, e essa frase,
+     * numa rota publica, e um oraculo: submeta com o e-mail de alguem e
+     * descubra se ele procura emprego aqui.
+     *
+     * <p>O ramo que mais engana e o ultimo. Quando o e-mail e novo e nao veio
+     * arquivo, o reflexo e responder <i>400 "anexe seu curriculo"</i> -- e esse
+     * 400 vaza o inverso: a <b>ausencia</b> de erro passa a significar "voce
+     * esta na base", com uma requisicao e sem upload nenhum. Por isso a
+     * candidatura e aceita assim mesmo, com {@code path_curriculo} nulo, que o
+     * kanban ja sabe mostrar.
+     */
+    private String avisoSobreOCurriculo(boolean enviouArquivo, boolean jaCadastrado,
+                                        boolean tinhaCurriculo, LocalDateTime dataDoCurriculo) {
+        if (enviouArquivo) {
+            return jaCadastrado
+                    ? paragrafo("Atualizamos seus dados com o que você preencheu agora. "
+                              + "Não era isso? " + linkParaOCadastro())
+                    : "";
+        }
+
+        if (tinhaCurriculo) {
+            return paragrafo("Usamos o currículo que você já tinha enviado"
+                    + (dataDoCurriculo == null ? "" : " em " + DATA.format(dataDoCurriculo))
+                    + ". Quer trocar por outro? " + linkParaOCadastro());
+        }
+
+        return paragrafo("Não encontramos um currículo no seu cadastro. "
+                + "Você pode enviar um por aqui: " + linkParaOCadastro());
+    }
+
+    private String linkParaOCadastro() {
+        return "<a href=\"" + websiteBaseUrl + "/meu-curriculo\">acessar meu cadastro</a>";
+    }
+
+    private static String paragrafo(String texto) {
+        return "<p style=\"background:#f4f4f4; padding:12px 14px; border-radius:8px;\">" + texto + "</p>";
+    }
+
+    /**
+     * A data que o aviso mostra: a ultima atualizacao, ou a entrada, quando
+     * nunca houve atualizacao.
+     */
+    private static LocalDateTime ultimaAtualizacaoDe(Candidato candidato) {
+        return candidato.getAtualizadoEm() != null ? candidato.getAtualizadoEm() : candidato.getCriadoEm();
     }
 
     /** Um e-mail, uma pessoa: o índice único da V103 é sobre {@code lower(email)}. */
