@@ -13,6 +13,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
@@ -45,6 +46,25 @@ public class GlobalExceptionHandler {
                 request.getRequestURI(), MissingAuthority.of(ex));
 
         return build(HttpStatus.FORBIDDEN, mensagem, request);
+    }
+
+    /**
+     * Arquivo maior que o teto do multipart.
+     *
+     * <p>Sem este handler a exceção caía no {@code handleAny} e virava <b>500
+     * "Erro interno no servidor"</b> — numa rota pública, e para um erro que é
+     * inteiramente do lado de quem enviou. Com o teto de currículo em 10 MB,
+     * isto deixou de ser teórico e virou o caminho normal de quem anexa o
+     * arquivo errado.
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleUploadGrandeDemais(
+            MaxUploadSizeExceededException ex,
+            HttpServletRequest request
+    ) {
+        log.warn("Upload recusado por tamanho | path={}", request.getRequestURI());
+
+        return build(HttpStatus.PAYLOAD_TOO_LARGE, "O arquivo enviado é grande demais.", request);
     }
 
     @ExceptionHandler(Exception.class)

@@ -10,7 +10,6 @@ public final class SecurityPaths {
 
     public static final String[] PUBLIC_GET ={
             "/api/vaga/publicadas",
-            "/api/curriculos",
             "/api/public-secrets/**",
             "/api/product/website/active",
             "/upload/images/**",

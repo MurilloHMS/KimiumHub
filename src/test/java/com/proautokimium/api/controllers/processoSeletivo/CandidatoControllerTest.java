@@ -47,7 +47,7 @@ class CandidatoControllerTest {
 
     @Test
     @DisplayName("POST /api/candidato - deve cadastrar candidato e retornar 200")
-    @WithMockUser(authorities = {"rh/candidaturas:CONSULTAR"})
+    @WithMockUser(authorities = {"rh/candidaturas:INCLUIR"})
     void deveCadastrarCandidatoComSucesso() throws Exception {
         CreateCandidatoDTO dto = new CreateCandidatoDTO("João Silva", "joao@teste.com", "11999999999", "linkedin.com/in/joao", "curriculo.pdf");
         when(candidatoService.create(any(CreateCandidatoDTO.class))).thenReturn(mock(Candidato.class));
@@ -74,7 +74,7 @@ class CandidatoControllerTest {
 
     @Test
     @DisplayName("POST /api/candidato - deve retornar 409 quando candidato já existe")
-    @WithMockUser(authorities = {"rh/candidaturas:CONSULTAR"})
+    @WithMockUser(authorities = {"rh/candidaturas:INCLUIR"})
     void deveRetornarErroAoCadastrarCandidatoDuplicado() throws Exception {
         CreateCandidatoDTO dto = new CreateCandidatoDTO("João Silva", "joao@teste.com", "11999999999", null, null);
         doThrow(new CandidatoAlreadyExistsException()).when(candidatoService).create(any(CreateCandidatoDTO.class));
@@ -84,6 +84,30 @@ class CandidatoControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isConflict());
+    }
+
+    /**
+     * <b>Quem so consulta nao cadastra.</b>
+     *
+     * <p>Ate 2026-09-11 o POST nao tinha authority nenhuma e nao estava no
+     * {@code SecurityPaths}: qualquer funcionario logado criava candidato. Sem
+     * este teste, trocar a anotacao por CONSULTAR — ou apaga-la — nao quebra
+     * nada, porque os outros dois testes do POST passariam a dar a authority
+     * que a anotacao pedisse.
+     */
+    @Test
+    @DisplayName("POST /api/candidato - quem so tem CONSULTAR leva 403")
+    @WithMockUser(authorities = {"rh/candidaturas:CONSULTAR"})
+    void consultarNaoBastaParaCadastrar() throws Exception {
+        CreateCandidatoDTO dto = new CreateCandidatoDTO("João Silva", "joao@teste.com", "11999999999", null, null);
+
+        mockMvc.perform(post("/api/candidato")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isForbidden());
+
+        verify(candidatoService, never()).create(any(CreateCandidatoDTO.class));
     }
 
     @Test
