@@ -26,13 +26,13 @@ import lombok.Setter;
 @NoArgsConstructor
 public class FuelSupply extends Entity{
 
-    @Column(name = "fuelsupplydate")
+    @Column(name = "fuelsupplydate", nullable = false)
 	private LocalDate fuelSupplyDate;
-    @Column(name = "uf")
+    @Column(name = "uf", length = 2, nullable = false)
 	private String uf;
-    @Column(name = "plate")
+    @Column(name = "plate", length = 10, nullable = false)
 	private String plate;
-    @Column(name = "drivername")
+    @Column(name = "drivername", length = 150, nullable = false)
 	private String driverName;
 	
     /**
@@ -46,21 +46,21 @@ public class FuelSupply extends Entity{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id", nullable = false)
 	private Department department;
-    @Column(name = "actualhodometer")
+    @Column(name = "actualhodometer", nullable = false)
 	private double actualHodometer;
-    @Column(name = "lasthodometer")
+    @Column(name = "lasthodometer", nullable = false)
 	private double lastHodometer;
-    @Column(name = "diferencehodometer")
+    @Column(name = "diferencehodometer", nullable = false)
 	private double diferenceHodometer;
-    @Column(name = "averagekm")
+    @Column(name = "averagekm", nullable = false)
 	private double averageKm;
-    @Column(name = "fueltype")
+    @Column(name = "fueltype", length = 30, nullable = false)
 	private String fuelType;
-    @Column(name = "liters")
+    @Column(name = "liters", nullable = false)
     private double liters;
-    @Column(name = "price")
+    @Column(name = "price", nullable = false)
 	private double price;
-    @Column(name = "totalvalue")
+    @Column(name = "totalvalue", nullable = false)
 	private double totalValue;
 
     public FuelSupply(FuelSupplyDTO dto){
