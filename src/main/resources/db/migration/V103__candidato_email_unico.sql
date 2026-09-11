@@ -1,0 +1,24 @@
+-- Um e-mail, uma pessoa.
+--
+-- O modelo do banco de talentos inteiro depende disto: "ver o que enviei" nao
+-- tem como escolher entre duas linhas com o mesmo endereco. Ate aqui a dedupe
+-- existia so no codigo, num find-depois-save sem lock -- dois envios
+-- simultaneos criavam dois candidatos, em silencio.
+--
+-- MEDIDO em producao em 2026-09-11 antes de escrever este arquivo: zero
+-- e-mails repetidos em 21 candidatos, e zero `criado_em` nulo. Por isso a
+-- migration nao tem bloco de deduplicacao nem backfill -- nao ha o que
+-- deduplicar nem o que preencher.
+--
+-- O indice e sobre lower(email), e nao sobre email, porque Joao@x.com e
+-- joao@x.com sao a mesma pessoa: sem isso, quem voltasse digitando com outra
+-- caixa nunca alcancaria o proprio cadastro. O par disto em Java e o
+-- findByEmail_AddressIgnoreCase do CandidatoRepository -- os dois tem que
+-- andar juntos, senao a busca nao acha o existente, tenta inserir, e bate aqui
+-- com 500 numa rota publica.
+--
+-- ATENCAO: o perfil de teste usa H2 com Flyway desligado, entao NENHUM teste
+-- exercita este indice. Quem protege em teste e a guarda em Java; este indice
+-- e a rede do banco, e so aparece em producao.
+
+CREATE UNIQUE INDEX uq_candidatos_email ON candidatos (lower(email));

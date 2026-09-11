@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,26 +54,26 @@ class CandidatoServiceTest {
     @Test
     @DisplayName("Deve criar candidato com sucesso quando o email não existe")
     void deveCriarCandidatoComSucesso(){
-        when(candidatoRepository.findByEmail(any(Email.class))).thenReturn(Optional.empty());
+        when(candidatoRepository.findByEmail_AddressIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(converter.fromCreateDto(createDto)).thenReturn(candidato);
-        when(candidatoRepository.save(candidato)).thenReturn(candidato);
+        when(candidatoRepository.saveAndFlush(candidato)).thenReturn(candidato);
 
         Candidato result = candidatoService.create(createDto);
 
         assertThat(result).isNotNull();
         assertThat(result.getNome()).isEqualTo("João Silva");
-        verify(candidatoRepository).save(candidato);
+        verify(candidatoRepository).saveAndFlush(candidato);
     }
 
     @Test
     @DisplayName("Deve lançar CandidatoAlreadyExistsException quando email já cadastrado")
     void deveLancarExcecaoQuandoEmailExiste(){
-        when(candidatoRepository.findByEmail(any(Email.class))).thenReturn(Optional.of(candidato));
+        when(candidatoRepository.findByEmail_AddressIgnoreCase(anyString())).thenReturn(Optional.of(candidato));
 
         assertThatThrownBy(() ->
                 candidatoService.create(createDto)).isInstanceOf(CandidatoAlreadyExistsException.class);
 
-        verify(candidatoRepository, never()).save(any());
+        verify(candidatoRepository, never()).saveAndFlush(any());
     }
 
     @Test

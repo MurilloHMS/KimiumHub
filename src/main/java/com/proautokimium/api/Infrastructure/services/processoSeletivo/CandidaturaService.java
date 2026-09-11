@@ -24,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,8 +39,9 @@ public class CandidaturaService {
     private final EmailQueueService emailService;
     private final EmailFactory emailFactory;
     private final CandidaturaConverter converter;
+    private final Clock clock;
 
-    public CandidaturaService(CandidatoRepository candidatoRepository, CandidaturaRepository candidaturaRepository, VagaRepository vagaRepository, StorageService storageService, EmailQueueService emailService, EmailFactory emailFactory, CandidaturaConverter converter) {
+    public CandidaturaService(CandidatoRepository candidatoRepository, CandidaturaRepository candidaturaRepository, VagaRepository vagaRepository, StorageService storageService, EmailQueueService emailService, EmailFactory emailFactory, CandidaturaConverter converter, Clock clock) {
         this.candidatoRepository = candidatoRepository;
         this.candidaturaRepository = candidaturaRepository;
         this.vagaRepository = vagaRepository;
@@ -46,6 +49,7 @@ public class CandidaturaService {
         this.emailService = emailService;
         this.emailFactory = emailFactory;
         this.converter = converter;
+        this.clock = clock;
     }
 
     public List<ResponseCandidaturaDTO> getCandidaturaByVagaId(UUID vagaId) {
@@ -57,30 +61,39 @@ public class CandidaturaService {
                 .toList();
     }
 
+    /**
+     * Recebe uma candidatura do formulário público.
+     *
+     * <p><b>A ordem dos passos é a correção de um defeito, não estilo.</b> Até
+     * 2026-09-11 o currículo era gravado <i>antes</i> da checagem de duplicata.
+     * Como o nome do arquivo é fixo ({@code <candidatoId>.<ext>}) e a gravação
+     * usa {@code REPLACE_EXISTING}, um duplo clique sobrescrevia o currículo bom
+     * e só depois lançava 409.
+     *
+     * <p>E <b>{@code @Transactional} não salva disso</b>: escrita em filesystem
+     * não participa da transação e não faz rollback. Quem protege é a ordem —
+     * resolver a vaga, resolver o candidato, recusar a duplicata, e só então
+     * tocar no disco.
+     */
     @Transactional
     public void create(CreateCandidaturaDTO dto, MultipartFile curriculo) throws IOException {
 
-        Candidato candidato = candidatoRepository.findByEmail(new Email(dto.email()))
-                .orElseGet(() -> {
-                    Candidato novo = new Candidato();
-                    novo.setNome(dto.nome());
-                    novo.setEmail(new Email(dto.email()));
-                    novo.setTelefone(dto.telefone());
-                    novo.setUrlLinkedin(dto.urlLinkedin());
-                    return candidatoRepository.save(novo);
-                });
+        Vaga vaga = vagaRepository.findById(dto.vagaID())
+                .orElseThrow(VagaNotFoundException::new);
+
+        Candidato candidato = candidatoRepository
+                .findByEmail_AddressIgnoreCase(normalizar(dto.email()))
+                .map(existente -> atualizarDados(existente, dto))
+                .orElseGet(() -> novoCandidato(dto));
+
+        if (candidaturaRepository.existsByCandidatoAndVaga(candidato, vaga)) {
+            throw new CandidaturaAlreadyExistsException("Candidato já se candidatou para essa vaga");
+        }
 
         if (curriculo != null && !curriculo.isEmpty()) {
             String nomeArquivo = storageService.save(curriculo, candidato.getId().toString());
             candidato.setPathCurriculo(nomeArquivo);
             candidatoRepository.save(candidato);
-        }
-
-        Vaga vaga = vagaRepository.findById(dto.vagaID())
-                .orElseThrow(VagaNotFoundException::new);
-
-        if (candidaturaRepository.existsByCandidatoAndVaga(candidato, vaga)) {
-            throw new CandidaturaAlreadyExistsException("Candidato já se candidatou para essa vaga");
         }
 
         Candidatura candidatura = new Candidatura();
@@ -95,6 +108,50 @@ public class CandidaturaService {
                 saved.getCandidato().getNome(),
                 saved.getVaga().getTitulo());
         emailService.create(emailQueue);
+    }
+
+    /**
+     * Reenviar atualiza os dados.
+     *
+     * <p>Antes de 2026-09-11 este ramo descartava em silêncio o que a pessoa
+     * tinha acabado de digitar: o cadastro antigo vencia o formulário novo, e o
+     * RH ligava para o telefone de dois anos atrás.
+     *
+     * <p>O e-mail <b>não</b> é atualizado — ele é a identidade da linha, e é o
+     * que casou esta busca.
+     */
+    private Candidato atualizarDados(Candidato candidato, CreateCandidaturaDTO dto) {
+        candidato.setNome(dto.nome());
+        candidato.setTelefone(dto.telefone());
+        candidato.setUrlLinkedin(dto.urlLinkedin());
+        candidatoRepository.save(candidato);
+        // Devolve a instância que já temos, e não o retorno do save: a entidade
+        // veio gerenciada do repositório, e reatribuir só acrescenta um jeito
+        // de o objeto virar outro sem ninguém perceber.
+        return candidato;
+    }
+
+    /**
+     * O {@code criadoEm} sai daqui, e não do banco.
+     *
+     * <p>A coluna tem {@code DEFAULT CURRENT_TIMESTAMP} desde a V35 e o default
+     * <b>nunca dispara</b>: sem {@code @DynamicInsert}, o Hibernate monta um
+     * INSERT estático com todas as colunas e emite {@code NULL}. Nenhum
+     * {@code ALTER ... SET DEFAULT} conserta isso.
+     */
+    private Candidato novoCandidato(CreateCandidaturaDTO dto) {
+        Candidato novo = new Candidato();
+        novo.setNome(dto.nome());
+        novo.setEmail(new Email(normalizar(dto.email())));
+        novo.setTelefone(dto.telefone());
+        novo.setUrlLinkedin(dto.urlLinkedin());
+        novo.setCriadoEm(LocalDateTime.now(clock));
+        return candidatoRepository.save(novo);
+    }
+
+    /** Um e-mail, uma pessoa: o índice único da V103 é sobre {@code lower(email)}. */
+    private static String normalizar(String email) {
+        return email == null ? null : email.trim().toLowerCase();
     }
 
     @Transactional

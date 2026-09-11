@@ -33,7 +33,7 @@ public abstract class FileStorage {
     public String save(MultipartFile file, String prefix) throws IOException{
         String filename = buildFileName(file, prefix);
 
-        Path destination = Paths.get(getStoragePath()).resolve(filename);
+        Path destination = resolverDentroDaPasta(filename);
         Files.createDirectories(destination.getParent());
         Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
 
@@ -51,7 +51,7 @@ public abstract class FileStorage {
     public String save(byte[] content, String originalFilename, String prefix) throws IOException{
         String filename = buildFileName(originalFilename, prefix);
 
-        Path destination = Paths.get(getStoragePath()).resolve(filename);
+        Path destination = resolverDentroDaPasta(filename);
         Files.createDirectories(destination.getParent());
         Files.write(destination, content);
 
@@ -59,6 +59,33 @@ public abstract class FileStorage {
     }
 
     public Path searchFile(String filename){
-        return Paths.get(getStoragePath()).resolve(filename);
+        return resolverDentroDaPasta(filename);
+    }
+
+    /**
+     * Resolve o nome dentro da pasta de armazenamento, e recusa o que sair dela.
+     *
+     * <p>Até 2026-09-11 isto era um {@code resolve} cru, e o {@code filename}
+     * chega de {@code @PathVariable} no download de currículo. Está atrás de
+     * authority, então não era anônimo — mas qualquer conta do RH lia qualquer
+     * arquivo que a JVM alcançasse.
+     *
+     * <p><b>Duas formas de sair, e a segunda passa despercebida:</b>
+     * {@code ../..}, e o <b>caminho absoluto</b> — {@code Path.resolve} com um
+     * absoluto descarta a base inteira e devolve o absoluto, sem nenhum ponto
+     * envolvido. O {@code normalize} nos dois lados cobre as duas.
+     *
+     * <p>A guarda vive aqui, na base, e não numa subclasse: são onze
+     * implementações, e consertar uma deixaria dez abertas.
+     */
+    private Path resolverDentroDaPasta(String filename){
+        Path base = Paths.get(getStoragePath()).toAbsolutePath().normalize();
+        Path alvo = base.resolve(filename).normalize();
+
+        if(!alvo.startsWith(base)){
+            throw new IllegalArgumentException("Nome de arquivo inválido: " + filename);
+        }
+
+        return alvo;
     }
 }
