@@ -31,6 +31,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,8 +54,16 @@ class CandidaturaServiceTest {
     @Mock private EmailFactory emailFactory;
     @Mock private CandidaturaConverter converter;
 
-    @InjectMocks
+    /**
+     * Construído à mão, e não por {@code @InjectMocks}, porque o serviço
+     * depende de um {@code Clock} — e relógio de verdade não é dublê. Com
+     * {@code Clock.fixed} a data virou asserção exata em vez de "não é nulo".
+     */
     private CandidaturaService candidaturaService;
+
+    /** 11/09/2026 11:30 em São Paulo. O fuso está no relógio, não na conta. */
+    private static final Clock RELOGIO =
+            Clock.fixed(Instant.parse("2026-09-11T14:30:00Z"), ZoneId.of("America/Sao_Paulo"));
 
     private UUID vagaId;
     private UUID candidaturaId;
@@ -62,6 +74,9 @@ class CandidaturaServiceTest {
 
     @BeforeEach
     void setUp() {
+        candidaturaService = new CandidaturaService(candidatoRepository, candidaturaRepository,
+                vagaRepository, storageService, emailService, emailFactory, converter, RELOGIO);
+
         vagaId = UUID.randomUUID();
         candidaturaId = UUID.randomUUID();
 
@@ -112,7 +127,7 @@ class CandidaturaServiceTest {
     @Test
     @DisplayName("Deve criar candidatura para candidato existente sem currículo")
     void deveCriarCandidaturaParaCandidatoExistente() throws IOException {
-        when(candidatoRepository.findByEmail(any(Email.class))).thenReturn(Optional.of(candidato));
+        when(candidatoRepository.findByEmail_AddressIgnoreCase(anyString())).thenReturn(Optional.of(candidato));
         when(vagaRepository.findById(vagaId)).thenReturn(Optional.of(vaga));
         when(candidaturaRepository.existsByCandidatoAndVaga(candidato, vaga)).thenReturn(false);
         when(candidaturaRepository.save(any(Candidatura.class))).thenReturn(candidatura);
@@ -142,7 +157,7 @@ class CandidaturaServiceTest {
         when(curriculo.isEmpty()).thenReturn(false);
         when(storageService.save(any(), any())).thenReturn("curriculo.pdf");
 
-        when(candidatoRepository.findByEmail(any(Email.class))).thenReturn(Optional.empty());
+        when(candidatoRepository.findByEmail_AddressIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(candidatoRepository.save(any(Candidato.class)))
                 .thenAnswer(invocation -> {
                     Candidato c = invocation.getArgument(0);
@@ -179,7 +194,7 @@ class CandidaturaServiceTest {
     @Test
     @DisplayName("Deve lançar CandidaturaAlreadyExistsException se candidato já se candidatou")
     void deveLancarExcecaoSeCandidatoJaSeCandidatou() {
-        when(candidatoRepository.findByEmail(any(Email.class))).thenReturn(Optional.of(candidato));
+        when(candidatoRepository.findByEmail_AddressIgnoreCase(anyString())).thenReturn(Optional.of(candidato));
         when(vagaRepository.findById(vagaId)).thenReturn(Optional.of(vaga));
         when(candidaturaRepository.existsByCandidatoAndVaga(candidato, vaga)).thenReturn(true);
 
@@ -192,7 +207,8 @@ class CandidaturaServiceTest {
     @Test
     @DisplayName("Deve lançar VagaNotFoundException ao criar candidatura para vaga inexistente")
     void deveLancarExcecaoAoCriarCandidaturaParaVagaInexistente() {
-        when(candidatoRepository.findByEmail(any(Email.class))).thenReturn(Optional.of(candidato));
+        // Sem stub do candidato de proposito: desde 2026-09-11 a vaga e resolvida
+        // PRIMEIRO, entao a busca do candidato nem acontece neste caminho.
         when(vagaRepository.findById(vagaId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> candidaturaService.create(createDto, null))
@@ -334,7 +350,7 @@ class CandidaturaServiceTest {
                 "Joao Pedro da Silva", "joao@email.com", "11999997777",
                 "linkedin.com/in/joao-pedro");
 
-        when(candidatoRepository.findByEmail(any(Email.class))).thenReturn(Optional.of(candidato));
+        when(candidatoRepository.findByEmail_AddressIgnoreCase(anyString())).thenReturn(Optional.of(candidato));
         when(vagaRepository.findById(vagaId)).thenReturn(Optional.of(vaga));
         when(candidaturaRepository.existsByCandidatoAndVaga(any(), any())).thenReturn(false);
         when(candidaturaRepository.save(any(Candidatura.class))).thenReturn(candidatura);
@@ -365,7 +381,7 @@ class CandidaturaServiceTest {
     @Test
     @DisplayName("Candidato novo nasce com criadoEm preenchido")
     void candidatoNovoNasceComCriadoEm() throws IOException {
-        when(candidatoRepository.findByEmail(any(Email.class))).thenReturn(Optional.empty());
+        when(candidatoRepository.findByEmail_AddressIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(candidatoRepository.save(any(Candidato.class))).thenAnswer(invocation -> {
             Candidato c = invocation.getArgument(0);
             if (c.getId() == null) {
@@ -387,8 +403,8 @@ class CandidaturaServiceTest {
         verify(candidatoRepository, atLeastOnce()).save(captor.capture());
 
         assertThat(captor.getValue().getCriadoEm())
-                .as("sem data, a aba do banco de talentos nao tem por onde ordenar")
-                .isNotNull();
+                .as("a data sai do Clock injetado: LocalDateTime.now() cru daria tres horas de diferenca")
+                .isEqualTo(LocalDateTime.of(2026, 9, 11, 11, 30));
     }
 
     /**
@@ -423,7 +439,7 @@ class CandidaturaServiceTest {
         id.setAccessible(true);
         id.set(candidato, UUID.randomUUID());
 
-        when(candidatoRepository.findByEmail(any(Email.class))).thenReturn(Optional.of(candidato));
+        when(candidatoRepository.findByEmail_AddressIgnoreCase(anyString())).thenReturn(Optional.of(candidato));
         when(vagaRepository.findById(vagaId)).thenReturn(Optional.of(vaga));
         when(candidaturaRepository.existsByCandidatoAndVaga(candidato, vaga)).thenReturn(true);
 
