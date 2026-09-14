@@ -48,21 +48,17 @@ public class ExcelReaderHelper {
 
         }else if (cell != null && cell.getCellType() == CellType.STRING) {
             String value = cell.getStringCellValue().trim()
-                    .replace("\u00A0", "")
-                    .replace("\u202F", "")
+                    .replace("\u00A0", " ")
+                    .replace("\u202F", " ");
+
+            // "28/08/2026 15:42:56": a entidade guarda s\u00F3 o dia, ent\u00E3o a hora
+            // (tudo depois do primeiro espa\u00E7o) \u00E9 descartada antes do parse.
+            String data = value.split("\\s+")[0]
                     .replace(".", "/")
                     .replace("-", "/");
 
             try {
-                DateTimeFormatter formatter;
-                if(value.matches("\\d{4}-\\d{2}-\\d{2}")) {
-                    formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
-                }else if (value.matches("\\d{2}-\\d{2}-\\d{4}")) {
-                    formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-                }else {
-                    formatter = DateTimeFormatter.ofPattern("d/M/yyyy");
-                }
-                return LocalDate.parse(value, formatter);
+                return LocalDate.parse(data, DateTimeFormatter.ofPattern("d/M/yyyy"));
             } catch (Exception e) {
                 return null;
             }
