@@ -154,4 +154,35 @@ class HrPermissionTest {
         mockMvc.perform(get("/api/hr/dashboard-summary"))
                 .andExpect(status().isOk());
     }
+
+    // ─── Eventos: o combo de empresa e a edição com endereço ─────────────────
+
+    /**
+     * O cadastro de eventos escolhe o local entre as empresas do grupo. Sem a
+     * authority do cadastro na leitura, o combo viria vazio para quem cadastra
+     * evento sem ter tela nenhuma do RH — e combo vazio parece falta de empresa.
+     */
+    @Test
+    @DisplayName("quem cadastra evento le as empresas, mesmo sem tela do RH")
+    @WithMockUser(authorities = {"communication/events:CONSULTAR"})
+    void cadastroDeEventosLeEmpresas() throws Exception {
+        when(companyService.listAll()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/hr/companies"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("ler empresa nao edita empresa")
+    @WithMockUser(authorities = {"communication/events:CONSULTAR", "rh/organizational-structure:CONSULTAR"})
+    void lerNaoEdita() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .put("/api/hr/companies/{id}", java.util.UUID.randomUUID())
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Matriz\",\"legalName\":\"Proauto\",\"cnpj\":\"1\"}")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(companyService);
+    }
 }

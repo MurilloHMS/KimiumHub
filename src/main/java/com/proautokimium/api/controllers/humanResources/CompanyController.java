@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/hr/companies")
@@ -23,7 +24,11 @@ public class CompanyController {
      */
     private static final String LER_ESTRUTURA_RH =
             "hasAnyAuthority('rh/organizational-structure:CONSULTAR', "
-            + "'rh/career-structure:CONSULTAR', 'rh/employees:CONSULTAR')";
+            + "'rh/career-structure:CONSULTAR', 'rh/employees:CONSULTAR', "
+            // O cadastro de eventos escolhe o local entre as empresas do grupo.
+            // Sem esta authority o combo de "Empresa" viria vazio para quem
+            // cadastra evento sem ter tela nenhuma do RH.
+            + "'communication/events:CONSULTAR')";
 
 
     private final CompanyService companyService;
@@ -36,6 +41,13 @@ public class CompanyController {
     @PreAuthorize("hasAuthority('rh/organizational-structure:INCLUIR')")
     public ResponseEntity<CompanyResponseDTO> create(@Valid @RequestBody CreateCompanyRequestDTO request) {
         return ResponseEntity.ok(companyService.create(request));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('rh/organizational-structure:ALTERAR')")
+    public ResponseEntity<CompanyResponseDTO> update(@PathVariable UUID id,
+                                                     @Valid @RequestBody CreateCompanyRequestDTO request) {
+        return ResponseEntity.ok(companyService.update(id, request));
     }
 
     @GetMapping
