@@ -405,4 +405,75 @@ class TalentBankServiceTest {
         // duas pontas discordam por um instante.
         assertThat(service.expurgarSeVencido(c.getId())).isFalse();
     }
+
+    // ─── Aviso de vencimento ─────────────────────────────────────────────────
+
+    private Candidato quemVenceEm(LocalDateTime expira) {
+        Candidato c = candidatoSalvo("maria@email.com");
+        c.registrarConsentimento(expira.minusMonths(RETENCAO), RETENCAO);
+        when(candidatoRepository.findById(c.getId())).thenReturn(Optional.of(c));
+        return c;
+    }
+
+    @Test
+    @DisplayName("Aviso sai para quem vence em ate 30 dias, com link, e fica marcado")
+    void avisaQuemVenceEmBreve() {
+        Candidato c = quemVenceEm(AGORA.plusDays(12));
+        when(tokenService.emitirPara(c)).thenReturn(Optional.of("tok"));
+
+        assertThat(service.avisarSeAVencer(c.getId())).isTrue();
+
+        verify(emailService).enviarAvisoDeExpiracao("maria@email.com", "Maria Souza",
+                AGORA.plusDays(12), Optional.of("tok"));
+        assertThat(c.getAvisoExpiracaoEm()).isEqualTo(AGORA);
+        verify(candidatoRepository).save(c);
+    }
+
+    /** O agendador roda todo dia: sem a marca, a mesma pessoa receberia 30 avisos. */
+    @Test
+    @DisplayName("Quem ja foi avisado neste ciclo nao recebe de novo")
+    void naoRepeteAviso() {
+        Candidato c = quemVenceEm(AGORA.plusDays(12));
+        c.registrarAvisoDeExpiracao(AGORA.minusDays(1));
+
+        assertThat(service.avisarSeAVencer(c.getId())).isFalse();
+
+        verify(emailService, never()).enviarAvisoDeExpiracao(anyString(), anyString(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Quem renovou entre a busca e o envio nao recebe o aviso")
+    void naoAvisaQuemRenovou() {
+        Candidato c = quemVenceEm(AGORA.plusMonths(RETENCAO));
+
+        assertThat(service.avisarSeAVencer(c.getId())).isFalse();
+
+        verify(emailService, never()).enviarAvisoDeExpiracao(anyString(), anyString(), any(), any());
+    }
+
+    /**
+     * O cooldown do link não pode pular a pessoa: a marca só é gravada depois
+     * do envio, então pular hoje significaria tentar amanhã — e o cooldown é de
+     * um minuto, mas quem pediu um link às 8h59 perderia o aviso do dia sem
+     * nenhum motivo.
+     */
+    @Test
+    @DisplayName("Com o link em cooldown, o aviso sai mesmo assim, sem token")
+    void avisoSemTokenNoCooldown() {
+        Candidato c = quemVenceEm(AGORA.plusDays(5));
+        when(tokenService.emitirPara(c)).thenReturn(Optional.empty());
+
+        assertThat(service.avisarSeAVencer(c.getId())).isTrue();
+
+        verify(emailService).enviarAvisoDeExpiracao("maria@email.com", "Maria Souza",
+                AGORA.plusDays(5), Optional.empty());
+    }
+
+    @Test
+    @DisplayName("Quem ja venceu e caso do expurgo, nao do aviso")
+    void vencidoNaoRecebeAviso() {
+        Candidato c = quemVenceEm(AGORA.minusMinutes(1));
+
+        assertThat(service.avisarSeAVencer(c.getId())).isFalse();
+    }
 }

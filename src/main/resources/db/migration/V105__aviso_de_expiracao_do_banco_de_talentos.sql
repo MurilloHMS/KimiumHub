@@ -1,0 +1,16 @@
+-- Banco de talentos: o aviso 30 dias antes de o prazo acabar.
+--
+-- A coluna guarda QUANDO o aviso saiu, e nao so SE saiu. O agendador roda todo
+-- dia, e sem ela a mesma pessoa receberia o aviso 30 vezes seguidas.
+--
+-- Ficou fora da V104 de proposito: coluna sem ninguem que a escreva e como se
+-- ganha coluna que ninguem sabe explicar. Ela chega junto com o agendador.
+--
+-- RENOVAR ZERA O AVISO. `Candidato.registrarConsentimento` volta a coluna para
+-- NULL, e isso nao e detalhe: sem o zero, quem renovou uma vez nunca mais seria
+-- avisado no fim do prazo seguinte — o aviso do primeiro ciclo continuaria
+-- valendo para o segundo.
+--
+-- Sem backfill: hoje nenhuma linha vence nos proximos 30 dias. As 21 linhas
+-- anteriores a 2026-09-11 nao tem expira_em, e as inscricoes novas vencem em 2028.
+ALTER TABLE candidatos ADD COLUMN aviso_expiracao_em TIMESTAMP;

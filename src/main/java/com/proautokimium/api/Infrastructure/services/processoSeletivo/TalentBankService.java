@@ -319,6 +319,60 @@ public class TalentBankService {
         return true;
     }
 
+    /** Com quantos dias de antecedência sai o aviso. É o prazo que o chip do site destaca. */
+    public static final int DIAS_DE_AVISO = 30;
+
+    /** Quem vence nos próximos {@value #DIAS_DE_AVISO} dias e ainda não foi avisado. */
+    public List<UUID> idsAVencerSemAviso() {
+        LocalDateTime agora = LocalDateTime.now(clock);
+        return candidatoRepository.aVencerSemAviso(agora, agora.plusDays(DIAS_DE_AVISO)).stream()
+                .map(Candidato::getId)
+                .toList();
+    }
+
+    /**
+     * Manda o aviso de que o prazo está acabando, uma vez por ciclo.
+     *
+     * <p>Mesmo desenho do expurgo: uma transação por pessoa, e a condição
+     * conferida de novo aqui dentro — quem renovou entre a busca e o envio já
+     * tem prazo novo e não deve receber "seus dados vencem".
+     *
+     * <p>O e-mail vai para a fila na mesma transação em que o aviso é marcado.
+     * Se o commit falhar, nem a marca nem a mensagem ficam, e amanhã tenta de
+     * novo; nunca sai um aviso sem marca, que se repetiria todo dia.
+     *
+     * @return {@code false} quando não havia mais o que avisar
+     */
+    @Transactional
+    public boolean avisarSeAVencer(UUID candidatoId) {
+        Optional<Candidato> encontrado = candidatoRepository.findById(candidatoId);
+        if (encontrado.isEmpty()) {
+            return false;
+        }
+
+        Candidato candidato = encontrado.get();
+        LocalDateTime agora = LocalDateTime.now(clock);
+        LocalDateTime expira = candidato.getExpiraEm();
+
+        boolean naFaixa = expira != null
+                && !expira.isBefore(agora)
+                && expira.isBefore(agora.plusDays(DIAS_DE_AVISO));
+
+        if (!naFaixa || candidato.getAvisoExpiracaoEm() != null || candidato.estaAnonimizado()) {
+            return false;
+        }
+
+        emailService.enviarAvisoDeExpiracao(
+                candidato.getEmail().getAddress(),
+                candidato.getNome(),
+                expira,
+                tokenService.emitirPara(candidato));
+
+        candidato.registrarAvisoDeExpiracao(agora);
+        candidatoRepository.save(candidato);
+        return true;
+    }
+
     // ─── Bastidores ──────────────────────────────────────────────────────────
 
     private void enviarLinkSePuder(Candidato candidato) {

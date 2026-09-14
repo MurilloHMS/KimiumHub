@@ -9,6 +9,9 @@ import org.thymeleaf.context.Context;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 
 /**
  * O e-mail do banco de talentos.
@@ -23,6 +26,8 @@ public class TalentBankEmailService {
 
     private static final String FROM = "noreply@envios.proautokimium.com.br";
     private static final String ACCESS_TEMPLATE = "html/talent-bank-access";
+    private static final String EXPIRING_TEMPLATE = "html/talent-bank-expiring";
+    private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final String ROTA_DO_SITE = "/meu-curriculo";
 
     private final TemplateEngine templateEngine;
@@ -60,6 +65,33 @@ public class TalentBankEmailService {
 
         emailQueueService.sendEmail(destinatario, FROM,
                 "Seus dados no Banco de Talentos da Proauto Kimium", html);
+    }
+
+    /**
+     * O aviso de que o prazo está acabando.
+     *
+     * <p>O link já entra renovável: abrir e marcar a autorização de novo é a
+     * renovação inteira. Sem token — quando o cooldown recusou emitir um —, o
+     * botão leva para {@code /meu-curriculo}, onde a pessoa pede o link com o
+     * próprio e-mail. O aviso sai do mesmo jeito: pular a pessoa por causa do
+     * cooldown a deixaria sem aviso nenhum, porque a coluna de controle só é
+     * gravada depois do envio.
+     *
+     * @param token vazio quando não houve token novo
+     */
+    public void enviarAvisoDeExpiracao(String destinatario, String nomeCompleto,
+                                       LocalDateTime expiraEm, Optional<String> token) {
+        Context ctx = new Context(LocaleContextHolder.getLocale());
+        ctx.setVariable("primeiroNome", primeiroNomeDe(nomeCompleto));
+        ctx.setVariable("dataDeExpiracao", expiraEm.format(DATA_BR));
+        ctx.setVariable("ttlHoras", TalentBankAccessTokenService.TOKEN_TTL_HORAS);
+        ctx.setVariable("comToken", token.isPresent());
+        ctx.setVariable("actionUrl", token.map(this::linkPara).orElse(websiteBaseUrl + ROTA_DO_SITE));
+
+        String html = templateEngine.process(EXPIRING_TEMPLATE, ctx);
+
+        emailQueueService.sendEmail(destinatario, FROM,
+                "Seus dados no Banco de Talentos vencem em " + expiraEm.format(DATA_BR), html);
     }
 
     /**

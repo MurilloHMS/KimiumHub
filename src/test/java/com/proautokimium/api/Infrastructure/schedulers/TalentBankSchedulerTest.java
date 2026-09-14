@@ -71,12 +71,26 @@ class TalentBankSchedulerTest {
      * UTC-0, no meio do expediente.
      */
     @Test
-    @DisplayName("Os dois agendamentos declaram o fuso de Sao Paulo")
+    @DisplayName("Os tres agendamentos declaram o fuso de Sao Paulo")
     void fusoDeclarado() throws Exception {
-        for (String metodo : List.of("limparTokens", "expurgarVencidos")) {
+        for (String metodo : List.of("limparTokens", "expurgarVencidos", "avisarQuemVenceEmBreve")) {
             Scheduled agenda = TalentBankScheduler.class.getMethod(metodo).getAnnotation(Scheduled.class);
             assertThat(agenda).as(metodo).isNotNull();
             assertThat(agenda.zone()).as(metodo).isEqualTo("America/Sao_Paulo");
         }
+    }
+
+    @Test
+    @DisplayName("Uma falha no aviso nao impede os candidatos seguintes")
+    void falhaNoAvisoNaoInterrompe() {
+        UUID a = UUID.randomUUID();
+        UUID b = UUID.randomUUID();
+        when(talentBankService.idsAVencerSemAviso()).thenReturn(List.of(a, b));
+        when(talentBankService.avisarSeAVencer(a)).thenThrow(new IllegalStateException("smtp"));
+        when(talentBankService.avisarSeAVencer(b)).thenReturn(true);
+
+        scheduler.avisarQuemVenceEmBreve();
+
+        verify(talentBankService).avisarSeAVencer(b);
     }
 }

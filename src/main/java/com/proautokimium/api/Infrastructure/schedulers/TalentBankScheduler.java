@@ -83,4 +83,33 @@ public class TalentBankScheduler {
         logger.info("[Banco de talentos] prazo vencido: {} expurgado(s), {} falha(s), de {} encontrado(s)",
                 expurgados, falhas, vencidos.size());
     }
+
+    /**
+     * Todo dia às 9h: o aviso de 30 dias. Em horário de gente, e não de
+     * madrugada — é um e-mail que pede uma ação, e o link dentro dele vale 24h.
+     */
+    @Scheduled(cron = "0 0 9 * * *", zone = FUSO)
+    public void avisarQuemVenceEmBreve() {
+        List<UUID> aVencer = talentBankService.idsAVencerSemAviso();
+        if (aVencer.isEmpty()) {
+            return;
+        }
+
+        int avisados = 0;
+        int falhas = 0;
+
+        for (UUID id : aVencer) {
+            try {
+                if (talentBankService.avisarSeAVencer(id)) {
+                    avisados++;
+                }
+            } catch (Exception e) {
+                falhas++;
+                logger.error("[Banco de talentos] falha ao avisar o candidato {}", id, e);
+            }
+        }
+
+        logger.info("[Banco de talentos] aviso de vencimento: {} enviado(s), {} falha(s), de {} encontrado(s)",
+                avisados, falhas, aVencer.size());
+    }
 }

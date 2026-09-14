@@ -39,4 +39,17 @@ public interface CandidatoRepository extends JpaRepository<Candidato, UUID> {
         "select c from Candidato c where c.expiraEm is not null and c.expiraEm < :agora")
     java.util.List<Candidato> vencidosEm(
         @org.springframework.data.repository.query.Param("agora") java.time.LocalDateTime agora);
+
+    /**
+     * Quem vence entre {@code agora} e {@code limite} e ainda não foi avisado.
+     *
+     * <p>Não precisa excluir anonimizado por extenso: a anonimização zera
+     * {@code expira_em}, e sem data a linha não entra na faixa.
+     */
+    @org.springframework.data.jpa.repository.Query(
+        "select c from Candidato c where c.expiraEm is not null " +
+        "and c.expiraEm >= :agora and c.expiraEm < :limite and c.avisoExpiracaoEm is null")
+    java.util.List<Candidato> aVencerSemAviso(
+        @org.springframework.data.repository.query.Param("agora") java.time.LocalDateTime agora,
+        @org.springframework.data.repository.query.Param("limite") java.time.LocalDateTime limite);
 }

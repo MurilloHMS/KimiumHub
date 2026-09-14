@@ -126,4 +126,32 @@ class CandidatoConsentimentoTest {
                 .as("lapide fixa colide no indice unico na segunda exclusao")
                 .isNotEqualTo(segundo.getEmail().getAddress());
     }
+
+    /**
+     * O aviso vale por ciclo. Sem zerar na renovação, quem renova uma vez nunca
+     * mais é avisado: o aviso do primeiro prazo continuaria contando no segundo.
+     */
+    @Test
+    @DisplayName("Renovar o consentimento zera o aviso de vencimento")
+    void renovarZeraAviso() throws Exception {
+        Candidato c = candidato();
+        c.registrarConsentimento(AGORA.minusMonths(23), 24);
+        c.registrarAvisoDeExpiracao(AGORA);
+
+        c.registrarConsentimento(AGORA.plusDays(1), 24);
+
+        assertThat(c.getAvisoExpiracaoEm()).isNull();
+    }
+
+    @Test
+    @DisplayName("Anonimizar zera o aviso de vencimento")
+    void anonimizarZeraAviso() throws Exception {
+        Candidato c = candidato();
+        c.registrarConsentimento(AGORA.minusMonths(23), 24);
+        c.registrarAvisoDeExpiracao(AGORA);
+
+        c.anonimizar(AGORA);
+
+        assertThat(c.getAvisoExpiracaoEm()).isNull();
+    }
 }
