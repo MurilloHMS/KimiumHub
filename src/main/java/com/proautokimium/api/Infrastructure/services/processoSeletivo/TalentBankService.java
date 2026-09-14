@@ -266,6 +266,113 @@ public class TalentBankService {
                 .orElseThrow(CandidatoNotFoundException::new));
     }
 
+    // ─── Agendador ───────────────────────────────────────────────────────────
+
+    /**
+     * Quem venceu, como ids, para o {@code TalentBankScheduler} tratar <b>um por
+     * vez</b>.
+     *
+     * <p>Ids e não entidades: cada expurgo abre a própria transação e relê a
+     * linha, e uma entidade carregada aqui fora estaria desanexada lá dentro.
+     */
+    public List<UUID> idsVencidos() {
+        return candidatoRepository.vencidosEm(LocalDateTime.now(clock)).stream()
+                .map(Candidato::getId)
+                .toList();
+    }
+
+    /**
+     * O fim do prazo: a mesma rotina do "apagar meus dados".
+     *
+     * <p><b>Uma transação por pessoa</b>, e é por isso que o laço mora no
+     * agendador e não aqui. Com o laço dentro de um {@code @Transactional} só, um
+     * arquivo que falhasse no quarto candidato desfaria os três anteriores — e
+     * cada madrugada tentaria de novo os mesmos, travando sempre no mesmo.
+     *
+     * <p><b>O prazo é conferido de novo aqui dentro.</b> Entre a busca e esta
+     * chamada a pessoa pode ter aberto o link e renovado; apagar com a lista
+     * velha seria apagar quem acabou de dizer que quer ficar.
+     *
+     * <p>Sobre o arquivo: {@code excluirOuAnonimizar} o apaga antes do commit.
+     * Se o commit falhar depois disso, a linha continua vencida e sem arquivo, e
+     * a madrugada seguinte termina o serviço — o {@code delete} do storage é
+     * {@code deleteIfExists}, então repetir não estoura.
+     *
+     * @return {@code false} quando não havia mais o que expurgar
+     */
+    @Transactional
+    public boolean expurgarSeVencido(UUID candidatoId) throws IOException {
+        Optional<Candidato> encontrado = candidatoRepository.findById(candidatoId);
+        if (encontrado.isEmpty()) {
+            return false;
+        }
+
+        Candidato candidato = encontrado.get();
+        LocalDateTime agora = LocalDateTime.now(clock);
+
+        // Mesma condição da consulta, por extenso: sem data nunca é vencido.
+        if (candidato.getExpiraEm() == null || !candidato.getExpiraEm().isBefore(agora)) {
+            return false;
+        }
+
+        excluirOuAnonimizar(candidato);
+        return true;
+    }
+
+    /** Com quantos dias de antecedência sai o aviso. É o prazo que o chip do site destaca. */
+    public static final int DIAS_DE_AVISO = 30;
+
+    /** Quem vence nos próximos {@value #DIAS_DE_AVISO} dias e ainda não foi avisado. */
+    public List<UUID> idsAVencerSemAviso() {
+        LocalDateTime agora = LocalDateTime.now(clock);
+        return candidatoRepository.aVencerSemAviso(agora, agora.plusDays(DIAS_DE_AVISO)).stream()
+                .map(Candidato::getId)
+                .toList();
+    }
+
+    /**
+     * Manda o aviso de que o prazo está acabando, uma vez por ciclo.
+     *
+     * <p>Mesmo desenho do expurgo: uma transação por pessoa, e a condição
+     * conferida de novo aqui dentro — quem renovou entre a busca e o envio já
+     * tem prazo novo e não deve receber "seus dados vencem".
+     *
+     * <p>O e-mail vai para a fila na mesma transação em que o aviso é marcado.
+     * Se o commit falhar, nem a marca nem a mensagem ficam, e amanhã tenta de
+     * novo; nunca sai um aviso sem marca, que se repetiria todo dia.
+     *
+     * @return {@code false} quando não havia mais o que avisar
+     */
+    @Transactional
+    public boolean avisarSeAVencer(UUID candidatoId) {
+        Optional<Candidato> encontrado = candidatoRepository.findById(candidatoId);
+        if (encontrado.isEmpty()) {
+            return false;
+        }
+
+        Candidato candidato = encontrado.get();
+        LocalDateTime agora = LocalDateTime.now(clock);
+        LocalDateTime expira = candidato.getExpiraEm();
+
+        boolean naFaixa = expira != null
+                && !expira.isBefore(agora)
+                && expira.isBefore(agora.plusDays(DIAS_DE_AVISO));
+
+        if (!naFaixa || candidato.getAvisoExpiracaoEm() != null || candidato.estaAnonimizado()) {
+            return false;
+        }
+
+        emailService.enviarAvisoDeExpiracao(
+                candidato.getEmail().getAddress(),
+                candidato.getNome(),
+                expira,
+                tokenService.emitirPara(candidato));
+
+        candidato.registrarAvisoDeExpiracao(agora);
+        candidatoRepository.save(candidato);
+        return true;
+    }
+
     // ─── Bastidores ──────────────────────────────────────────────────────────
 
     private void enviarLinkSePuder(Candidato candidato) {

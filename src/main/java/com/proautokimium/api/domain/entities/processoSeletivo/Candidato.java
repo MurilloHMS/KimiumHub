@@ -53,6 +53,15 @@ public class Candidato extends com.proautokimium.api.domain.abstractions.Entity{
     @Column(name = "anonimizado_em")
     private LocalDateTime anonimizadoEm;
 
+    /**
+     * Quando saiu o aviso de que o prazo está acabando (V105).
+     *
+     * <p>Volta a {@code null} a cada renovação: é o que faz o aviso valer por
+     * ciclo, e não uma vez na vida.
+     */
+    @Column(name = "aviso_expiracao_em")
+    private LocalDateTime avisoExpiracaoEm;
+
     @Column(name = "atualizado_em")
     private LocalDateTime atualizadoEm;
 
@@ -73,7 +82,14 @@ public class Candidato extends com.proautokimium.api.domain.abstractions.Entity{
     public void registrarConsentimento(LocalDateTime agora, int mesesDeRetencao) {
         this.consentimentoEm = agora;
         this.expiraEm = agora.plusMonths(mesesDeRetencao);
+        // Prazo novo, aviso novo. Sem isto, quem renova uma vez nunca mais é
+        // avisado: o aviso do ciclo anterior continuaria contando.
+        this.avisoExpiracaoEm = null;
         this.atualizadoEm = agora;
+    }
+
+    public void registrarAvisoDeExpiracao(LocalDateTime agora) {
+        this.avisoExpiracaoEm = agora;
     }
 
     public boolean consentimentoValidoEm(LocalDateTime agora) {
@@ -106,6 +122,7 @@ public class Candidato extends com.proautokimium.api.domain.abstractions.Entity{
         this.areaInteresse = null;
         this.consentimentoEm = null;
         this.expiraEm = null;
+        this.avisoExpiracaoEm = null;
         this.anonimizadoEm = agora;
         this.atualizadoEm = agora;
     }
