@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -37,6 +38,9 @@ public class TalentBankAccessTokenService {
      * endereço que esteja na base.
      */
     public static final int COOLDOWN_SEGUNDOS = 60;
+
+    /** Quanto tempo um token vencido ou revogado continua respondendo 410. */
+    public static final int DIAS_ANTES_DE_APAGAR = 7;
 
     private final TalentBankAccessTokenRepository repository;
     private final CryptoTokenService cryptoTokenService;
@@ -117,6 +121,25 @@ public class TalentBankAccessTokenService {
     @Transactional
     public void apagarTodosDe(Candidato candidato) {
         repository.deleteAll(repository.findAllByCandidato(candidato));
+    }
+
+    /**
+     * A limpeza de hora em hora.
+     *
+     * <p><b>O token vencido fica sete dias antes de sair</b>, e não sai no
+     * minuto em que expira. Apagado na hora, quem abre um link de ontem cairia
+     * em "link não encontrado" (404) em vez de "este link expirou" (410) — e a
+     * primeira frase manda a pessoa conferir se copiou o endereço, que é o
+     * conselho errado.
+     *
+     * @return quantos tokens saíram
+     */
+    @Transactional
+    public int limparAntigos() {
+        LocalDateTime limite = LocalDateTime.now(clock).minusDays(DIAS_ANTES_DE_APAGAR);
+        List<TalentBankAccessToken> antigos = repository.paraLimpar(limite, limite);
+        repository.deleteAll(antigos);
+        return antigos.size();
     }
 
     /**

@@ -344,4 +344,65 @@ class TalentBankServiceTest {
         assertThat(c.getEmail().getAddress()).endsWith("@removido.invalid");
         verify(storageService).delete("abc.pdf");
     }
+
+    // ─── Expurgo do agendador ────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("Expurgo apaga quem venceu e nao tem candidatura")
+    void expurgaVencido() throws Exception {
+        Candidato c = candidatoSalvo("maria@email.com");
+        c.setPathCurriculo("abc.pdf");
+        c.registrarConsentimento(AGORA.minusMonths(RETENCAO).minusDays(1), RETENCAO);
+        when(candidatoRepository.findById(c.getId())).thenReturn(Optional.of(c));
+        when(candidaturaRepository.existsByCandidato(c)).thenReturn(false);
+
+        assertThat(service.expurgarSeVencido(c.getId())).isTrue();
+
+        verify(candidatoRepository).delete(c);
+        verify(storageService).delete("abc.pdf");
+    }
+
+    /**
+     * Entre a busca da madrugada e o expurgo, a pessoa pode ter aberto o link e
+     * renovado. A lista velha não pode apagar quem acabou de pedir para ficar.
+     */
+    @Test
+    @DisplayName("Expurgo confere o prazo de novo e poupa quem renovou no meio do caminho")
+    void poupaQuemRenovou() throws Exception {
+        Candidato c = candidatoSalvo("maria@email.com");
+        c.registrarConsentimento(AGORA.minusHours(1), RETENCAO);
+        when(candidatoRepository.findById(c.getId())).thenReturn(Optional.of(c));
+
+        assertThat(service.expurgarSeVencido(c.getId())).isFalse();
+
+        verify(candidatoRepository, never()).delete(any());
+        verify(storageService, never()).delete(anyString());
+    }
+
+    /**
+     * Sem consentimento registrado não há prazo — e não há expurgo. São as
+     * pessoas de antes de 2026-09-11, que não disseram sim nem não.
+     */
+    @Test
+    @DisplayName("Expurgo nao toca em quem nunca teve prazo")
+    void naoTocaSemPrazo() throws Exception {
+        Candidato c = candidatoSalvo("maria@email.com");
+        when(candidatoRepository.findById(c.getId())).thenReturn(Optional.of(c));
+
+        assertThat(service.expurgarSeVencido(c.getId())).isFalse();
+
+        verify(candidatoRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("No instante exato do vencimento, ainda nao expurga")
+    void instanteExato() throws Exception {
+        Candidato c = candidatoSalvo("maria@email.com");
+        c.registrarConsentimento(AGORA.minusMonths(RETENCAO), RETENCAO);
+        when(candidatoRepository.findById(c.getId())).thenReturn(Optional.of(c));
+
+        // A consulta usa "expira_em < agora": o mesmo corte aqui dentro, ou as
+        // duas pontas discordam por um instante.
+        assertThat(service.expurgarSeVencido(c.getId())).isFalse();
+    }
 }
