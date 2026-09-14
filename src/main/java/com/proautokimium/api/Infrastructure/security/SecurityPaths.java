@@ -15,6 +15,9 @@ public final class SecurityPaths {
             "/upload/images/**",
             "/upload/equipment/images/**",
             "/upload/profile/images/**",
+            // Capa de evento e foto de palestrante: `<img>` não manda JWT. Só
+            // imagem conferida pelos bytes, com nome UUID (EventImageStorageService).
+            "/upload/events/**",
             "/api/faq/public",
             "/api/vaga/areas",
             // Um segmento, nunca `/**`: o token e a chave do dossie pessoal de

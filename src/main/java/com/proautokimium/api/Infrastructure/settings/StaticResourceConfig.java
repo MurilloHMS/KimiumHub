@@ -19,6 +19,9 @@ public class StaticResourceConfig implements WebMvcConfigurer {
     @Value("${storage.signature.path}")
     private String signaturePath;
 
+    @Value("${storage.events.image.path}")
+    private String eventsPath;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry){
         registry.addResourceHandler("/upload/images/**")
@@ -32,5 +35,8 @@ public class StaticResourceConfig implements WebMvcConfigurer {
 
         registry.addResourceHandler("/upload/signature/**")
                 .addResourceLocations("file:" + signaturePath + "/");
+
+        registry.addResourceHandler("/upload/events/**")
+                .addResourceLocations("file:" + eventsPath + "/");
     }
 }

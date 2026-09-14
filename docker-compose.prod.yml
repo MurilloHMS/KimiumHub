@@ -56,6 +56,7 @@ services:
       # em silêncio. O fundo da assinatura de e-mail some e ninguém liga o
       # sumiço à subida de versão.
       - /var/proauto/upload/signature:/app/upload/signature
+      - /var/proauto/upload/events:/app/upload/events
       - /var/proauto/funcionario/holerite:/app/funcionario/holerite
       - /var/proauto/funcionario/documentos:/app/funcionario/documentos
       - /var/proauto/funcionario/reembolsos:/app/funcionario/reembolsos
