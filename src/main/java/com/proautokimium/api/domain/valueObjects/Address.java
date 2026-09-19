@@ -8,15 +8,17 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.StringJoiner;
 
 /**
  * Um endereço brasileiro, em partes.
  *
  * <p>Embutido em {@code companies}, {@code company_events} e {@code event_talks},
- * com as mesmas colunas {@code address_*} nas três (V106). Em partes e não numa
- * linha só: o mapa e os apps de rota procuram pelo texto montado em
- * {@link #formatted()}, mas recibo, holerite e nota vão querer cada parte.
+ * com as mesmas colunas {@code address_*} nas três (V106, mais as coordenadas
+ * na V107). Em partes e não numa linha só: o mapa e os apps de rota procuram
+ * pelo texto montado em {@link #formatted()}, mas recibo, holerite e nota vão
+ * querer cada parte.
  *
  * <p><b>Todo campo é opcional aqui.</b> Quem exige o mínimo para um endereço
  * servir é quem usa — a palestra fora da empresa exige rua e cidade; a empresa
@@ -51,11 +53,46 @@ public class Address {
     @Column(name = "address_state", length = 2)
     private String state;
 
+    /**
+     * O ponto no mapa, quando o geocodificador achou — ver {@link #hasCoordinates()}.
+     *
+     * <p>Sempre as duas ou nenhuma: é o CHECK da V107.
+     */
+    @Column(name = "address_latitude", precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(name = "address_longitude", precision = 9, scale = 6)
+    private BigDecimal longitude;
+
+    /** O endereço sem ponto no mapa — como era antes da V107. */
+    public Address(String zipCode, String street, String number, String complement,
+                   String district, String city, String state) {
+        this(zipCode, street, number, complement, district, city, state, null, null);
+    }
+
     /** Sem rua e sem cidade não há o que mandar para o mapa. */
     public boolean isUsable() {
         return hasText(street) && hasText(city);
     }
 
+    /**
+     * Se dá para apontar o ponto exato.
+     *
+     * <p>Quem pergunta é o site: o Uber só aceita destino por coordenada, então
+     * o botão dele só aparece quando isto é verdadeiro. Waze, Google Maps e
+     * Apple Maps procuram pelo texto de {@link #formatted()} e não dependem
+     * disto.
+     */
+    public boolean hasCoordinates() {
+        return latitude != null && longitude != null;
+    }
+
+    /**
+     * Vazio é não ter <b>texto</b> nenhum.
+     *
+     * <p>Coordenada sozinha não conta: sem rua e sem cidade não há endereço para
+     * mostrar nem para guardar, e um par de números órfão só encheria a tabela.
+     */
     public boolean isEmpty() {
         return !hasText(zipCode) && !hasText(street) && !hasText(number) && !hasText(complement)
                 && !hasText(district) && !hasText(city) && !hasText(state);
