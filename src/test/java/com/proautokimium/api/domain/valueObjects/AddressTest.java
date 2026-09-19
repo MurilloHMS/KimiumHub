@@ -4,6 +4,8 @@ import com.proautokimium.api.Application.DTOs.address.AddressDTO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AddressTest {
@@ -46,5 +48,39 @@ class AddressTest {
     void usavel() {
         assertThat(new Address(null, "Av. Colombo", null, null, null, null, null).isUsable()).isFalse();
         assertThat(new Address(null, null, null, null, null, "Maringá", null).isUsable()).isFalse();
+    }
+
+    @Test
+    @DisplayName("o ponto do mapa vai e volta inteiro")
+    void coordenadas() {
+        AddressDTO enviado = new AddressDTO(null, "R. Néo Alves Martins", "2100", null, "Zona 01", "Maringá", "PR",
+                new BigDecimal("-23.422847"), new BigDecimal("-51.932050"), null);
+
+        Address a = enviado.toAddress();
+        assertThat(a.hasCoordinates()).isTrue();
+
+        AddressDTO devolvido = AddressDTO.from(a);
+        assertThat(devolvido.latitude()).isEqualByComparingTo("-23.422847");
+        assertThat(devolvido.longitude()).isEqualByComparingTo("-51.932050");
+    }
+
+    @Test
+    @DisplayName("meia coordenada e descartada, e nao gravada sozinha")
+    void meiaCoordenada() {
+        // O banco recusaria (CHECK da V107), mas o 500 sairia lá de dentro, sem
+        // dizer qual campo. Aqui o endereço só perde o ponto e segue salvando.
+        Address a = new AddressDTO(null, "R. Néo Alves Martins", "2100", null, null, "Maringá", "PR",
+                new BigDecimal("-23.422847"), null, null).toAddress();
+
+        assertThat(a.hasCoordinates()).isFalse();
+        assertThat(a.getLatitude()).isNull();
+        assertThat(a.isUsable()).isTrue();
+    }
+
+    @Test
+    @DisplayName("coordenada sem endereco nenhum nao cria um endereco")
+    void coordenadaOrfaVirandoNulo() {
+        assertThat(new AddressDTO(null, null, null, null, null, null, null,
+                new BigDecimal("-23.422847"), new BigDecimal("-51.932050"), null).toAddress()).isNull();
     }
 }
