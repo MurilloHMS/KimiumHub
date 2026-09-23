@@ -11,13 +11,13 @@
 #   TAG=2.42.4 docker compose -p api --env-file /root/api/.env \
 #     -f docker-compose.prod.yml up -d
 services:
-  proauto-api:
+  kimium-api:
     # **Sempre a tag do git, nunca `latest`.** É o que responde "o que está
     # rodando" e o que torna rollback um `up` com outro número. Sem valor
     # padrão de propósito: subir sem dizer a versão tem que falhar, não
     # adivinhar.
-    image: proauto-api:${TAG:?defina TAG com a versão a subir}
-    container_name: proauto-api
+    image: kimium-api:${TAG:?defina TAG com a versao a subir}
+    container_name: kimium-api
     ports:
       - "8080:8080"
 
@@ -79,8 +79,8 @@ services:
       start_period: 90s
 
     networks:
-      - proauto-net
+      - kimium-network
 
 networks:
-  proauto-net:
+  kimium-network:
     external: true

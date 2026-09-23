@@ -39,8 +39,16 @@ pipeline {
   }
 
   environment {
-    APP     = 'proauto-api'
+    APP     = 'kimium-api'
     COMPOSE = 'docker-compose.prod.yml'
+
+    // A rede e `external: true` nos dois composes: o do banco e o da API. E o
+    // que faz a API resolver `kimium_db` por DNS, e o que permite os dois
+    // subirem por arquivos diferentes e ainda se enxergarem.
+    //
+    // Externa quer dizer que o compose NAO a cria -- so se liga. Por isso ela
+    // e pre-requisito de ambiente, e esta na conferencia do terreno.
+    REDE    = 'kimium-network'
 
     // O `.env` de produção, no host. Precisa estar montado no container do
     // Jenkins neste mesmo caminho — ver a verificação no primeiro estágio.
@@ -88,6 +96,14 @@ pipeline {
 
           docker compose version >/dev/null 2>&1 || {
             echo "ERRO: falta o plugin compose v2 (docker compose, com espaco)."
+            exit 1
+          }
+
+          docker network inspect "$REDE" >/dev/null 2>&1 || {
+            echo "ERRO: a rede $REDE nao existe nesta maquina."
+            echo "      Os dois composes a declaram como external, entao o"
+            echo "      Docker nao a cria sozinho. Uma vez, no host:"
+            echo "        docker network create $REDE"
             exit 1
           }
 
@@ -158,12 +174,12 @@ pipeline {
         sh '''
           resposta=""
           for i in $(seq 1 40); do
-            if ! docker ps --format '{{.Names}}' | grep -qx proauto-api; then
-              echo "O container proauto-api nao esta rodando."
+            if ! docker ps --format '{{.Names}}' | grep -qx "$APP"; then
+              echo "O container $APP nao esta rodando."
               exit 1
             fi
 
-            resposta=$(docker exec proauto-api \
+            resposta=$(docker exec "$APP" \
               wget -qO- http://localhost:8080/actuator/health 2>&1 || true)
 
             case "$resposta" in
@@ -178,7 +194,7 @@ pipeline {
           echo "Resposta vazia costuma ser 401: o Spring Security esta"
           echo "bloqueando /actuator/health, e ele precisa ser publico."
           echo "--- ultimas linhas da API ---"
-          docker logs --tail 40 proauto-api 2>&1 || true
+          docker logs --tail 40 "$APP" 2>&1 || true
           exit 1
         '''
       }
