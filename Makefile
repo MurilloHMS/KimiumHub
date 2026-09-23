@@ -1,9 +1,9 @@
 .PHONY: install-libs build run deploy restart stop remove logs
 
-CONTAINER=proauto-api:local
+CONTAINER=kimium-api:local
 PORT=5007:5007
-NAME=proauto-api
-NETWORK=api_postgres-compose-network
+NAME=kimium-api
+NETWORK=kimium-network
 VOLUME=/var/proauto/curriculos:/app/curriculos
 IMAGE_VOLUME=/var/proauto/upload/images:/app/upload/images
 ENV=.env

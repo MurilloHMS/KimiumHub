@@ -1,8 +1,8 @@
 services:
   api:
     build: .
-    image: proauto-api:local
-    container_name: proauto-api
+    image: kimium-api:local
+    container_name: kimium-api
     ports:
       - "5007:5007"
     env_file:
@@ -27,7 +27,9 @@ services:
     networks:
       - db-network
 
+# A mesma rede do banco. No seu micro ela tambem precisa existir:
+#     docker network create kimium-network
 networks:
   db-network:
     external: true
-    name: api_postgres-compose-network
+    name: kimium-network
