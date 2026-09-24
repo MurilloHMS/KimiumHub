@@ -18,10 +18,13 @@ public class FuelSupplyService {
 
 	@Autowired
 	FuelSupplyRepository repository;
-	
+
+	@Autowired
+	FuelSupplyWriterService writer;
+
 	@Transactional
 	public ResponseEntity<?> createFuelSupply(FuelSupplyDTO dto) {
-		
+
 		try {
 			FuelSupply fs = new FuelSupply(dto);
 			repository.save(fs);
@@ -32,22 +35,22 @@ public class FuelSupplyService {
 					.body("Ocorreu um erro ao criar o abastecimento. Error: " + e.getMessage());
 		}
 	}
-	
-	@Transactional
-	public ResponseEntity<?> insertByRange(List<FuelSupply> fuelList){
-		try {		
-			repository.saveAll(fuelList);
-	        return ResponseEntity.ok("Abastecimentos inseridos com sucesso!");
-	    } catch (Exception e) {
-	        return ResponseEntity.internalServerError()
-	            .body("Erro ao inserir abastecimentos: " + e.getMessage());
-	    }
-	}
 
 	public List<FuelSupplyDTO> listByPeriod(LocalDate start, LocalDate end) {
 		return repository.findByFuelSupplyDateBetween(start, end)
 				.stream()
 				.map(FuelSupply::toDto)
 				.toList();
+	}
+
+	/**
+	 * Os abastecimentos do periodo numa planilha, no mesmo formato do modelo.
+	 *
+	 * <p>Sai importavel de proposito: exportar, corrigir uma linha no Excel e
+	 * reenviar e o caminho de conserto quando o erro so aparece depois de
+	 * gravado.
+	 */
+	public byte[] exportByPeriod(LocalDate start, LocalDate end) throws Exception {
+		return writer.write(repository.findByFuelSupplyDateBetween(start, end));
 	}
 }

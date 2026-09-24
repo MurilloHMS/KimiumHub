@@ -35,8 +35,19 @@ public abstract class ExcelReader<T> {
 	}
 
 	public List<T> getDataByExcel(InputStream stream) throws Exception {
+		return readRows(stream).stream().map(ReadRow::valor).toList();
+	}
 
-		List<T> data = new ArrayList<>();
+	/**
+	 * O mesmo percurso, guardando de que linha cada objeto saiu.
+	 *
+	 * <p>A leitura é uma só — o {@code getDataByExcel} é esta aqui com o número
+	 * jogado fora. Duas travessias separadas divergiriam no dia em que uma
+	 * ganhasse uma regra que a outra não tem.
+	 */
+	public List<ReadRow<T>> readRows(InputStream stream) throws Exception {
+
+		List<ReadRow<T>> data = new ArrayList<>();
 
 		try (XSSFWorkbook workbook = new XSSFWorkbook(stream)) {
 
@@ -50,7 +61,9 @@ public abstract class ExcelReader<T> {
 					continue;
 				}
 
-				data.add(mapRow(row));
+				// +1 porque o POI conta de 0 e o Excel conta de 1: a linha 0 do
+				// POI e a linha 1 da planilha sao a mesma.
+				data.add(new ReadRow<>(i + 1, mapRow(row)));
 			}
 		}
 
