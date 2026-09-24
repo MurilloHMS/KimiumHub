@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.partner;
 
 import com.proautokimium.api.Infrastructure.abstractions.excel.ExcelReader;
+import com.proautokimium.api.Infrastructure.abstractions.excel.SheetHeader;
 import org.springframework.stereotype.Service;
 
 import com.proautokimium.api.domain.entities.Customer;
@@ -17,7 +18,7 @@ public class PartnerReaderService extends ExcelReader<Customer> {
 	}
 
 	@Override
-	protected Customer mapRow(Row row) {
+	protected Customer mapRow(Row row, SheetHeader header) {
 		Customer customer = new Customer();
 
 		customer.setCodParceiro(getString(row, 0));

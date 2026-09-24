@@ -4,6 +4,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.springframework.stereotype.Service;
 
 import com.proautokimium.api.Infrastructure.abstractions.excel.ExcelReader;
+import com.proautokimium.api.Infrastructure.abstractions.excel.SheetHeader;
 import com.proautokimium.api.domain.entities.prostock.ProductInventory;
 
 @Service
@@ -15,7 +16,7 @@ public class InventoryProductExcelReaderService extends ExcelReader<ProductInven
 	}
 
 	@Override
-	protected ProductInventory mapRow(Row row){
+	protected ProductInventory mapRow(Row row, SheetHeader header){
 		ProductInventory product = new ProductInventory();
 
 		product.setSystemCode(getString(row, 0));

@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.machine;
 
 import com.proautokimium.api.Infrastructure.abstractions.excel.ExcelReader;
+import com.proautokimium.api.Infrastructure.abstractions.excel.SheetHeader;
 import com.proautokimium.api.domain.models.MachineContract;
 import org.apache.poi.ss.usermodel.Row;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,7 @@ public class MachineContractService extends ExcelReader<MachineContract> {
     }
 
     @Override
-    protected MachineContract mapRow(Row row) {
+    protected MachineContract mapRow(Row row, SheetHeader header) {
 
         MachineContract contract = new MachineContract();
 

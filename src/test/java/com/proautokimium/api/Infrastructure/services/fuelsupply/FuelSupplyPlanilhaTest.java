@@ -14,25 +14,21 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 /**
- * O modelo que a gente entrega e o importador que lê de volta.
+ * O modelo que a gente entrega e o importador que le de volta.
  *
- * <p><b>O defeito que este arquivo existe para impedir.</b> O
- * {@code FuelSupplyWriterService} anuncia os cabeçalhos <i>por nome</i>, e o
- * {@code FuelSupplyReaderService} lê os valores <i>por índice</i>
- * ({@code getString(row, 0)}, {@code getString(row, 3)}…). Os dois estão
- * acoplados pela <b>posição</b>, e nada no compilador liga um ao outro.
+ * <p><b>O defeito que este arquivo existe para impedir.</b> O leitor casava
+ * coluna por <i>posicao</i> ({@code getString(row, 3)}), e a posicao e do
+ * arquivo, nao nossa. Em 2026-09-24 a planilha da fornecedora chegou <b>sem a
+ * coluna Cidade</b>, que o nosso modelo tem: da terceira coluna em diante tudo
+ * andou uma casa, a UF passou a ler a placa, a placa passou a ler o hodometro,
+ * e o combustivel caiu onde se esperava numero.
  *
- * <p>Duas colunas do modelo não são lidas por ninguém: <b>Cidade</b> (2) e
- * <b>Custo por Km</b> (10) — não existe campo para elas em {@code FuelSupply}.
- * Tirá-las de {@code getHeaders()} parece limpeza inofensiva, e desloca todas
- * as colunas seguintes: quem preencher o modelo novo põe a UF onde o leitor
- * espera a placa, e <b>toda importação vira lixo em silêncio</b>, sem erro e
- * sem linha recusada.
- *
- * <p>Por isso o teste escreve os valores procurando a coluna <b>pelo nome do
- * cabeçalho</b>, e não por número: é o que faz o desalinhamento aparecer.
+ * <p>Agora o leitor casa pelo <b>nome do cabecalho</b>, com apelidos para os
+ * dois arquivos que circulam aqui. Os testes cobrem os dois: o nosso modelo
+ * preenchido a mao, e a exportacao da fornecedora como ela chega.
  */
 class FuelSupplyPlanilhaTest {
 
@@ -107,21 +103,266 @@ class FuelSupplyPlanilhaTest {
     }
 
     /**
-     * As duas colunas sem destino são parte do contrato: elas existem para
-     * manter as outras nas posições que o leitor espera. Documentado em teste
-     * porque, sem isso, elas parecem sobra.
+     * O modelo continua com as 13 colunas que as pessoas ja conhecem.
+     *
+     * <p>Duas delas nao tem destino: <b>Cidade</b> e <b>Custo por Km</b>. Elas
+     * existiam para manter as outras na posicao que o leitor esperava; hoje o
+     * leitor casa por nome e elas nao seguram mais nada. Ficam porque o arquivo
+     * ja esta na mao das pessoas, e tirar coluna de um modelo em uso e decisao
+     * de quem usa, nao limpeza de quem le.
      */
     @Test
-    @DisplayName("O modelo tem as 13 colunas, incluindo as duas que ninguem le")
+    @DisplayName("O modelo continua com as 13 colunas conhecidas")
     void oModeloTemAsTrezeColunas() throws Exception {
         try (Workbook wb = new XSSFWorkbook(new ByteArrayInputStream(writer.writeTemplate()))) {
             Row cabecalho = wb.getSheetAt(0).getRow(0);
 
             assertThat((int) cabecalho.getLastCellNum()).isEqualTo(13);
-            assertThat(coluna(cabecalho, "Cidade"))
-                    .as("ninguem le esta coluna, e tira-la desloca UF, placa e todo o resto")
-                    .isEqualTo(2);
-            assertThat(coluna(cabecalho, "Custo por Km")).isEqualTo(10);
+            assertThat(coluna(cabecalho, "Cidade")).isNotNegative();
+            assertThat(coluna(cabecalho, "Custo por Km")).isNotNegative();
         }
+    }
+
+    // ───────────────────────────── a planilha da fornecedora ─────────────────
+
+    /**
+     * <b>A planilha que quebrou em 2026-09-24.</b> Sao os cabecalhos e a
+     * primeira linha do arquivo de agosto, como ele chega: 14 colunas, nomes
+     * diferentes dos nossos e <b>sem Cidade</b>.
+     *
+     * <p>Contra o leitor por posicao, esta linha dava
+     * {@code For input string: "Gasolina Comum"} -- o combustivel caindo na
+     * coluna do hodometro.
+     */
+    private static byte[] planilhaDaFornecedora(String... semEstaColuna) throws Exception {
+        String[] cabecalhos = {
+                "Nome do condutor",
+                "Data/Hora transação (fim do abastecimento)",
+                "Estado do posto",
+                "Placa",
+                "Hodômetro",
+                "Combustível",
+                "Litros",
+                "Total do abastecimento",
+                "R$/Litro",
+                "R$/KM",
+                "KM rodado",
+                "KM/Litro",
+                "Valor unitário",
+                "Perfil"
+        };
+        Object[] valores = {
+                "Aila Maria Serafim",
+                "28/08/2025 09:19:59",
+                "SP",
+                "FCE3C61",
+                102454.0,
+                "Gasolina Comum",
+                37.39,
+                242.66,
+                6.49,
+                0.7703492063492063,
+                315.0,
+                8.424712489970581,
+                6.49,
+                "COMERCIAL"
+        };
+
+        List<String> fora = List.of(semEstaColuna);
+
+        try (Workbook wb = new XSSFWorkbook();
+             ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+
+            Sheet sheet = wb.createSheet("Abastecimentos");
+            Row cabecalho = sheet.createRow(0);
+            Row linha = sheet.createRow(1);
+
+            int destino = 0;
+            for (int i = 0; i < cabecalhos.length; i++) {
+                if (fora.contains(cabecalhos[i])) {
+                    continue;
+                }
+
+                cabecalho.createCell(destino).setCellValue(cabecalhos[i]);
+
+                if (valores[i] instanceof Double numero) {
+                    linha.createCell(destino).setCellValue(numero);
+                } else {
+                    linha.createCell(destino).setCellValue((String) valores[i]);
+                }
+                destino++;
+            }
+
+            wb.write(bos);
+            return bos.toByteArray();
+        }
+    }
+
+    @Test
+    @DisplayName("A planilha da fornecedora, sem a coluna Cidade, e lida no campo certo")
+    void planilhaDaFornecedoraEhLidaCerto() throws Exception {
+        List<FuelSupply> lidos = reader.getDataByExcel(
+                new ByteArrayInputStream(planilhaDaFornecedora()));
+
+        assertThat(lidos).hasSize(1);
+        FuelSupply fs = lidos.getFirst();
+
+        assertThat(fs.getDriverName()).isEqualTo("Aila Maria Serafim");
+        assertThat(fs.getFuelSupplyDate()).isEqualTo(LocalDate.of(2025, 8, 28));
+        assertThat(fs.getUf())
+                .as("sem a coluna Cidade, o leitor por posicao lia a placa aqui")
+                .isEqualTo("SP");
+        assertThat(fs.getPlate()).isEqualTo("FCE3C61");
+        assertThat(fs.getActualHodometer()).isEqualTo(102454);
+        assertThat(fs.getFuelType())
+                .as("era aqui que estourava: 'Gasolina Comum' caia na coluna do hodometro")
+                .isEqualTo("Gasolina Comum");
+        assertThat(fs.getLiters()).isEqualTo(37.39);
+        assertThat(fs.getTotalValue()).isEqualTo(242.66);
+        assertThat(fs.getPrice())
+                .as("R$/Litro, e nao R$/KM: os dois sao numeros, e trocar nao estoura")
+                .isEqualTo(6.49);
+        assertThat(fs.getDiferenceHodometer()).isEqualTo(315);
+        assertThat(fs.getAverageKm()).isEqualTo(8.424712489970581);
+    }
+
+    /**
+     * <b>A mesma fornecedora, no download seguinte.</b> Estes sao os cabecalhos
+     * e a primeira linha do arquivo baixado em 2026-09-24: 15 colunas, com
+     * "Cidade do posto" de volta e "Valor bomba" no lugar de "Valor unitario".
+     *
+     * <p>Os dois arquivos sao do mesmo relatorio, baixados com duas semanas de
+     * diferenca. E por isso que casar por posicao nao tem conserto: a posicao
+     * nao e nossa, e ela muda sem aviso.
+     */
+    @Test
+    @DisplayName("A exportacao seguinte, com Cidade do posto de volta, tambem e lida certo")
+    void exportacaoComCidadeDoPosto() throws Exception {
+        String[] cabecalhos = {
+                "Nome do condutor",
+                "Data/Hora transação (fim do abastecimento)",
+                "Cidade do posto",
+                "Estado do posto",
+                "Placa",
+                "Hodômetro",
+                "Combustível",
+                "Litros",
+                "Total do abastecimento",
+                "R$/Litro",
+                "R$/KM",
+                "KM rodado",
+                "KM/Litro",
+                "Valor bomba",
+                "Perfil"
+        };
+        Object[] valores = {
+                "Adilson Da Silva",
+                "28/08/2026 15:42:56",
+                "Porecatu",
+                "PR",
+                "TEB1B85",
+                56592.0,
+                "Gasolina Comum",
+                27.39,
+                191.46,
+                6.99,
+                0.453696682464455,
+                422.0,
+                15.407082876962397,
+                191.46,
+                "COMERCIAL"
+        };
+
+        byte[] planilha;
+
+        try (Workbook wb = new XSSFWorkbook();
+             ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+
+            Sheet sheet = wb.createSheet("Sheet1");
+            Row cabecalho = sheet.createRow(0);
+            Row linha = sheet.createRow(1);
+
+            for (int i = 0; i < cabecalhos.length; i++) {
+                cabecalho.createCell(i).setCellValue(cabecalhos[i]);
+
+                if (valores[i] instanceof Double numero) {
+                    linha.createCell(i).setCellValue(numero);
+                } else {
+                    linha.createCell(i).setCellValue((String) valores[i]);
+                }
+            }
+
+            wb.write(bos);
+            planilha = bos.toByteArray();
+        }
+
+        FuelSupply fs = reader.getDataByExcel(new ByteArrayInputStream(planilha)).getFirst();
+
+        assertThat(fs.getDriverName()).isEqualTo("Adilson Da Silva");
+        assertThat(fs.getFuelSupplyDate()).isEqualTo(LocalDate.of(2026, 8, 28));
+        assertThat(fs.getUf())
+                .as("\"Cidade do posto\" vem antes, e nao pode ser confundida com a UF")
+                .isEqualTo("PR");
+        assertThat(fs.getPlate()).isEqualTo("TEB1B85");
+        assertThat(fs.getActualHodometer()).isEqualTo(56592);
+        assertThat(fs.getFuelType()).isEqualTo("Gasolina Comum");
+        assertThat(fs.getLiters()).isEqualTo(27.39);
+        assertThat(fs.getTotalValue()).isEqualTo(191.46);
+        assertThat(fs.getPrice())
+                .as("R$/Litro, e nao R$/KM nem Valor bomba")
+                .isEqualTo(6.99);
+        assertThat(fs.getDiferenceHodometer()).isEqualTo(422);
+        assertThat(fs.getAverageKm()).isEqualTo(15.407082876962397);
+    }
+
+    /**
+     * Coluna que falta tem que dizer <b>qual</b>. "Erro ao ler a planilha" faz
+     * a pessoa abrir o arquivo e comparar 14 colunas na mao.
+     */
+    @Test
+    @DisplayName("Coluna que falta e recusada dizendo qual, e listando o que o arquivo tem")
+    void colunaQueFaltaDizQual() throws Exception {
+        byte[] semPlaca = planilhaDaFornecedora("Placa");
+
+        Throwable erro = catchThrowable(() ->
+                reader.getDataByExcel(new ByteArrayInputStream(semPlaca)));
+
+        assertThat(erro).isNotNull();
+        assertThat(erro.getMessage())
+                .contains("placa")
+                .contains("nome do condutor");
+    }
+
+    /**
+     * O erro de celula tambem tem que dizer onde. Era
+     * {@code For input string: "Gasolina Comum"}, que nao diz linha, nem
+     * coluna, nem o que era esperado ali.
+     */
+    @Test
+    @DisplayName("Texto numa coluna numerica aponta a linha e a coluna")
+    void textoOndeSeEsperaNumero() throws Exception {
+        byte[] planilha;
+
+        try (Workbook wb = new XSSFWorkbook(new ByteArrayInputStream(planilhaDaFornecedora()));
+             ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+
+            Sheet sheet = wb.getSheetAt(0);
+            sheet.getRow(1)
+                    .getCell(coluna(sheet.getRow(0), "Litros"))
+                    .setCellValue("nao sei");
+
+            wb.write(bos);
+            planilha = bos.toByteArray();
+        }
+
+        Throwable erro = catchThrowable(() ->
+                reader.getDataByExcel(new ByteArrayInputStream(planilha)));
+
+        assertThat(erro).isNotNull();
+        assertThat(erro.getMessage())
+                .as("linha 2 da planilha, coluna G")
+                .contains("Linha 2")
+                .contains("coluna G")
+                .contains("nao sei");
     }
 }
