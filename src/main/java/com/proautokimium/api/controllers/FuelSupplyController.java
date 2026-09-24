@@ -12,12 +12,15 @@ import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyReader
 import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyReportService;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.DepartmentNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DepartmentRepository;
+import com.proautokimium.api.Infrastructure.services.fuelsupply.FuelSupplyWriterService;
 import com.proautokimium.api.domain.entities.humanResources.Department;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -51,6 +54,9 @@ public class FuelSupplyController {
 
 	@Autowired
 	DepartmentRepository departmentRepository;
+
+	@Autowired
+	FuelSupplyWriterService writerService;
 
 	/**
 	 * Coleta dados via planilha
@@ -117,6 +123,17 @@ public class FuelSupplyController {
 			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
 
 		return ResponseEntity.ok(service.listByPeriod(start, end));
+	}
+
+	@PreAuthorize("hasAnyAuthority('company/fuel-supply:BAIXAR', 'company/fuel-hub:BAIXAR')")
+	@GetMapping("/model")
+	public ResponseEntity<byte[]> model() throws Exception {
+		byte[] planilha = writerService.writeTemplate();
+		return ResponseEntity.ok()
+				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"modelo-abastecimentos.xlsx\"")
+				.contentType(MediaType.parseMediaType(
+						"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+				.body(planilha);
 	}
 
 	/**

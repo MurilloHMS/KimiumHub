@@ -24,10 +24,6 @@ public abstract class ExcelWriter<T> {
 	}
 
 	public byte[] write(List<T> list) throws Exception {
-		if (list == null || list.isEmpty()) {
-			throw new IllegalArgumentException("Dados obtidos inválidos");
-		}
-
 		try (Workbook workbook = new XSSFWorkbook();
 		     ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
 
@@ -49,17 +45,7 @@ public abstract class ExcelWriter<T> {
 	}
 
 	public byte[] writeTemplate() throws Exception {
-		try (Workbook workbook = new XSSFWorkbook();
-		     ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-
-			Sheet sheet = workbook.createSheet(getSheetName());
-
-			writeHeader(sheet, workbook);
-			finishSheet(sheet);
-
-			workbook.write(bos);
-			return bos.toByteArray();
-		}
+		return write(List.of());
 	}
 
 	protected void writeHeader(Sheet sheet, Workbook workbook) {

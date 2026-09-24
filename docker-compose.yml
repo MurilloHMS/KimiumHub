@@ -24,12 +24,19 @@ services:
       - /var/proauto/recibos-locacao:/app/recibos-locacao
       - /var/proauto/upload/gallery:/app/galeria
     restart: always
-    networks:
-      - db-network
 
-# A mesma rede do banco. No seu micro ela tambem precisa existir:
-#     docker network create kimium-network
-networks:
-  db-network:
-    external: true
-    name: kimium-network
+    # No Windows e no macOS o Docker Desktop resolve este nome sozinho. Num
+    # host Linux ele nao existe, e precisaria de:
+    #     extra_hosts:
+    #       - "host.docker.internal:host-gateway"
+    #
+    # O DATABASE_URL vai no `.env` (que o git ignora) e aponta para
+    # host.docker.internal:5433 -- a ponta de ca do tunel SSH.
+
+# **Sem rede declarada, de proposito.**
+#
+# Enquanto o banco era um container ao lado, os dois precisavam da mesma rede
+# para se enxergar por nome. Agora o banco esta na VPS e o caminho e o tunel
+# SSH, que termina no HOST: a rede padrao do Docker ja alcanca o host por
+# `host.docker.internal`, e uma rede externa aqui so criaria um
+# `docker network create` a mais para lembrar em cada maquina.
