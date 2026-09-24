@@ -156,6 +156,71 @@ class FuelSupplyAuditServiceTest {
     }
 
     /**
+     * <b>O cartão de combustível e o cadastro escrevem o mesmo nome diferente.</b>
+     *
+     * <p>Medido em 2026-09-24 com a planilha de agosto: dos 34 motoristas, 17
+     * casavam comparando só em minúsculas. O acento sozinho respondia por 6
+     * deles — "Márcio Gabe Silveira" no cartão, "Marcio Gabe Silveira" no
+     * cadastro. É a mesma pessoa, e o relatório saía com ela fora do
+     * departamento.
+     */
+    @Test
+    @DisplayName("Acento a mais ou a menos nao separa a pessoa do cadastro dela")
+    void acentoNaoSeparaAPessoa() throws Exception {
+        Department comercial = departamento("COMERCIAL");
+        when(employeeRepository.findAll())
+                .thenReturn(List.of(funcionario("Marcio Gabe Silveira", comercial)));
+        when(repository.findByFuelSupplyDateBetween(any(), any())).thenReturn(List.of());
+
+        List<FuelSupplyPreviewRowDTO> linhas =
+                conferir(planilhaCom(abastecimento("Márcio Gabe Silveira", DATA, 524.13)));
+
+        assertThat(linhas.getFirst().motoristaEncontrado()).isTrue();
+        assertThat(linhas.getFirst().departmentName()).isEqualTo("COMERCIAL");
+    }
+
+    /**
+     * As partículas aparecem e somem entre um cadastro e outro sem mudar de
+     * quem se está falando: "Regimilso Oliveira Pereira" no cartão e
+     * "Regimilso de Oliveira Pereira" no cadastro são a mesma pessoa.
+     */
+    @Test
+    @DisplayName("O 'de' que um cadastro tem e o outro nao, tambem nao separa")
+    void particulaNaoSeparaAPessoa() throws Exception {
+        Department comercial = departamento("COMERCIAL");
+        when(employeeRepository.findAll())
+                .thenReturn(List.of(funcionario("Regimilso de Oliveira Pereira", comercial)));
+        when(repository.findByFuelSupplyDateBetween(any(), any())).thenReturn(List.of());
+
+        List<FuelSupplyPreviewRowDTO> linhas =
+                conferir(planilhaCom(abastecimento("Regimilso Oliveira Pereira", DATA, 524.13)));
+
+        assertThat(linhas.getFirst().motoristaEncontrado()).isTrue();
+    }
+
+    /**
+     * <b>Onde a normalização para, de propósito.</b> "Fabio Lola" não é
+     * "Fabio Lola da Silva": pode ser, e pode não ser. Aqui um palpite errado
+     * grava abastecimento no departamento de outra pessoa, e o relatório do
+     * mês sai torto sem ninguém ver. Quem decide é a conferência.
+     */
+    @Test
+    @DisplayName("Nome incompleto NAO casa: sobrenome que falta e outra pessoa")
+    void nomeIncompletoNaoCasa() throws Exception {
+        when(employeeRepository.findAll())
+                .thenReturn(List.of(funcionario("Fabio Lola da Silva", departamento("MANUTENCAO"))));
+        when(repository.findByFuelSupplyDateBetween(any(), any())).thenReturn(List.of());
+
+        List<FuelSupplyPreviewRowDTO> linhas =
+                conferir(planilhaCom(abastecimento("Fabio Lola", DATA, 524.13)));
+
+        assertThat(linhas.getFirst().motoristaEncontrado())
+                .as("adivinhar sobrenome grava no departamento errado, calado")
+                .isFalse();
+        assertThat(linhas.getFirst().departmentId()).isNull();
+    }
+
+    /**
      * <b>O defeito número dois.</b> A duplicata é <i>marcada</i>, não removida:
      * dois abastecimentos do mesmo motorista no mesmo dia pelo mesmo valor
      * acontecem, e quem decide é quem confere.

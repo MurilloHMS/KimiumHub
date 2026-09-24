@@ -43,6 +43,14 @@ import com.proautokimium.api.domain.entities.humanResources.Department;
 @Service
 public class FuelSupplyAuditService {
 
+    /**
+     * As partículas dos nomes em português.
+     *
+     * <p>Elas aparecem e somem entre um cadastro e outro sem mudar de quem se
+     * está falando, então não entram na comparação.
+     */
+    private static final Set<String> PARTICULAS = Set.of("de", "da", "do", "dos", "das", "e");
+
     private final FuelSupplyReaderService reader;
     private final FuelSupplyRepository repository;
     private final EmployeeRepository employeeRepository;
@@ -280,8 +288,47 @@ public class FuelSupplyAuditService {
         return chaveDeNome(motorista) + "|" + data + "|" + Math.round(valor * 100);
     }
 
-    private static String chaveDeNome(String nome) {
-        return nome == null ? "" : nome.toLowerCase().trim();
+    /**
+     * O nome reduzido ao que dá para comparar entre dois cadastros diferentes.
+     *
+     * <p>Minúsculas, <b>sem acento</b>, com um espaço só entre palavras e
+     * <b>sem as partículas</b> de/da/do/dos/das/e.
+     *
+     * <p><b>Medido em 2026-09-24</b>, com a planilha de agosto (34 motoristas)
+     * contra os 93 funcionários do cadastro: comparando só em minúsculas,
+     * 17 casavam. Tirar acento e espaço duplo resolve 6 — o cartão escreve
+     * "Márcio Gabe Silveira" e o cadastro tem "Marcio Gabe Silveira". Ignorar
+     * as partículas resolve mais 1: "Regimilso Oliveira Pereira" contra
+     * "Regimilso de Oliveira Pereira".
+     *
+     * <p>Os 10 que sobram têm nome <b>diferente</b>, não escrito diferente:
+     * uns vêm sem o último sobrenome ("Fabio Lola" para "Fabio Lola da
+     * Silva"), outros têm o sobrenome trocado ("Moacir Xisto" para "Moacir
+     * Sixto"). Casar nome incompleto é adivinhação, e aqui ela grava
+     * abastecimento no departamento errado — então esses ficam para a
+     * conferência resolver.
+     */
+    static String chaveDeNome(String nome) {
+        if (nome == null) {
+            return "";
+        }
+
+        String semAcento = java.text.Normalizer.normalize(nome, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+
+        StringBuilder chave = new StringBuilder();
+
+        for (String palavra : semAcento.toLowerCase().trim().split("\\s+")) {
+            if (palavra.isEmpty() || PARTICULAS.contains(palavra)) {
+                continue;
+            }
+            if (!chave.isEmpty()) {
+                chave.append(' ');
+            }
+            chave.append(palavra);
+        }
+
+        return chave.toString();
     }
 
     /**
