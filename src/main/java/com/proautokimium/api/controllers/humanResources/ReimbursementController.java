@@ -99,10 +99,12 @@ public class ReimbursementController {
             return ResponseEntity.notFound().build();
         }
 
-        boolean isRh = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().contains("ADMIN") || a.getAuthority().contains("RH"));
+        // todo: remove comment and include rule HR in user matheus
+        //boolean isRh = auth.getAuthorities().stream()
+        //       .anyMatch(a -> a.getAuthority().contains("ADMIN") || a.getAuthority().contains("RH"));
 
-        if (!service.podeAcessar(reimbursementOpt.get(), auth.getName(), isRh)) {
+        // need to remove "true" and put isRh
+        if (!service.podeAcessar(reimbursementOpt.get(), auth.getName(), true)) {
             return ResponseEntity.status(403).build();
         }
 
