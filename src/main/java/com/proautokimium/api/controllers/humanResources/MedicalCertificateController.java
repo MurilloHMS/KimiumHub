@@ -79,8 +79,10 @@ public class MedicalCertificateController {
             return ResponseEntity.notFound().build();
         }
 
+        // "Vê de todos" é ter a tela do RH — a mesma authority do @PreAuthorize.
+        // equals, e não contains: contains("ADMIN") casava com ROLE_ADMINISTRATIVO.
         boolean isRh = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().contains("ADMIN") || a.getAuthority().contains("RH"));
+                .anyMatch(a -> a.getAuthority().equals("rh/medical-certificates:BAIXAR"));
 
         if (!service.podeAcessar(certificateOpt.get(), auth.getName(), isRh)) {
             return ResponseEntity.status(403).build();
