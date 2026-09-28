@@ -218,12 +218,12 @@ class ReimbursementReportServiceTest {
                 "Total · 3 solicitações", "R$ 596,50");
         assertThat(t).as("um anexo por pedido, na ordem da tabela")
                 .contains("Anexo A-1", "Anexo A-2", "Anexo A-3");
-        assertThat(t).as("PDF anexado com as páginas originais")
-                .contains("Comprovante em PDF com 2 páginas, anexadas a seguir.");
+        assertThat(t).as("cada página do PDF vira uma página de anexo, com cabeçalho")
+                .contains("página 1 de 2", "página 2 de 2");
         assertThat(t).as("arquivo sumido não derruba o documento")
                 .contains("O arquivo deste comprovante não foi encontrado no servidor.");
-        // relatório + (imagem: 1) + (PDF: identificação 1 + originais 2) + (sumido: 1)
-        assertThat(paginas).isGreaterThanOrEqualTo(6);
+        // relatório + (imagem: 1) + (PDF: 2, cada página dentro de um anexo) + (sumido: 1)
+        assertThat(paginas).isGreaterThanOrEqualTo(5);
         assertThat(t).as("a última página sabe o total, contando os anexos")
                 .contains("Página " + paginas + " de " + paginas);
     }
