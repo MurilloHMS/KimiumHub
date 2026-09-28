@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
+import java.util.List;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -209,5 +210,127 @@ class ReimbursementServiceTest {
         service.request(login, LocalDate.of(2026, 7, 20), new BigDecimal("150.00"), "Restaurante", "Almoço", receipt);
 
         verify(storage, never()).delete(any());
+    }
+
+    // ─── Contestação ─────────────────────────────────────────────────────────
+
+    private Reimbursement recusadoDoEmployee() {
+        Reimbursement r = Reimbursement.request(employee, LocalDate.of(2026, 7, 20), new BigDecimal("320.00"),
+                "Hospedagem", "Pernoite", "foto.jpg", "EMP001/foto.jpg", LocalDateTime.of(2026, 7, 20, 9, 0));
+        r.reject(new Employee(), "Comprovante ilegível", LocalDateTime.of(2026, 7, 21, 9, 0));
+        return r;
+    }
+
+    private void loginDoDono(String login) {
+        when(userRepository.findByLoginWithEmployee(login)).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername(login)).thenReturn(Optional.of(employee));
+    }
+
+    @Test
+    @DisplayName("o dono contesta: comprovante novo salvo, pedido volta a em análise")
+    void donoContesta() throws Exception {
+        Reimbursement r = recusadoDoEmployee();
+        UUID id = UUID.randomUUID();
+        when(repository.findById(id)).thenReturn(Optional.of(r));
+        loginDoDono("emp001.login");
+        when(storage.save(any(), eq("EMP001"), eq("nota.pdf"))).thenReturn("EMP001/uuid-nota.pdf");
+        when(repository.save(any(Reimbursement.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ReimbursementResponseDTO dto = service.contest(id, "emp001.login", "Segue a nota escaneada",
+                new MockMultipartFile("receipt", "nota.pdf", "application/pdf", "%PDF".getBytes()));
+
+        assertThat(dto.status().name()).isEqualTo("PENDING");
+        assertThat(dto.contestComment()).isEqualTo("Segue a nota escaneada");
+        assertThat(dto.originalReceiptFilename()).isEqualTo("foto.jpg");
+        assertThat(dto.firstReviewNotes()).isEqualTo("Comprovante ilegível");
+        verify(storage, never()).delete(any());
+    }
+
+    /**
+     * Quem não é o dono recebe o mesmo 404 de "não existe": 403 confirmaria que
+     * aquele id é o reembolso de outra pessoa. E nada é salvo no disco.
+     */
+    @Test
+    @DisplayName("quem não é o dono não contesta, e recebe 404 — não 403")
+    void outroNaoContesta() throws Exception {
+        Reimbursement r = recusadoDoEmployee();
+        UUID id = UUID.randomUUID();
+        when(repository.findById(id)).thenReturn(Optional.of(r));
+        Employee outro = new Employee();
+        java.lang.reflect.Field f = com.proautokimium.api.domain.abstractions.Entity.class.getDeclaredField("id");
+        f.setAccessible(true);
+        f.set(outro, UUID.randomUUID());
+        when(userRepository.findByLoginWithEmployee("outro")).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername("outro")).thenReturn(Optional.of(outro));
+
+        assertThrows(com.proautokimium.api.Infrastructure.exceptions.humanResources.ReimbursementNotFoundException.class,
+                () -> service.contest(id, "outro", "x",
+                        new MockMultipartFile("receipt", "n.pdf", "application/pdf", "%PDF".getBytes())));
+        verify(storage, never()).save(any(), any(), any());
+        assertThat(r.getStatus().name()).isEqualTo("REJECTED");
+    }
+
+    @Test
+    @DisplayName("contestação recusada (sem comentário) apaga o arquivo que acabou de salvar")
+    void contestacaoRecusadaApagaArquivo() throws Exception {
+        Reimbursement r = recusadoDoEmployee();
+        UUID id = UUID.randomUUID();
+        when(repository.findById(id)).thenReturn(Optional.of(r));
+        loginDoDono("emp001.login");
+        when(storage.save(any(), eq("EMP001"), eq("nota.pdf"))).thenReturn("EMP001/uuid-nota.pdf");
+
+        assertThrows(InvalidRequestDataException.class, () -> service.contest(id, "emp001.login", "  ",
+                new MockMultipartFile("receipt", "nota.pdf", "application/pdf", "%PDF".getBytes())));
+
+        verify(storage).delete("EMP001/uuid-nota.pdf");
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("sem arquivo é recusado antes de salvar qualquer coisa")
+    void semArquivo() {
+        Reimbursement r = recusadoDoEmployee();
+        UUID id = UUID.randomUUID();
+        when(repository.findById(id)).thenReturn(Optional.of(r));
+        loginDoDono("emp001.login");
+
+        assertThrows(InvalidRequestDataException.class, () -> service.contest(id, "emp001.login", "x", null));
+    }
+
+    // ─── Totais do mês ───────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("totais: enviado conta tudo; pendente, a pagar e pago separados; contestados à parte")
+    void totaisDoMes() {
+        Reimbursement pago = Reimbursement.request(employee, LocalDate.of(2026, 9, 3), new BigDecimal("180.00"),
+                "Combustível", "x", "a.jpg", "p/a.jpg", LocalDateTime.of(2026, 9, 3, 9, 0));
+        pago.approve(new Employee(), "ok", LocalDateTime.of(2026, 9, 4, 9, 0));
+        pago.pay(LocalDate.of(2026, 9, 10), LocalDateTime.of(2026, 9, 10, 9, 0));
+        Reimbursement aPagar = Reimbursement.request(employee, LocalDate.of(2026, 9, 5), new BigDecimal("92.00"),
+                "Pedágio", "x", "b.jpg", "p/b.jpg", LocalDateTime.of(2026, 9, 5, 9, 0));
+        aPagar.approve(new Employee(), "ok", LocalDateTime.of(2026, 9, 6, 9, 0));
+        Reimbursement pendente = Reimbursement.request(employee, LocalDate.of(2026, 9, 17), new BigDecimal("96.50"),
+                "Alimentação", "x", "c.jpg", "p/c.jpg", LocalDateTime.of(2026, 9, 17, 9, 0));
+        Reimbursement contestado = Reimbursement.request(employee, LocalDate.of(2026, 9, 3), new BigDecimal("320.00"),
+                "Hospedagem", "x", "d.jpg", "p/d.jpg", LocalDateTime.of(2026, 9, 3, 9, 0));
+        contestado.reject(new Employee(), "ilegível", LocalDateTime.of(2026, 9, 5, 9, 0));
+        contestado.contest("e.pdf", "p/e.pdf", "nova", LocalDateTime.of(2026, 9, 8, 9, 0));
+        Reimbursement recusado = Reimbursement.request(employee, LocalDate.of(2026, 9, 20), new BigDecimal("50.00"),
+                "Outros", "x", "f.jpg", "p/f.jpg", LocalDateTime.of(2026, 9, 20, 9, 0));
+        recusado.reject(new Employee(), "sem nota", LocalDateTime.of(2026, 9, 21, 9, 0));
+
+        when(repository.findByExpenseDateBetween(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30)))
+                .thenReturn(List.of(pago, aPagar, pendente, contestado, recusado));
+
+        var t = service.summary(java.time.YearMonth.of(2026, 9));
+
+        assertThat(t.month()).isEqualTo("2026-09");
+        assertThat(t.sent().count()).as("enviado inclui o recusado").isEqualTo(5);
+        assertThat(t.sent().amount()).isEqualByComparingTo("738.50");
+        assertThat(t.pending().count()).isEqualTo(2);
+        assertThat(t.pending().amount()).isEqualByComparingTo("416.50");
+        assertThat(t.contestedPending()).isEqualTo(1);
+        assertThat(t.approved().amount()).as("aprovado é o que falta pagar").isEqualByComparingTo("92.00");
+        assertThat(t.paid().amount()).isEqualByComparingTo("180.00");
     }
 }

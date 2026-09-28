@@ -185,4 +185,29 @@ class HrPermissionTest {
 
         verifyNoInteractions(companyService);
     }
+
+    // ─── Contestação e totais dos reembolsos ─────────────────────────────────
+
+    /** Contestar é do dono, pelo portal. A tela do RH não contesta por ninguém. */
+    @Test
+    @DisplayName("contestar exige o portal com ALTERAR; a tela do RH sozinha não basta")
+    @WithMockUser(authorities = {"rh/reimbursements:ALTERAR", "rh/reimbursements:CONFIGURAR"})
+    void rhNaoContestaPeloFuncionario() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .multipart("/api/hr/reimbursements/" + java.util.UUID.randomUUID() + "/contest")
+                        .file("receipt", "%PDF".getBytes())
+                        .param("comment", "x")
+                        .with(org.springframework.security.test.web.servlet.request
+                                .SecurityMockMvcRequestPostProcessors.csrf()))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(reimbursementService);
+    }
+
+    @Test
+    @DisplayName("os totais do RH exigem a tela do RH; o portal vê só os próprios")
+    @WithMockUser(authorities = {"documentos/rh/reimbursements:CONSULTAR"})
+    void portalNaoVeTotaisDeTodos() throws Exception {
+        mockMvc.perform(get("/api/hr/reimbursements/summary?month=2026-09")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/hr/reimbursements/me/summary?month=2026-09")).andExpect(status().isOk());
+    }
 }
