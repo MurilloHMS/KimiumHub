@@ -25,11 +25,16 @@ services:
       - /var/proauto/upload/gallery:/app/galeria
     restart: always
 
-    # No Windows e no macOS o Docker Desktop resolve este nome sozinho. Num
-    # host Linux ele nao existe, e precisaria de:
-    #     extra_hosts:
-    #       - "host.docker.internal:host-gateway"
+    # No Windows e no macOS o Docker Desktop resolve este nome sozinho; num host
+    # Linux ele nao existe, e a API morria no boot com UnknownHostException.
+    # O host-gateway funciona nos dois, entao fica ligado sempre.
     #
+    # No Linux o tunel SSH tambem precisa escutar no docker0 (172.17.0.1), e nao
+    # so no 127.0.0.1 -- senao o nome resolve e a conexao e recusada:
+    #     ssh -N -L 127.0.0.1:5433:127.0.0.1:5432 -L 172.17.0.1:5433:127.0.0.1:5432 root@vps
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
     # O DATABASE_URL vai no `.env` (que o git ignora) e aponta para
     # host.docker.internal:5433 -- a ponta de ca do tunel SSH.
 
