@@ -2,7 +2,7 @@ package com.proautokimium.api.Infrastructure.services.humanResources;
 
 import com.proautokimium.api.Infrastructure.services.storage.ReimbursementStorageService;
 import org.apache.pdfbox.Loader;
-import org.apache.pdfbox.multipdf.PDFMergerUtility;
+import org.apache.pdfbox.multipdf.LayerUtility;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -12,6 +12,9 @@ import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import java.awt.geom.Rectangle2D;
+import org.apache.pdfbox.util.Matrix;
+import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -33,7 +36,7 @@ import java.util.Locale;
  * Cada comprovante vira:
  * <ul>
  *   <li><b>imagem</b>: uma página A4 com a identificação no topo e a imagem ajustada;</li>
- *   <li><b>PDF</b>: uma folha de identificação e, depois, as páginas originais;</li>
+ *   <li><b>PDF</b>: cada página vira uma página de anexo, desenhada dentro dela e reduzida para caber;</li>
  *   <li><b>arquivo sumido ou formato ilegível</b>: a folha de identificação dizendo
  *   isso. Registro órfão (linha sem arquivo) já aconteceu na galeria — um anexo
  *   quebrado não pode derrubar o documento inteiro.</li>
@@ -72,7 +75,6 @@ public class ReimbursementReceiptAnnexes {
         List<PDDocument> opened = new ArrayList<>();
         try (PDDocument doc = Loader.loadPDF(reportPdf)) {
             Fonts fonts = loadFonts(doc);
-            PDFMergerUtility merger = new PDFMergerUtility();
             // Páginas do relatório já têm o rodapé do Jasper; as que vierem
             // depois desta, não — o carimbo põe o rodapé só nelas.
             int reportPages = doc.getNumberOfPages();
@@ -84,10 +86,7 @@ public class ReimbursementReceiptAnnexes {
                 } else if (isPdf(annex, bytes)) {
                     PDDocument source = Loader.loadPDF(bytes);
                     opened.add(source);
-                    notePage(doc, fonts, annex, "Comprovante em PDF com " + source.getNumberOfPages()
-                            + (source.getNumberOfPages() == 1 ? " página, anexada" : " páginas, anexadas")
-                            + " a seguir.");
-                    merger.appendDocument(doc, source);
+                    pdfPages(doc, fonts, annex, source);
                 } else {
                     imagePage(doc, fonts, annex, bytes);
                 }
@@ -124,6 +123,49 @@ public class ReimbursementReceiptAnnexes {
     }
 
     // ── páginas ──────────────────────────────────────────────────────────────
+
+    /**
+     * Cada página do PDF é desenhada DENTRO da página do anexo, abaixo do
+     * cabeçalho, reduzida para caber — nunca ampliada.
+     *
+     * Antes o PDF entrava com uma folha de identificação e depois as páginas
+     * originais no tamanho original: uma foto "digitalizada" pelo celular (uma
+     * página do tamanho da foto) virava três páginas no relatório. Agora uma
+     * página de PDF é uma página de anexo, como uma foto.
+     *
+     * {@code importPageAsForm} já aplica a rotação da página (/Rotate); por isso
+     * o tamanho a caber é o da caixa DEPOIS da matriz do formulário.
+     */
+    private void pdfPages(PDDocument doc, Fonts fonts, ReceiptAnnex annex, PDDocument source) throws IOException {
+        LayerUtility layers = new LayerUtility(doc);
+        int total = source.getNumberOfPages();
+        for (int i = 0; i < total; i++) {
+            PDFormXObject form = layers.importPageAsForm(source, i);
+            Rectangle2D bounds = form.getMatrix().createAffineTransform()
+                    .createTransformedShape(form.getBBox().toGeneralPath()).getBounds2D();
+
+            PDPage page = new PDPage(PDRectangle.A4);
+            doc.addPage(page);
+            try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
+                String suffix = total > 1 ? " · página " + (i + 1) + " de " + total : "";
+                float top = header(cs, fonts, page, annex, suffix);
+                float boxW = page.getMediaBox().getWidth() - 2 * MARGIN;
+                float boxH = top - MARGIN - 40;
+                float scale = (float) Math.min(1.0, Math.min(boxW / bounds.getWidth(), boxH / bounds.getHeight()));
+                float w = (float) bounds.getWidth() * scale;
+                float h = (float) bounds.getHeight() * scale;
+                float x = MARGIN + (boxW - w) / 2;
+                float y = top - 16 - h;
+
+                cs.saveGraphicsState();
+                cs.transform(Matrix.getTranslateInstance(x - (float) bounds.getMinX() * scale,
+                        y - (float) bounds.getMinY() * scale));
+                cs.transform(Matrix.getScaleInstance(scale, scale));
+                cs.drawForm(form);
+                cs.restoreGraphicsState();
+            }
+        }
+    }
 
     private void imagePage(PDDocument doc, Fonts fonts, ReceiptAnnex annex, byte[] bytes) throws IOException {
         PDImageXObject image;
@@ -162,10 +204,15 @@ public class ReimbursementReceiptAnnexes {
 
     /** A identificação do anexo; devolve a altura onde o conteúdo pode começar. */
     private float header(PDPageContentStream cs, Fonts fonts, PDPage page, ReceiptAnnex annex) throws IOException {
+        return header(cs, fonts, page, annex, "");
+    }
+
+    private float header(PDPageContentStream cs, Fonts fonts, PDPage page, ReceiptAnnex annex, String suffix)
+            throws IOException {
         float width = page.getMediaBox().getWidth();
         float y = page.getMediaBox().getHeight() - MARGIN;
 
-        write(cs, fonts.bold, 13, NAVY, MARGIN, y - 12, "Anexo " + annex.code() + " · Comprovante da despesa");
+        write(cs, fonts.bold, 13, NAVY, MARGIN, y - 12, "Anexo " + annex.code() + " · Comprovante da despesa" + suffix);
         String who = annex.employeeName() + " · " + annex.employeeInfo();
         write(cs, fonts.regular, 8, MUTED, width - MARGIN - fonts.regular.getStringWidth(who) / 1000 * 8, y - 12, who);
         rule(cs, MARGIN, y - 20, width - 2 * MARGIN, NAVY, 2f);
