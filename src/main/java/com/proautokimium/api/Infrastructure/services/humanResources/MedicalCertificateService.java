@@ -58,13 +58,25 @@ public class MedicalCertificateService {
 
         String storagePath = storage.save(file.getBytes(), employee.getCodParceiro(), file.getOriginalFilename());
 
-        MedicalCertificate certificate = MedicalCertificate.submit(
-                employee, startDate, endDate, submissionType, confirmedLegible,
-                file.getOriginalFilename(), storagePath, LocalDateTime.now(clock)
-        );
+        // A entidade precisa do caminho, então o arquivo é salvo antes de ela
+        // validar. Recusado o envio, o arquivo é apagado — senão fica órfão.
+        try {
+            MedicalCertificate certificate = MedicalCertificate.submit(
+                    employee, startDate, endDate, submissionType, confirmedLegible,
+                    file.getOriginalFilename(), storagePath, LocalDateTime.now(clock)
+            );
 
-        MedicalCertificate saved = repository.save(certificate);
-        return toResponse(saved);
+            MedicalCertificate saved = repository.save(certificate);
+            return toResponse(saved);
+        } catch (RuntimeException refused) {
+            try {
+                storage.delete(storagePath);
+            } catch (IOException deleteFailure) {
+                // A pessoa precisa ver o motivo da recusa, não o erro do disco.
+                refused.addSuppressed(deleteFailure);
+            }
+            throw refused;
+        }
     }
 
     /** Histórico do funcionário vinculado ao login autenticado — "meus atestados". */

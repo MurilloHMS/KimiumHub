@@ -65,13 +65,25 @@ public class ReimbursementService {
 
         String storagePath = storage.save(receipt.getBytes(), employee.getCodParceiro(), receipt.getOriginalFilename());
 
-        Reimbursement reimbursement = Reimbursement.request(
-                employee, expenseDate, amount, category, reason,
-                receipt.getOriginalFilename(), storagePath, LocalDateTime.now(clock)
-        );
+        // A entidade precisa do caminho, então o arquivo é salvo antes de ela
+        // validar. Recusado o pedido, o arquivo é apagado — senão fica órfão.
+        try {
+            Reimbursement reimbursement = Reimbursement.request(
+                    employee, expenseDate, amount, category, reason,
+                    receipt.getOriginalFilename(), storagePath, LocalDateTime.now(clock)
+            );
 
-        Reimbursement saved = repository.save(reimbursement);
-        return toResponse(saved);
+            Reimbursement saved = repository.save(reimbursement);
+            return toResponse(saved);
+        } catch (RuntimeException refused) {
+            try {
+                storage.delete(storagePath);
+            } catch (IOException deleteFailure) {
+                // A pessoa precisa ver o motivo da recusa, não o erro do disco.
+                refused.addSuppressed(deleteFailure);
+            }
+            throw refused;
+        }
     }
 
     @Transactional
