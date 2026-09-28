@@ -90,10 +90,13 @@ public class VacationRequestService {
 
     @Transactional
     public VacationRequestResponseDTO approve(UUID id, ReviewVacationRequestDTO dto, String reviewerLogin) {
-        VacationRequest request = vacationRequestRepository.findById(id)
+        // As duas travas, pedido e funcionário, seguram até o fim da transação:
+        // uma segunda aprovação espera e lê o saldo e o status já gravados.
+        VacationRequest request = vacationRequestRepository.findByIdForUpdate(id)
                 .orElseThrow(VacationRequestNotFoundException::new);
+        Employee employee = employeeRepository.findByIdForUpdate(request.getEmployee().getId())
+                .orElseThrow(EmployeeNotFoundException::new);
         Employee reviewer = resolveEmployee(reviewerLogin);
-        Employee employee = request.getEmployee();
 
         // Confere o saldo ANTES de mudar o estado: o saldo só era conferido ao
         // criar, e dois pedidos pendentes aprovados em sequência o deixavam negativo.
@@ -113,7 +116,7 @@ public class VacationRequestService {
 
     @Transactional
     public VacationRequestResponseDTO reject(UUID id, ReviewVacationRequestDTO dto, String reviewerLogin) {
-        VacationRequest request = vacationRequestRepository.findById(id)
+        VacationRequest request = vacationRequestRepository.findByIdForUpdate(id)
                 .orElseThrow(VacationRequestNotFoundException::new);
         Employee reviewer = resolveEmployee(reviewerLogin);
 
@@ -232,7 +235,7 @@ public class VacationRequestService {
 
     @Transactional
     public VacationRequestResponseDTO createByRh(CreateVacationByRhDTO dto, String login){
-        Employee employee = employeeRepository.findById(dto.employeeId())
+        Employee employee = employeeRepository.findByIdForUpdate(dto.employeeId())
                 .orElseThrow(EmployeeNotFoundException::new);
 
         Employee reviewer = resolveEmployee(login);

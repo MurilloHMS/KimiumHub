@@ -136,7 +136,8 @@ class VacationRequestServiceTest {
         Employee reviewer = new Employee();
         String reviewerLogin = "reviewer.login";
 
-        when(vacationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        when(vacationRequestRepository.findByIdForUpdate(requestId)).thenReturn(Optional.of(request));
+        lenient().when(employeeRepository.findByIdForUpdate(any())).thenReturn(Optional.of(employee));
         when(userRepository.findByLoginWithEmployee(reviewerLogin)).thenReturn(Optional.empty());
         when(employeeRepository.findByUsername(reviewerLogin)).thenReturn(Optional.of(reviewer));
         when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -160,7 +161,8 @@ class VacationRequestServiceTest {
         Employee reviewer = new Employee();
         String reviewerLogin = "reviewer.login";
 
-        when(vacationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        when(vacationRequestRepository.findByIdForUpdate(requestId)).thenReturn(Optional.of(request));
+        lenient().when(employeeRepository.findByIdForUpdate(any())).thenReturn(Optional.of(employee));
         when(userRepository.findByLoginWithEmployee(reviewerLogin)).thenReturn(Optional.empty());
         when(employeeRepository.findByUsername(reviewerLogin)).thenReturn(Optional.of(reviewer));
         when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -237,7 +239,7 @@ class VacationRequestServiceTest {
 
     private void prepararLancamento() {
         mockAuthenticatedEmployee();
-        when(employeeRepository.findById(any())).thenReturn(Optional.of(employee));
+        when(employeeRepository.findByIdForUpdate(any())).thenReturn(Optional.of(employee));
         when(vacationRequestRepository.findOverlappingInTeam(eq(team), eq(employee), any(), any()))
                 .thenReturn(List.of());
         when(vacationRequestRepository.save(any(VacationRequest.class)))
@@ -331,7 +333,8 @@ class VacationRequestServiceTest {
         UUID requestId = UUID.randomUUID();
         employee.setVacationBalanceDays(5);
 
-        when(vacationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        when(vacationRequestRepository.findByIdForUpdate(requestId)).thenReturn(Optional.of(request));
+        lenient().when(employeeRepository.findByIdForUpdate(any())).thenReturn(Optional.of(employee));
         lenient().when(userRepository.findByLoginWithEmployee("reviewer.login")).thenReturn(Optional.empty());
         lenient().when(employeeRepository.findByUsername("reviewer.login")).thenReturn(Optional.of(new Employee()));
         // Com o defeito, o código segue e grava — o save precisa responder
@@ -360,7 +363,8 @@ class VacationRequestServiceTest {
         UUID requestId = UUID.randomUUID();
         employee.setVacationBalanceDays(6);
 
-        when(vacationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        when(vacationRequestRepository.findByIdForUpdate(requestId)).thenReturn(Optional.of(request));
+        lenient().when(employeeRepository.findByIdForUpdate(any())).thenReturn(Optional.of(employee));
         lenient().when(userRepository.findByLoginWithEmployee("reviewer.login")).thenReturn(Optional.empty());
         lenient().when(employeeRepository.findByUsername("reviewer.login")).thenReturn(Optional.of(new Employee()));
         when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -386,7 +390,7 @@ class VacationRequestServiceTest {
         employee.setVacationBalanceDays(5);
         lenient().when(userRepository.findByLoginWithEmployee(LOGIN)).thenReturn(Optional.empty());
         lenient().when(employeeRepository.findByUsername(LOGIN)).thenReturn(Optional.of(new Employee()));
-        when(employeeRepository.findById(any())).thenReturn(Optional.of(employee));
+        when(employeeRepository.findByIdForUpdate(any())).thenReturn(Optional.of(employee));
         lenient().when(vacationRequestRepository.findOverlappingInTeam(eq(team), eq(employee), any(), any()))
                 .thenReturn(List.of());
         lenient().when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -449,7 +453,7 @@ class VacationRequestServiceTest {
     void lancamentoNaoCruzaAsProprias() {
         lenient().when(userRepository.findByLoginWithEmployee(LOGIN)).thenReturn(Optional.empty());
         lenient().when(employeeRepository.findByUsername(LOGIN)).thenReturn(Optional.of(new Employee()));
-        when(employeeRepository.findById(any())).thenReturn(Optional.of(employee));
+        when(employeeRepository.findByIdForUpdate(any())).thenReturn(Optional.of(employee));
         lenient().when(vacationRequestRepository.existsOverlapForEmployee(eq(employee), any(), any(), any()))
                 .thenReturn(true);
         lenient().when(vacationRequestRepository.findOverlappingInTeam(any(), any(), any(), any())).thenReturn(List.of());
@@ -478,7 +482,8 @@ class VacationRequestServiceTest {
                 null, LocalDateTime.of(2026, 7, 20, 9, 0));
         UUID requestId = UUID.randomUUID();
 
-        when(vacationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        when(vacationRequestRepository.findByIdForUpdate(requestId)).thenReturn(Optional.of(request));
+        lenient().when(employeeRepository.findByIdForUpdate(any())).thenReturn(Optional.of(employee));
         lenient().when(userRepository.findByLoginWithEmployee("reviewer.login")).thenReturn(Optional.empty());
         lenient().when(employeeRepository.findByUsername("reviewer.login")).thenReturn(Optional.of(new Employee()));
         lenient().when(vacationRequestRepository.existsOverlapForEmployee(
