@@ -26,6 +26,31 @@ public interface VacationRequestRepository extends JpaRepository<VacationRequest
     List<VacationRequest> findByEmployeeAndStatus(Employee employee, VacationRequestStatus status);
 
     /**
+     * O próprio funcionário já tem férias, nos status dados, que cruzam o período?
+     *
+     * A consulta do setor abaixo exclui o próprio funcionário de propósito, e
+     * só roda para quem tem time — então o mesmo pedido podia ser feito duas
+     * vezes, e aprovar os dois descontava o saldo duas vezes.
+     *
+     * Os status vêm de quem chama: criar confere PENDING e APPROVED; aprovar
+     * confere só APPROVED, e assim o pedido que está sendo aprovado (ainda
+     * PENDING) não conflita consigo mesmo.
+     */
+    @Query("""
+            SELECT COUNT(vr) > 0 FROM VacationRequest vr
+            WHERE vr.employee = :employee
+            AND vr.status IN :statuses
+            AND vr.startDate <= :endDate
+            AND vr.endDate >= :startDate
+            """)
+    boolean existsOverlapForEmployee(
+            @Param("employee") Employee employee,
+            @Param("statuses") List<VacationRequestStatus> statuses,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    /**
      * Solicitações PENDING/APPROVED de outros funcionários do mesmo Setor cujo período
      * se sobrepõe ao informado — usado pro bloqueio rígido de férias simultâneas.
      */

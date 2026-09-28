@@ -8,6 +8,7 @@ import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.Vac
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.InsufficientVacationBalanceException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.OverlappingVacationRequestException;
+import com.proautokimium.api.Infrastructure.exceptions.humanResources.OwnVacationOverlapException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.CareerHistoryRepository;
@@ -396,6 +397,103 @@ class VacationRequestServiceTest {
 
         assertThat(employee.getVacationBalanceDays()).isEqualTo(5);
         verify(employeeRepository, never()).save(any());
+        verify(vacationRequestRepository, never()).save(any());
+    }
+
+    // ─── Sobreposição com as próprias férias ─────────────────────────────────
+    //
+    // A consulta do setor exclui o próprio funcionário e só roda para quem tem
+    // time. O mesmo pedido podia ser feito duas vezes, e aprovar os dois
+    // descontava o saldo duas vezes.
+    //
+    // Stubs `lenient`: com o defeito, o código não consulta a sobreposição
+    // própria e segue até o save — o teste precisa falhar por "nada lançado",
+    // e não por stub não usado.
+
+    @Test
+    @DisplayName("não cria pedido que cruza férias do próprio funcionário")
+    void naoCriaPedidoQueCruzaAsProprias() {
+        mockAuthenticatedEmployee();
+        lenient().when(vacationRequestRepository.existsOverlapForEmployee(eq(employee), any(), any(), any()))
+                .thenReturn(true);
+        lenient().when(vacationRequestRepository.findOverlappingInTeam(any(), any(), any(), any())).thenReturn(List.of());
+        lenient().when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(brazilianBussinessCalculator.countBusinessDays(any(), any())).thenReturn(6L);
+
+        CreateVacationRequestDTO dto = new CreateVacationRequestDTO(
+                LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10), null);
+
+        assertThrows(OwnVacationOverlapException.class, () -> service.create(dto, LOGIN));
+        verify(vacationRequestRepository, never()).save(any());
+    }
+
+    /** Quem não tem time nunca passava por verificação nenhuma. */
+    @Test
+    @DisplayName("sem time, a sobreposição própria é conferida do mesmo jeito")
+    void semTimeTambemConfere() {
+        employee.setTeam(null);
+        mockAuthenticatedEmployee();
+        lenient().when(vacationRequestRepository.existsOverlapForEmployee(eq(employee), any(), any(), any()))
+                .thenReturn(true);
+        lenient().when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(brazilianBussinessCalculator.countBusinessDays(any(), any())).thenReturn(6L);
+
+        CreateVacationRequestDTO dto = new CreateVacationRequestDTO(
+                LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10), null);
+
+        assertThrows(OwnVacationOverlapException.class, () -> service.create(dto, LOGIN));
+    }
+
+    @Test
+    @DisplayName("o lançamento do RH não cruza férias do próprio funcionário")
+    void lancamentoNaoCruzaAsProprias() {
+        lenient().when(userRepository.findByLoginWithEmployee(LOGIN)).thenReturn(Optional.empty());
+        lenient().when(employeeRepository.findByUsername(LOGIN)).thenReturn(Optional.of(new Employee()));
+        when(employeeRepository.findById(any())).thenReturn(Optional.of(employee));
+        lenient().when(vacationRequestRepository.existsOverlapForEmployee(eq(employee), any(), any(), any()))
+                .thenReturn(true);
+        lenient().when(vacationRequestRepository.findOverlappingInTeam(any(), any(), any(), any())).thenReturn(List.of());
+        lenient().when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(brazilianBussinessCalculator.countBusinessDays(any(), any())).thenReturn(8L);
+
+        assertThrows(OwnVacationOverlapException.class, () -> service.createByRh(lancamento(null), LOGIN));
+        assertThat(employee.getVacationBalanceDays()).as("o saldo não se mexe").isEqualTo(12);
+        verify(vacationRequestRepository, never()).save(any());
+    }
+
+    /**
+     * **Aprovar confere só contra as APROVADAS.** Pedidos duplicados feitos
+     * antes desta correção continuam pendentes na base; aprovar o segundo
+     * descontaria de novo.
+     *
+     * O stub responde só para `[APPROVED]`: se a correção consultar com
+     * PENDING junto, o próprio pedido (pendente) conflitaria consigo mesmo — e
+     * se consultar com outra lista, este teste não recebe o `true` e falha.
+     */
+    @Test
+    @DisplayName("aprovar recusa quando já há férias aprovadas no período, e nada muda")
+    void aprovarRecusaSeJaHaAprovadasNoPeriodo() {
+        VacationRequest request = VacationRequest.request(
+                employee, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10),
+                null, LocalDateTime.of(2026, 7, 20, 9, 0));
+        UUID requestId = UUID.randomUUID();
+
+        when(vacationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        lenient().when(userRepository.findByLoginWithEmployee("reviewer.login")).thenReturn(Optional.empty());
+        lenient().when(employeeRepository.findByUsername("reviewer.login")).thenReturn(Optional.of(new Employee()));
+        lenient().when(vacationRequestRepository.existsOverlapForEmployee(
+                        eq(employee),
+                        eq(List.of(com.proautokimium.api.domain.enums.humanResources.VacationRequestStatus.APPROVED)),
+                        any(), any()))
+                .thenReturn(true);
+        lenient().when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(brazilianBussinessCalculator.countBusinessDays(any(), any())).thenReturn(6L);
+
+        assertThrows(OwnVacationOverlapException.class,
+                () -> service.approve(requestId, new ReviewVacationRequestDTO("ok"), "reviewer.login"));
+
+        assertThat(employee.getVacationBalanceDays()).isEqualTo(12);
+        assertThat(request.getStatus().name()).isEqualTo("PENDING");
         verify(vacationRequestRepository, never()).save(any());
     }
 }
