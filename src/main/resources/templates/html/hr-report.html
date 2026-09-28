@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Comprovante de reembolsos</title>
+</head>
+<body style="margin:0; padding:0; font-family: Arial, sans-serif; background-color:#f4f4f4;">
+
+<!--
+  O corpo só diz o que é e de quem veio. Nome e valor de cada pessoa ficam no
+  PDF anexado: caixa de entrada é encaminhada, e o corpo aparece em pré-visualização.
+-->
+
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+        <td align="center" style="padding:30px 10px;">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="600"
+                   style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 3px 8px rgba(0,0,0,.12);">
+                <tr>
+                    <td style="background:#232e61; padding:28px 30px; color:#ffffff;">
+                        <p style="margin:0; font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:#57c1ab;">Recursos Humanos</p>
+                        <h1 style="margin:6px 0 0; font-size:22px; font-weight:bold;">Comprovante de reembolsos</h1>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:28px 30px 8px; color:#333333; font-size:15px; line-height:24px;">
+                        <p style="margin:0 0 16px;">
+                            Segue em anexo o comprovante de solicitações de reembolso
+                            <strong th:text="${escopo}">de todos os funcionários</strong>,
+                            período de <strong th:text="${periodo}">01/09/2026 a 30/09/2026</strong>.
+                        </p>
+                        <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
+                               style="border:1px solid #d9dce6; border-radius:8px; font-size:14px;">
+                            <tr>
+                                <td style="padding:10px 14px; color:#5d6278; width:40%;">Status incluídos</td>
+                                <td style="padding:10px 14px;" th:text="${status}">Pendente, Aprovado, Pago</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:10px 14px; color:#5d6278; border-top:1px solid #d9dce6;">Emitido por</td>
+                                <td style="padding:10px 14px; border-top:1px solid #d9dce6;" th:text="${emitidoPor}">Carla Mendes</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:10px 14px; color:#5d6278; border-top:1px solid #d9dce6;">Emitido em</td>
+                                <td style="padding:10px 14px; border-top:1px solid #d9dce6;" th:text="${emitidoEm}">28/09/2026 14:32</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:10px 14px; color:#5d6278; border-top:1px solid #d9dce6;">Arquivo</td>
+                                <td style="padding:10px 14px; border-top:1px solid #d9dce6;" th:text="${arquivo}">comprovante.pdf</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:16px 30px 28px; color:#888888; font-size:12px; line-height:18px;">
+                        Enviado pelo KimiumHub a pedido de quem emitiu. Os mesmos dados podem ser
+                        gerados de novo em Recursos Humanos › Reembolsos.
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

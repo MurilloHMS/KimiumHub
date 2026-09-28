@@ -3,6 +3,7 @@ package com.proautokimium.api.controllers.humanResources;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.security.SecurityConfiguration;
 import com.proautokimium.api.Infrastructure.security.TokenService;
+import com.proautokimium.api.Infrastructure.services.humanResources.ReimbursementReportEmailService;
 import com.proautokimium.api.Infrastructure.services.humanResources.ReimbursementReportService;
 import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +30,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -48,6 +52,7 @@ class ReimbursementReportControllerTest {
     @Autowired MockMvc mockMvc;
 
     @MockitoBean ReimbursementReportService service;
+    @MockitoBean ReimbursementReportEmailService emailService;
     @MockitoBean PermissionService permissionService;
     @MockitoBean UserRepository userRepository;
     @MockitoBean TokenService tokenService;
@@ -83,5 +88,32 @@ class ReimbursementReportControllerTest {
     void portalNaoBaixa() throws Exception {
         mockMvc.perform(get(URL)).andExpect(status().isForbidden());
         verifyNoInteractions(service);
+    }
+
+    // ─── Envio por e-mail ────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("com ENVIAR, manda e responde para quem saiu")
+    @WithMockUser(username = "carla.rh", authorities = {"rh/reimbursements:ENVIAR"})
+    void enviarManda() throws Exception {
+        when(emailService.sendToHr(any(), any(), any(), any(), any())).thenReturn(
+                new com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.ReportEmailResultDTO(
+                        "c.pdf", List.of("rh@proautokimium.com.br"), List.of()));
+
+        mockMvc.perform(post("/api/hr/reimbursements/report/email?from=2026-09-01&to=2026-09-30&status=PAID")
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sentTo[0]").value("rh@proautokimium.com.br"));
+    }
+
+    /** Baixar o PDF não é o mesmo que disparar e-mail com nome e valor de todo mundo. */
+    @Test
+    @DisplayName("quem só baixa não envia por e-mail")
+    @WithMockUser(authorities = {"rh/reimbursements:BAIXAR"})
+    void baixarNaoEnvia() throws Exception {
+        mockMvc.perform(post("/api/hr/reimbursements/report/email?from=2026-09-01&to=2026-09-30&status=PAID")
+                        .with(csrf()))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(emailService);
     }
 }

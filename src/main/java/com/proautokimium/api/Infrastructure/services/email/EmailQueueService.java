@@ -33,13 +33,24 @@ public class EmailQueueService {
     }
 
     public void sendNow(String to, String from, String subject, String body){
-        EmailQueue email = new EmailQueue(
-                to,
-                from,
-                subject,
-                body);
+        EmailQueue email = new EmailQueue(to, from, subject, body);
+        sendAndRecord(email, () -> emailService.sendEmail(email));
+    }
+
+    /**
+     * Envio imediato com anexo. A linha da fila registra que o e-mail saiu (ou
+     * falhou), mas o anexo NÃO é gravado: um PDF com comprovantes pode ter
+     * megabytes, e a fila não é arquivo — o documento se gera de novo.
+     */
+    public void sendNow(String to, String from, String subject, String body, SmtpService.Attachment attachment){
+        EmailQueue email = new EmailQueue(to, from, subject, body);
+        sendAndRecord(email, () -> emailService.sendWithAttachment(email, attachment));
+    }
+
+    /** SENT no sucesso; FAILED e relança na falha; grava sempre — FAILED impede o cron de reenviar. */
+    private void sendAndRecord(EmailQueue email, Runnable send){
         try{
-            emailService.sendEmail(email);
+            send.run();
             email.markEmailSent();
         }catch (Exception e){
             email.setStatus(EmailStatus.FAILED);

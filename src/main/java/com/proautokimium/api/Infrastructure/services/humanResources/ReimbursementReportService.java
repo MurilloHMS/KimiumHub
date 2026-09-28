@@ -279,7 +279,7 @@ public class ReimbursementReportService {
         return info;
     }
 
-    private String issuerName(String login) {
+    String issuerName(String login) {
         Employee viaLink = userRepository.findByLoginWithEmployee(login).map(u -> u.getEmployee()).orElse(null);
         Employee issuer = viaLink != null ? viaLink : employeeRepository.findByUsername(login).orElse(null);
         return issuer != null && issuer.getName() != null ? issuer.getName() : login;
