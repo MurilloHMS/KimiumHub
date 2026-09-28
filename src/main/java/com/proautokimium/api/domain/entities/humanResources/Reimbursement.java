@@ -1,5 +1,7 @@
 package com.proautokimium.api.domain.entities.humanResources;
 
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.enums.humanResources.ReimbursementStatus;
 import jakarta.persistence.*;
@@ -80,7 +82,7 @@ public class Reimbursement extends com.proautokimium.api.domain.abstractions.Ent
                                          String reason, String receiptOriginalFilename, String receiptStoragePath,
                                          LocalDateTime requestedAt) {
         if (amount == null || amount.signum() <= 0) {
-            throw new IllegalArgumentException("Valor do reembolso precisa ser maior que zero");
+            throw new InvalidRequestDataException("Valor do reembolso precisa ser maior que zero");
         }
         return new Reimbursement(employee, expenseDate, amount, category, reason,
                 receiptOriginalFilename, receiptStoragePath, requestedAt);
@@ -88,7 +90,7 @@ public class Reimbursement extends com.proautokimium.api.domain.abstractions.Ent
 
     public void approve(Employee reviewer, String notes, LocalDateTime now) {
         if (status != ReimbursementStatus.PENDING) {
-            throw new IllegalStateException("Só é possível aprovar um reembolso pendente");
+            throw new InvalidStatusTransitionException("Só é possível aprovar um reembolso pendente");
         }
         this.status = ReimbursementStatus.APPROVED;
         this.reviewedBy = reviewer;
@@ -98,10 +100,10 @@ public class Reimbursement extends com.proautokimium.api.domain.abstractions.Ent
 
     public void reject(Employee reviewer, String notes, LocalDateTime now) {
         if (status != ReimbursementStatus.PENDING) {
-            throw new IllegalStateException("Só é possível reprovar um reembolso pendente");
+            throw new InvalidStatusTransitionException("Só é possível reprovar um reembolso pendente");
         }
         if (notes == null || notes.isBlank()) {
-            throw new IllegalArgumentException("Motivo é obrigatório ao reprovar");
+            throw new InvalidRequestDataException("Motivo é obrigatório ao reprovar");
         }
         this.status = ReimbursementStatus.REJECTED;
         this.reviewedBy = reviewer;
@@ -112,7 +114,7 @@ public class Reimbursement extends com.proautokimium.api.domain.abstractions.Ent
     /** Registra o pagamento — separado de approve() porque a data pode não ser conhecida na hora de aprovar. */
     public void pay(LocalDate paymentDate, LocalDateTime now) {
         if (status != ReimbursementStatus.APPROVED) {
-            throw new IllegalStateException("Só é possível pagar um reembolso aprovado");
+            throw new InvalidStatusTransitionException("Só é possível pagar um reembolso aprovado");
         }
         this.paymentDate = paymentDate;
         this.paidAt = now;

@@ -1,5 +1,7 @@
 package com.proautokimium.api.domain.entities.humanResources;
 
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
 import com.proautokimium.api.domain.entities.Employee;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -49,10 +51,10 @@ public class EquipmentAssignment extends com.proautokimium.api.domain.abstractio
 
     public void markAsReturned(LocalDate returnedAt) {
         if (this.returnedAt != null) {
-            throw new IllegalStateException("Equipamento já foi devolvido");
+            throw new InvalidStatusTransitionException("Equipamento já foi devolvido");
         }
         if (returnedAt.isBefore(this.deliveredAt)) {
-            throw new IllegalArgumentException("Data de devolução não pode ser antes da entrega");
+            throw new InvalidRequestDataException("Data de devolução não pode ser antes da entrega");
         }
         this.returnedAt = returnedAt;
     }

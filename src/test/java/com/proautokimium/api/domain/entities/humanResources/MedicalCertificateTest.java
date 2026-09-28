@@ -1,5 +1,7 @@
 package com.proautokimium.api.domain.entities.humanResources;
 
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.enums.humanResources.SubmissionType;
 import org.junit.jupiter.api.DisplayName;
@@ -19,7 +21,7 @@ class MedicalCertificateTest {
     @Test
     @DisplayName("Não deve enviar com data final antes da inicial")
     void naoDeveEnviarComDataFinalAntesDaInicial() {
-        assertThrows(IllegalArgumentException.class, () -> MedicalCertificate.submit(
+        assertThrows(InvalidRequestDataException.class, () -> MedicalCertificate.submit(
                 employee, LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 10),
                 SubmissionType.FILE, null, "atestado.pdf", "path", now
         ));
@@ -28,11 +30,11 @@ class MedicalCertificateTest {
     @Test
     @DisplayName("Não deve enviar foto sem confirmar legibilidade")
     void naoDeveEnviarFotoSemConfirmarLegibilidade() {
-        assertThrows(IllegalArgumentException.class, () -> MedicalCertificate.submit(
+        assertThrows(InvalidRequestDataException.class, () -> MedicalCertificate.submit(
                 employee, LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 20),
                 SubmissionType.PHOTO, null, "foto.jpg", "path", now
         ));
-        assertThrows(IllegalArgumentException.class, () -> MedicalCertificate.submit(
+        assertThrows(InvalidRequestDataException.class, () -> MedicalCertificate.submit(
                 employee, LocalDate.of(2026, 7, 20), LocalDate.of(2026, 7, 20),
                 SubmissionType.PHOTO, false, "foto.jpg", "path", now
         ));

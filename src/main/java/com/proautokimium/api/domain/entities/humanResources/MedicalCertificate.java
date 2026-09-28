@@ -1,5 +1,6 @@
 package com.proautokimium.api.domain.entities.humanResources;
 
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.enums.humanResources.SubmissionType;
 import jakarta.persistence.*;
@@ -60,10 +61,10 @@ public class MedicalCertificate extends com.proautokimium.api.domain.abstraction
                                              SubmissionType submissionType, Boolean confirmedLegible,
                                              String originalFilename, String storagePath, LocalDateTime submittedAt) {
         if (endDate.isBefore(startDate)) {
-            throw new IllegalArgumentException("Data final não pode ser antes da data inicial");
+            throw new InvalidRequestDataException("Data final não pode ser antes da data inicial");
         }
         if (submissionType == SubmissionType.PHOTO && !Boolean.TRUE.equals(confirmedLegible)) {
-            throw new IllegalArgumentException("É preciso confirmar que a foto está legível antes de enviar");
+            throw new InvalidRequestDataException("É preciso confirmar que a foto está legível antes de enviar");
         }
         return new MedicalCertificate(employee, startDate, endDate, submissionType, confirmedLegible,
                 originalFilename, storagePath, submittedAt);

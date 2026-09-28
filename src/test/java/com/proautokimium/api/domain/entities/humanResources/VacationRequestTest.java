@@ -1,5 +1,7 @@
 package com.proautokimium.api.domain.entities.humanResources;
 
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException;
 import com.proautokimium.api.domain.entities.Employee;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,7 +31,7 @@ class VacationRequestTest {
     @Test
     @DisplayName("Não deve criar solicitação com data final antes da inicial")
     void naoDeveCriarComDataFinalAntesDaInicial() {
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(InvalidRequestDataException.class, () ->
                 VacationRequest.request(employee, LocalDate.of(2026, 8, 10), LocalDate.of(2026, 8, 1), null, now)
         );
     }
@@ -55,7 +57,7 @@ class VacationRequestTest {
         );
         request.approve(reviewer, "ok", now);
 
-        assertThrows(IllegalStateException.class, () -> request.approve(reviewer, "de novo", now));
+        assertThrows(InvalidStatusTransitionException.class, () -> request.approve(reviewer, "de novo", now));
     }
 
     @Test
@@ -65,8 +67,8 @@ class VacationRequestTest {
                 employee, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10), null, now
         );
 
-        assertThrows(IllegalArgumentException.class, () -> request.reject(reviewer, "  ", now));
-        assertThrows(IllegalArgumentException.class, () -> request.reject(reviewer, null, now));
+        assertThrows(InvalidRequestDataException.class, () -> request.reject(reviewer, "  ", now));
+        assertThrows(InvalidRequestDataException.class, () -> request.reject(reviewer, null, now));
     }
 
     @Test

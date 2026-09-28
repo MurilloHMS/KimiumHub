@@ -1,5 +1,7 @@
 package com.proautokimium.api.domain.entities.humanResources;
 
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException;
 import com.proautokimium.api.domain.entities.Employee;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,7 +47,7 @@ class EquipmentAssignmentTest {
         );
         assignment.markAsReturned(LocalDate.of(2026, 7, 20));
 
-        assertThrows(IllegalStateException.class, () -> assignment.markAsReturned(LocalDate.of(2026, 7, 25)));
+        assertThrows(InvalidStatusTransitionException.class, () -> assignment.markAsReturned(LocalDate.of(2026, 7, 25)));
     }
 
     @Test
@@ -55,6 +57,6 @@ class EquipmentAssignmentTest {
                 employee, "Veículo", "Fiat Strada - ABC1234", LocalDate.of(2026, 7, 10), null
         );
 
-        assertThrows(IllegalArgumentException.class, () -> assignment.markAsReturned(LocalDate.of(2026, 7, 1)));
+        assertThrows(InvalidRequestDataException.class, () -> assignment.markAsReturned(LocalDate.of(2026, 7, 1)));
     }
 }
