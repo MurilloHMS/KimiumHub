@@ -56,7 +56,9 @@ public class AnnouncementService {
         Announcement saved = repository.save(announcement);
 
         notificationService.send(new SendNotificationRequestDTO(
-                null, "Novo aviso: " + dto.title(), dto.content(), "/mural"
+                // Direto para a tela de avisos: "/mural" só abre com o redirect do
+                // site, e notificação gravada antes dele cai no 404.
+                null, "Novo aviso: " + dto.title(), dto.content(), "/documentos/rh/announcements"
         ));
 
         return toResponse(saved);

@@ -8,6 +8,8 @@ import com.proautokimium.api.domain.enums.NotificationType;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,20 +37,63 @@ public class NotificationService {
     @Transactional
     public NotificationDTO notify(String recipientLogin, NotificationType type,
                                   String title, String message, String link) {
-        Notification saved = repository.save(new Notification(recipientLogin, type, title, message, link));
+        String safeTitle = fit(title, TITLE_MAX);
+        String safeMessage = fit(message, MESSAGE_MAX);
+        // Link cortado não abre nada: melhor sem link que com um quebrado.
+        String safeLink = link != null && link.length() > LINK_MAX ? null : link;
+
+        Notification saved = repository.save(new Notification(recipientLogin, type, safeTitle, safeMessage, safeLink));
         NotificationDTO dto = toDTO(saved);
 
+        // A entrega ao vivo espera o commit. Dentro de um @Transactional o save
+        // só grava no fim; entregar antes anunciava o que podia não existir —
+        // em 2026-09-28 o celular recebeu o push de dois avisos que a
+        // transação desfez, e nada apareceu na lista nem no mural.
+        afterCommit(() -> deliverLive(recipientLogin, dto, safeTitle, safeMessage, safeLink));
+
+        return dto;
+    }
+
+    /** Colunas de notifications (V49): título 200, mensagem 500, link 300. */
+    static final int TITLE_MAX = 200;
+    static final int MESSAGE_MAX = 500;
+    static final int LINK_MAX = 300;
+
+    /**
+     * Corta no tamanho da coluna, com reticências. O aviso do mural aceita 4000
+     * caracteres e manda o texto inteiro como mensagem: passar de 500 derrubava
+     * a transação no commit. A notificação só precisa anunciar; o texto
+     * completo continua no mural.
+     */
+    static String fit(String text, int max) {
+        if (text == null || text.length() <= max) return text;
+        return text.substring(0, max - 1).stripTrailing() + "…";
+    }
+
+    /** Roda depois do commit; fora de transação, na hora. Em rollback, nunca. */
+    private static void afterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
+        }
+    }
+
+    private void deliverLive(String recipientLogin, NotificationDTO dto, String title, String message, String link) {
         // Empurrão em tempo real (STOMP) — destino por usuário (/user/{login}/queue/notifications)
         try {
             messagingTemplate.convertAndSendToUser(recipientLogin, "/queue/notifications", dto);
         } catch (Exception ignored) {
-            // entrega ao vivo é best-effort; a notificação já está persistida
+            // entrega ao vivo é best-effort; a notificação já está no banco
         }
 
         // Push nativo (mesmo com o app fechado)
         webPushService.sendToUser(recipientLogin, title, message, link);
-
-        return dto;
     }
 
     public List<NotificationDTO> listar(String login) {

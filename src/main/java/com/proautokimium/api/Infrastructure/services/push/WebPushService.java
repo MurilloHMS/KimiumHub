@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.Security;
@@ -93,8 +94,14 @@ public class WebPushService {
         repository.deleteByEndpoint(endpoint);
     }
 
-    /** Envia o push para todos os dispositivos inscritos do usuário. Best-effort. */
-    @Transactional
+    /**
+     * Envia o push para todos os dispositivos inscritos do usuário. Best-effort.
+     *
+     * REQUIRES_NEW: agora roda depois do commit de quem notificou, e ali a
+     * transação original já terminou — remover a inscrição vencida (404/410)
+     * precisa de uma transação própria, senão a remoção não é gravada.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendToUser(String login, String title, String body, String link) {
         if (!enabled) return;
 
