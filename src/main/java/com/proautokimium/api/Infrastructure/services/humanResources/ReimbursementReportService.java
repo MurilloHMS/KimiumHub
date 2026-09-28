@@ -14,12 +14,12 @@ import com.proautokimium.api.domain.enums.humanResources.ReimbursementStatus;
 import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import net.sf.jasperreports.engine.JRException;
-import net.sf.jasperreports.engine.JasperCompileManager;
 import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.util.JRLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,7 +58,12 @@ import static com.proautokimium.api.Infrastructure.utils.BrazilianFormat.money;
 @Service
 public class ReimbursementReportService {
 
-    private static final String TEMPLATE = "/templates/reports/reimbursements/comprovante_reembolsos.jrxml";
+    /**
+     * O template JÁ COMPILADO. O container roda só o JRE, sem {@code javac}, e
+     * compilar o {@code .jrxml} aqui dava 503 na primeira emissão. Editou o
+     * {@code .jrxml}? Recompile — o comando está no ReimbursementReportTemplateTest.
+     */
+    static final String TEMPLATE = "/templates/reports/reimbursements/comprovante_reembolsos.jasper";
 
     /** Um ano: acima disso o PDF vira livro, e o pedido provavelmente foi engano. */
     static final long MAX_DAYS = 366;
@@ -79,7 +84,7 @@ public class ReimbursementReportService {
     private final ReimbursementReceiptAnnexes annexes;
     private final Clock clock;
 
-    /** Compilar é a parte cara: uma vez só, na primeira emissão. */
+    /** Carregado uma vez, na primeira emissão. */
     private volatile JasperReport compiled;
 
     public ReimbursementReportService(ReimbursementRepository repository, EmployeeRepository employeeRepository,
@@ -302,7 +307,7 @@ public class ReimbursementReportService {
                         if (in == null) {
                             throw new JRException("Template não encontrado: " + TEMPLATE);
                         }
-                        local = JasperCompileManager.compileReport(in);
+                        local = (JasperReport) JRLoader.loadObject(in);
                         compiled = local;
                     } catch (IOException e) {
                         throw new JRException("Template ilegível: " + TEMPLATE, e);
