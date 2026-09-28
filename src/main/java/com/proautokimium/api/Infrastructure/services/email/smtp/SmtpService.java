@@ -58,6 +58,21 @@ public class SmtpService {
 	}
 
 	public void sendEmail(EmailQueue email) {
+		sendWithAttachment(email, null);
+	}
+
+	/** Um arquivo anexado a um e-mail — só em memória, não vai para a fila. */
+	public record Attachment(String fileName, byte[] content, String contentType) {}
+
+	/**
+	 * Envia com anexo. Diferente do {@code sendEmail(SmtpMail, MultipartFile[])},
+	 * que engole o erro no log: aqui a falha sobe, para quem chamou poder dizer
+	 * à pessoa que o e-mail NÃO saiu.
+	 *
+	 * Nome próprio, e não mais um {@code sendEmail}: com dois argumentos, ele
+	 * ficaria ambíguo com o envio por {@code SmtpMail} em qualquer {@code sendEmail(any(), any())}.
+	 */
+	public void sendWithAttachment(EmailQueue email, Attachment attachment) {
 
 		try {
 			MimeMessage message = mailSender.createMimeMessage();
@@ -70,6 +85,11 @@ public class SmtpService {
 
 			if (email.getReplyTo() != null) {
 				helper.setReplyTo(email.getReplyTo());
+			}
+
+			if (attachment != null) {
+				helper.addAttachment(attachment.fileName(),
+						new ByteArrayDataSource(attachment.content(), attachment.contentType()));
 			}
 
 			mailSender.send(message);
