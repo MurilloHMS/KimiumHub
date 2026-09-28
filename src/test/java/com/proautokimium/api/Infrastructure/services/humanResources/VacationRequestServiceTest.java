@@ -238,7 +238,10 @@ class VacationRequestServiceTest {
     }
 
     private void prepararLancamento() {
-        mockAuthenticatedEmployee();
+        // Quem lança é o RH, outra pessoa: o lançamento nasce aprovado, e
+        // ninguém aprova as próprias férias.
+        when(userRepository.findByLoginWithEmployee(LOGIN)).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername(LOGIN)).thenReturn(Optional.of(new Employee()));
         when(employeeRepository.findByIdForUpdate(any())).thenReturn(Optional.of(employee));
         when(vacationRequestRepository.findOverlappingInTeam(eq(team), eq(employee), any(), any()))
                 .thenReturn(List.of());
@@ -499,6 +502,28 @@ class VacationRequestServiceTest {
 
         assertThat(employee.getVacationBalanceDays()).isEqualTo(12);
         assertThat(request.getStatus().name()).isEqualTo("PENDING");
+        verify(vacationRequestRepository, never()).save(any());
+    }
+
+    // ─── O RH não lança as próprias férias ───────────────────────────────────
+
+    /**
+     * O lançamento do RH nasce aprovado — então lançar as próprias férias é
+     * aprovar o próprio pedido. Outra pessoa com a permissão lança.
+     */
+    @Test
+    @DisplayName("o RH não lança as próprias férias, e o saldo não se mexe")
+    void rhNaoLancaAsProprias() {
+        mockAuthenticatedEmployee(); // o login do RH resolve para o próprio funcionário
+        when(employeeRepository.findByIdForUpdate(any())).thenReturn(Optional.of(employee));
+        lenient().when(vacationRequestRepository.findOverlappingInTeam(any(), any(), any(), any())).thenReturn(List.of());
+        lenient().when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(brazilianBussinessCalculator.countBusinessDays(any(), any())).thenReturn(8L);
+
+        assertThrows(com.proautokimium.api.domain.exceptions.humanResources.SelfReviewException.class,
+                () -> service.createByRh(lancamento(null), LOGIN));
+
+        assertThat(employee.getVacationBalanceDays()).isEqualTo(12);
         verify(vacationRequestRepository, never()).save(any());
     }
 }
