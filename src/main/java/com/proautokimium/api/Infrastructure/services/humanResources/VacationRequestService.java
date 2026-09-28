@@ -3,6 +3,7 @@ package com.proautokimium.api.Infrastructure.services.humanResources;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.*;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.InsufficientVacationBalanceException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.OverlappingVacationRequestException;
+import com.proautokimium.api.Infrastructure.exceptions.humanResources.OwnVacationOverlapException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.VacationRequestNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
@@ -36,6 +37,10 @@ public class VacationRequestService {
     private final Clock clock;
     private final BrazilianBusinessDayCalculator businessDayCalculator;
 
+    /** Status que ocupam o período: pedido em análise ou férias já aprovadas. */
+    private static final List<VacationRequestStatus> OPEN_STATUSES =
+            List.of(VacationRequestStatus.PENDING, VacationRequestStatus.APPROVED);
+
     public VacationRequestService(
             VacationRequestRepository vacationRequestRepository,
             EmployeeRepository employeeRepository,
@@ -68,6 +73,7 @@ public class VacationRequestService {
         );
 
         balanceAfter(employee, dto.startDate(), dto.endDate());
+        ensureNoOwnOverlap(employee, OPEN_STATUSES, dto.startDate(), dto.endDate());
 
         if (employee.getTeam() != null) {
             List<VacationRequest> overlapping = vacationRequestRepository.findOverlappingInTeam(
@@ -92,6 +98,10 @@ public class VacationRequestService {
         // Confere o saldo ANTES de mudar o estado: o saldo só era conferido ao
         // criar, e dois pedidos pendentes aprovados em sequência o deixavam negativo.
         int newBalance = balanceAfter(employee, request.getStartDate(), request.getEndDate());
+        // Só contra as APROVADAS: este pedido ainda é PENDING e não conflita
+        // consigo mesmo. Pega os duplicados pendentes criados antes desta regra.
+        ensureNoOwnOverlap(employee, List.of(VacationRequestStatus.APPROVED),
+                request.getStartDate(), request.getEndDate());
 
         request.approve(reviewer, dto.notes(), LocalDateTime.now(clock));
         employee.setVacationBalanceDays(newBalance);
@@ -227,6 +237,8 @@ public class VacationRequestService {
 
         Employee reviewer = resolveEmployee(login);
 
+        ensureNoOwnOverlap(employee, OPEN_STATUSES, dto.startDate(), dto.endDate());
+
         if(employee.getTeam() != null){
             List<VacationRequest> overlapping = vacationRequestRepository.findOverlappingInTeam(
                     employee.getTeam(), employee, dto.startDate(), dto.endDate()
@@ -275,6 +287,17 @@ public class VacationRequestService {
             throw new InsufficientVacationBalanceException();
         }
         return balance - (int) businessDays;
+    }
+
+    /**
+     * Recusa férias que cruzam as do próprio funcionário. Vale com ou sem
+     * time — a regra do setor, que depende do time, é outra.
+     */
+    private void ensureNoOwnOverlap(Employee employee, List<VacationRequestStatus> statuses,
+                                    LocalDate startDate, LocalDate endDate) {
+        if (vacationRequestRepository.existsOverlapForEmployee(employee, statuses, startDate, endDate)) {
+            throw new OwnVacationOverlapException();
+        }
     }
 
     private Employee resolveEmployee(String login) {
