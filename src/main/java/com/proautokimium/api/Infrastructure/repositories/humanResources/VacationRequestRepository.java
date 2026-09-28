@@ -4,17 +4,31 @@ import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.humanResources.Team;
 import com.proautokimium.api.domain.entities.humanResources.VacationRequest;
 import com.proautokimium.api.domain.enums.humanResources.VacationRequestStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface VacationRequestRepository extends JpaRepository<VacationRequest, UUID> {
 
     List<VacationRequest> findByEmployeeOrderByRequestedAtDesc(Employee employee);
+
+    /**
+     * Lê o pedido travando a linha até o fim da transação (SELECT ... FOR UPDATE).
+     *
+     * Aprovar e reprovar ao mesmo tempo liam os dois PENDING: o último a
+     * gravar vencia, e o pedido podia terminar REPROVADO com o saldo já
+     * descontado. Travado, o segundo espera e encontra o status já mudado.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT vr FROM VacationRequest vr WHERE vr.id = :id")
+    Optional<VacationRequest> findByIdForUpdate(@Param("id") UUID id);
     List<VacationRequest> findByStatus(VacationRequestStatus status);
     List<VacationRequest> findAllByOrderByRequestedAtDesc();
     List<VacationRequest> findByStatusOrderByRequestedAtDesc(VacationRequestStatus status);

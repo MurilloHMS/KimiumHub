@@ -4,7 +4,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import jakarta.persistence.LockModeType;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,6 +15,21 @@ import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.enums.humanResources.TransportType;
 
 public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
+
+    /**
+     * Lê o funcionário travando a linha até o fim da transação (SELECT ... FOR UPDATE).
+     *
+     * Para quem vai GRAVAR o saldo de férias: duas aprovações simultâneas liam
+     * o mesmo saldo e cada uma gravava o seu desconto — um se perdia. Travado,
+     * a segunda espera e lê o saldo já descontado.
+     *
+     * Trava em vez de @Version: o saldo mora em `parceiros` (SINGLE_TABLE), e o
+     * Hibernate só aceita @Version na raiz, Partner — o que poria trava otimista
+     * em todo cliente e vendedor, inclusive na conciliação com o Sankhya.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT e FROM Employee e WHERE e.id = :id")
+    Optional<Employee> findByIdForUpdate(@Param("id") UUID id);
 	Employee findByCodParceiro(String codParceiro);
 
     /** Funcionarios num setor — usado antes de excluir o setor. */
