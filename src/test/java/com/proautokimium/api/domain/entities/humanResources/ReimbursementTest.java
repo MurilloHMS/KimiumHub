@@ -86,4 +86,88 @@ class ReimbursementTest {
 
         assertThrows(InvalidStatusTransitionException.class, () -> reimbursement.approve(reviewer, "ok", now));
     }
+
+    // ─── Ninguém revisa o próprio pedido ─────────────────────────────────────
+
+    private static void setId(com.proautokimium.api.domain.abstractions.Entity e, java.util.UUID id) throws Exception {
+        java.lang.reflect.Field f = com.proautokimium.api.domain.abstractions.Entity.class.getDeclaredField("id");
+        f.setAccessible(true);
+        f.set(e, id);
+    }
+
+    private static Reimbursement pedidoDe(Employee dono) {
+        return Reimbursement.request(dono, java.time.LocalDate.of(2026, 9, 1), new java.math.BigDecimal("50.00"),
+                "Combustível", "visita", "nota.jpg", "EMP/nota.jpg", java.time.LocalDateTime.of(2026, 9, 1, 9, 0));
+    }
+
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("não aprova o próprio pedido, e o pedido continua pendente")
+    void naoAprovaOProprio() {
+        Employee dono = new Employee();
+        var pedido = pedidoDe(dono);
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.proautokimium.api.domain.exceptions.humanResources.SelfReviewException.class,
+                () -> pedido.approve(dono, "ok", java.time.LocalDateTime.of(2026, 9, 2, 9, 0)));
+        org.assertj.core.api.Assertions.assertThat(pedido.getStatus().name()).isEqualTo("PENDING");
+    }
+
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("não reprova o próprio pedido")
+    void naoReprovaOProprio() {
+        Employee dono = new Employee();
+        var pedido = pedidoDe(dono);
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.proautokimium.api.domain.exceptions.humanResources.SelfReviewException.class,
+                () -> pedido.reject(dono, "motivo", java.time.LocalDateTime.of(2026, 9, 2, 9, 0)));
+        org.assertj.core.api.Assertions.assertThat(pedido.getStatus().name()).isEqualTo("PENDING");
+    }
+
+    /**
+     * O caso do Hibernate: o dono vem como proxy e o revisor como entidade
+     * carregada — objetos diferentes, mesmo id. Comparar por referência
+     * deixaria passar.
+     */
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("mesmo id em objetos diferentes ainda é a mesma pessoa")
+    void mesmoIdEhAMesmaPessoa() throws Exception {
+        java.util.UUID id = java.util.UUID.randomUUID();
+        Employee dono = new Employee();
+        setId(dono, id);
+        Employee mesmaPessoa = new Employee();
+        setId(mesmaPessoa, id);
+        var pedido = pedidoDe(dono);
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.proautokimium.api.domain.exceptions.humanResources.SelfReviewException.class,
+                () -> pedido.approve(mesmaPessoa, "ok", java.time.LocalDateTime.of(2026, 9, 2, 9, 0)));
+    }
+
+    /**
+     * O contrário: `Entity.equals` compara só o id, e dois funcionários ainda
+     * sem id (null == null) seriam "iguais". Pessoas diferentes aprovam.
+     */
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("outra pessoa aprova normalmente, mesmo sem id")
+    void outraPessoaAprova() {
+        Employee dono = new Employee();
+        var pedido = pedidoDe(dono);
+
+        pedido.approve(new Employee(), "ok", java.time.LocalDateTime.of(2026, 9, 2, 9, 0));
+
+        org.assertj.core.api.Assertions.assertThat(pedido.getStatus().name()).isEqualTo("APPROVED");
+    }
+
+    /** Conta sem funcionário vinculado (ADMIN técnico) não tem com quem comparar. */
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("revisor sem funcionário vinculado não é tratado como dono")
+    void revisorNuloNaoEhDono() {
+        Employee dono = new Employee();
+        var pedido = pedidoDe(dono);
+
+        pedido.approve(null, "ok", java.time.LocalDateTime.of(2026, 9, 2, 9, 0));
+
+        org.assertj.core.api.Assertions.assertThat(pedido.getStatus().name()).isEqualTo("APPROVED");
+    }
 }

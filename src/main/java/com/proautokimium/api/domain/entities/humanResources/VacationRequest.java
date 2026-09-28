@@ -1,5 +1,6 @@
 package com.proautokimium.api.domain.entities.humanResources;
 
+import com.proautokimium.api.domain.exceptions.humanResources.SelfReviewException;
 import com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException;
 import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
 import com.proautokimium.api.domain.entities.Employee;
@@ -76,6 +77,7 @@ public class VacationRequest extends com.proautokimium.api.domain.abstractions.E
         if (status != VacationRequestStatus.PENDING) {
             throw new InvalidStatusTransitionException("Só é possível aprovar uma solicitação pendente");
         }
+        ensureNotOwnRequest(reviewer);
         this.status = VacationRequestStatus.APPROVED;
         this.reviewedBy = reviewer;
         this.reviewNotes = notes;
@@ -86,6 +88,7 @@ public class VacationRequest extends com.proautokimium.api.domain.abstractions.E
         if (status != VacationRequestStatus.PENDING) {
             throw new InvalidStatusTransitionException("Só é possível reprovar uma solicitação pendente");
         }
+        ensureNotOwnRequest(reviewer);
         if (notes == null || notes.isBlank()) {
             throw new InvalidRequestDataException("Motivo é obrigatório ao reprovar");
         }
@@ -93,5 +96,22 @@ public class VacationRequest extends com.proautokimium.api.domain.abstractions.E
         this.reviewedBy = reviewer;
         this.reviewNotes = notes;
         this.reviewedAt = now;
+    }
+
+    /**
+     * Ninguém revisa o próprio pedido. Compara por referência OU pelo mesmo id
+     * não nulo — não por {@code equals}: ele compara só o id, e dois
+     * funcionários ainda sem id (null == null) seriam "a mesma pessoa". O id
+     * é o que pega o dono carregado como proxy do Hibernate.
+     *
+     * Revisor nulo (conta sem funcionário vinculado) não tem com quem comparar.
+     */
+    private void ensureNotOwnRequest(Employee reviewer) {
+        if (reviewer == null) return;
+        boolean samePerson = reviewer == employee
+                || (reviewer.getId() != null && reviewer.getId().equals(employee.getId()));
+        if (samePerson) {
+            throw new SelfReviewException();
+        }
     }
 }

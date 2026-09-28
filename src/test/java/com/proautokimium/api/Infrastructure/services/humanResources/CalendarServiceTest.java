@@ -48,7 +48,7 @@ class CalendarServiceTest {
 
     private VacationRequest approvedVacation(Employee employee, LocalDate start, LocalDate end) {
         VacationRequest vr = VacationRequest.request(employee, start, end, null, LocalDateTime.of(2026, 1, 1, 9, 0));
-        vr.approve(employee, "ok", LocalDateTime.of(2026, 1, 2, 9, 0));
+        vr.approve(new Employee(), "ok", LocalDateTime.of(2026, 1, 2, 9, 0));
         return vr;
     }
 
