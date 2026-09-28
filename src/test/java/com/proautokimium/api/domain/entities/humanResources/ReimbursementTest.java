@@ -1,5 +1,7 @@
 package com.proautokimium.api.domain.entities.humanResources;
 
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException;
 import com.proautokimium.api.domain.entities.Employee;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,11 +29,11 @@ class ReimbursementTest {
     @Test
     @DisplayName("Não deve criar reembolso com valor zero ou negativo")
     void naoDeveCriarComValorInvalido() {
-        assertThrows(IllegalArgumentException.class, () -> Reimbursement.request(
+        assertThrows(InvalidRequestDataException.class, () -> Reimbursement.request(
                 employee, LocalDate.of(2026, 7, 20), BigDecimal.ZERO,
                 "Restaurante", "Almoço", "nota.jpg", "path", now
         ));
-        assertThrows(IllegalArgumentException.class, () -> Reimbursement.request(
+        assertThrows(InvalidRequestDataException.class, () -> Reimbursement.request(
                 employee, LocalDate.of(2026, 7, 20), new BigDecimal("-10"),
                 "Restaurante", "Almoço", "nota.jpg", "path", now
         ));
@@ -52,8 +54,8 @@ class ReimbursementTest {
     void naoDeveReprovarSemMotivo() {
         Reimbursement reimbursement = newRequest();
 
-        assertThrows(IllegalArgumentException.class, () -> reimbursement.reject(reviewer, null, now));
-        assertThrows(IllegalArgumentException.class, () -> reimbursement.reject(reviewer, "   ", now));
+        assertThrows(InvalidRequestDataException.class, () -> reimbursement.reject(reviewer, null, now));
+        assertThrows(InvalidRequestDataException.class, () -> reimbursement.reject(reviewer, "   ", now));
     }
 
     @Test
@@ -61,7 +63,7 @@ class ReimbursementTest {
     void naoDevePagarSemAprovar() {
         Reimbursement reimbursement = newRequest();
 
-        assertThrows(IllegalStateException.class, () -> reimbursement.pay(LocalDate.of(2026, 8, 5), now));
+        assertThrows(InvalidStatusTransitionException.class, () -> reimbursement.pay(LocalDate.of(2026, 8, 5), now));
     }
 
     @Test
@@ -82,6 +84,6 @@ class ReimbursementTest {
         Reimbursement reimbursement = newRequest();
         reimbursement.reject(reviewer, "Fora da política", now);
 
-        assertThrows(IllegalStateException.class, () -> reimbursement.approve(reviewer, "ok", now));
+        assertThrows(InvalidStatusTransitionException.class, () -> reimbursement.approve(reviewer, "ok", now));
     }
 }

@@ -1,5 +1,7 @@
 package com.proautokimium.api.domain.entities.humanResources;
 
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.enums.humanResources.VacationRequestStatus;
 import jakarta.persistence.*;
@@ -61,7 +63,7 @@ public class VacationRequest extends com.proautokimium.api.domain.abstractions.E
     public static VacationRequest request(Employee employee, LocalDate startDate, LocalDate endDate,
                                            Employee replacementEmployee, LocalDateTime requestedAt) {
         if (endDate.isBefore(startDate)) {
-            throw new IllegalArgumentException("Data final não pode ser antes da data inicial");
+            throw new InvalidRequestDataException("Data final não pode ser antes da data inicial");
         }
         return new VacationRequest(employee, startDate, endDate, replacementEmployee, requestedAt);
     }
@@ -72,7 +74,7 @@ public class VacationRequest extends com.proautokimium.api.domain.abstractions.E
 
     public void approve(Employee reviewer, String notes, LocalDateTime now) {
         if (status != VacationRequestStatus.PENDING) {
-            throw new IllegalStateException("Só é possível aprovar uma solicitação pendente");
+            throw new InvalidStatusTransitionException("Só é possível aprovar uma solicitação pendente");
         }
         this.status = VacationRequestStatus.APPROVED;
         this.reviewedBy = reviewer;
@@ -82,10 +84,10 @@ public class VacationRequest extends com.proautokimium.api.domain.abstractions.E
 
     public void reject(Employee reviewer, String notes, LocalDateTime now) {
         if (status != VacationRequestStatus.PENDING) {
-            throw new IllegalStateException("Só é possível reprovar uma solicitação pendente");
+            throw new InvalidStatusTransitionException("Só é possível reprovar uma solicitação pendente");
         }
         if (notes == null || notes.isBlank()) {
-            throw new IllegalArgumentException("Motivo é obrigatório ao reprovar");
+            throw new InvalidRequestDataException("Motivo é obrigatório ao reprovar");
         }
         this.status = VacationRequestStatus.REJECTED;
         this.reviewedBy = reviewer;
