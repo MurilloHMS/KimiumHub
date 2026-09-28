@@ -21,6 +21,15 @@ public record ReimbursementResponseDTO(
         LocalDateTime reviewedAt,
         String reviewNotes,
         LocalDate paymentDate,
-        LocalDateTime paidAt
+        LocalDateTime paidAt,
+        // Contestação (V109). `contestDeadline` só vem quando ainda dá para
+        // contestar — é o que a tela usa para mostrar o botão e o "até 28/10".
+        LocalDateTime contestedAt,
+        String contestComment,
+        String originalReceiptFilename,
+        UUID firstReviewedById,
+        LocalDateTime firstReviewedAt,
+        String firstReviewNotes,
+        LocalDateTime contestDeadline
 ) {
 }

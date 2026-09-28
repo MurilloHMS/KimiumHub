@@ -2,6 +2,7 @@ package com.proautokimium.api.controllers.humanResources;
 
 import com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.PayReimbursementDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.ReimbursementResponseDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.ReimbursementSummaryDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.ReviewReimbursementDTO;
 import com.proautokimium.api.Infrastructure.services.humanResources.ReimbursementService;
 import com.proautokimium.api.domain.entities.humanResources.Reimbursement;
@@ -23,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -87,14 +89,52 @@ public class ReimbursementController {
     @GetMapping
     @PreAuthorize("hasAuthority('rh/reimbursements:CONSULTAR')")
     @Operation(summary = "Gerenciador de reembolsos", description = "Lista todos os reembolsos, opcionalmente filtrados por status")
-    public ResponseEntity<List<ReimbursementResponseDTO>> listAll(@RequestParam(required = false) ReimbursementStatus status) {
-        return ResponseEntity.ok(service.listAll(status));
+    public ResponseEntity<List<ReimbursementResponseDTO>> listAll(
+            @RequestParam(required = false) ReimbursementStatus status,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
+        return ResponseEntity.ok(service.listAll(status, month));
+    }
+
+    /** Totais do mês para o RH, pela data da despesa. Sem mês, o corrente. */
+    @GetMapping("/summary")
+    @PreAuthorize("hasAuthority('rh/reimbursements:CONSULTAR')")
+    @Operation(summary = "Totais do mês (RH)", description = "Enviado, pendente, aprovado a pagar e pago, em R$ e quantidade")
+    public ResponseEntity<ReimbursementSummaryDTO> summary(
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
+        return ResponseEntity.ok(service.summary(month != null ? month : YearMonth.now()));
+    }
+
+    /** Os mesmos totais, só do funcionário autenticado. */
+    @GetMapping("/me/summary")
+    @PreAuthorize("hasAuthority('documentos/rh/reimbursements:CONSULTAR')")
+    @Operation(summary = "Meus totais do mês")
+    public ResponseEntity<ReimbursementSummaryDTO> mySummary(
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth month,
+            Authentication auth) {
+        return ResponseEntity.ok(service.summaryMine(auth.getName(), month != null ? month : YearMonth.now()));
+    }
+
+    /**
+     * O dono contesta a recusa: comprovante novo e comentário, uma vez, até 30
+     * dias. ALTERAR: muda o estado de um pedido que já existe.
+     */
+    @PostMapping(value = "/{id}/contest", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('documentos/rh/reimbursements:ALTERAR')")
+    @Operation(summary = "Contesta a recusa", description = "Comprovante novo e comentário; uma vez, até 30 dias depois da recusa")
+    public ResponseEntity<ReimbursementResponseDTO> contest(
+            @PathVariable UUID id,
+            @RequestParam(required = false) String comment,
+            @RequestParam(value = "receipt", required = false) MultipartFile receipt,
+            Authentication auth) throws IOException {
+        return ResponseEntity.ok(service.contest(id, auth.getName(), comment, receipt));
     }
 
     @PreAuthorize("hasAnyAuthority('rh/reimbursements:BAIXAR', 'documentos/rh/reimbursements:BAIXAR')")
     @GetMapping("/{id}/receipt")
     @Operation(summary = "Baixa comprovante", description = "Download do comprovante (dono ou RH/ADMIN)")
-    public ResponseEntity<byte[]> receipt(@PathVariable UUID id, Authentication auth) throws IOException {
+    public ResponseEntity<byte[]> receipt(@PathVariable UUID id,
+                                          @RequestParam(defaultValue = "false") boolean original,
+                                          Authentication auth) throws IOException {
         Optional<Reimbursement> reimbursementOpt = service.buscar(id);
         if (reimbursementOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -109,9 +149,12 @@ public class ReimbursementController {
             throw new AccessDeniedException("Você só pode baixar os seus próprios comprovantes.");
         }
 
-        byte[] bytes = service.lerComprovante(reimbursementOpt.get());
+        // `original=true`: o comprovante de antes da contestação, que a primeira análise viu.
+        Reimbursement r = reimbursementOpt.get();
+        byte[] bytes = original ? service.lerComprovanteOriginal(r) : service.lerComprovante(r);
+        String fileName = original ? r.getOriginalReceiptFilename() : r.getReceiptOriginalFilename();
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + reimbursementOpt.get().getReceiptOriginalFilename() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                 .body(bytes);
     }
 }

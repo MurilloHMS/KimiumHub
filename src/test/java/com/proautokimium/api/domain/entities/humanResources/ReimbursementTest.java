@@ -170,4 +170,82 @@ class ReimbursementTest {
 
         org.assertj.core.api.Assertions.assertThat(pedido.getStatus().name()).isEqualTo("APPROVED");
     }
+
+    // ─── Contestação: uma vez, até 30 dias depois da recusa ──────────────────
+
+    private static final java.time.LocalDateTime RECUSADO_EM = java.time.LocalDateTime.of(2026, 9, 5, 10, 0);
+
+    private static Reimbursement recusado() {
+        Reimbursement r = pedidoDe(new Employee());
+        r.reject(new Employee(), "Comprovante ilegível", RECUSADO_EM);
+        return r;
+    }
+
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("contestar volta a em análise, com o comprovante novo e a trilha da primeira recusa")
+    void contestarVoltaAEmAnalise() {
+        Reimbursement r = recusado();
+        String caminhoAntigo = r.getReceiptStoragePath();
+
+        r.contest("nota-escaneada.pdf", "EMP/nova.pdf", "  Segue a nota escaneada.  ", RECUSADO_EM.plusDays(3));
+
+        org.assertj.core.api.Assertions.assertThat(r.getStatus().name()).isEqualTo("PENDING");
+        org.assertj.core.api.Assertions.assertThat(r.getReceiptStoragePath()).isEqualTo("EMP/nova.pdf");
+        org.assertj.core.api.Assertions.assertThat(r.getOriginalReceiptStoragePath())
+                .as("o comprovante anterior não some: é trilha").isEqualTo(caminhoAntigo);
+        org.assertj.core.api.Assertions.assertThat(r.getFirstReviewNotes()).isEqualTo("Comprovante ilegível");
+        org.assertj.core.api.Assertions.assertThat(r.getFirstReviewedAt()).isEqualTo(RECUSADO_EM);
+        org.assertj.core.api.Assertions.assertThat(r.getReviewedAt()).as("a análise nova começa vazia").isNull();
+        org.assertj.core.api.Assertions.assertThat(r.getContestComment()).isEqualTo("Segue a nota escaneada.");
+        org.assertj.core.api.Assertions.assertThat(r.getAmount()).as("o valor não muda").isEqualByComparingTo("50.00");
+    }
+
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("só uma vez: recusado de novo, não contesta mais")
+    void soUmaVez() {
+        Reimbursement r = recusado();
+        r.contest("n.pdf", "EMP/n.pdf", "nova", RECUSADO_EM.plusDays(1));
+        r.reject(new Employee(), "Continua sem CNPJ", RECUSADO_EM.plusDays(2));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException.class,
+                () -> r.contest("m.pdf", "EMP/m.pdf", "de novo", RECUSADO_EM.plusDays(3)));
+        org.assertj.core.api.Assertions.assertThat(r.canContest(RECUSADO_EM.plusDays(3))).isFalse();
+        org.assertj.core.api.Assertions.assertThat(r.getStatus().name()).isEqualTo("REJECTED");
+    }
+
+    /** O dia 30 ainda vale; um minuto depois, não. */
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("o prazo é de 30 dias, com a ponta incluída")
+    void prazoDeTrintaDias() {
+        org.assertj.core.api.Assertions.assertThat(recusado().canContest(RECUSADO_EM.plusDays(30))).isTrue();
+        org.assertj.core.api.Assertions.assertThat(recusado().canContest(RECUSADO_EM.plusDays(30).plusMinutes(1))).isFalse();
+
+        Reimbursement r = recusado();
+        var e = org.junit.jupiter.api.Assertions.assertThrows(
+                com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException.class,
+                () -> r.contest("n.pdf", "EMP/n.pdf", "tarde", RECUSADO_EM.plusDays(31)));
+        org.assertj.core.api.Assertions.assertThat(e.getMessage()).contains("05/10/2026");
+    }
+
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("só recusado se contesta; pendente não")
+    void soRecusado() {
+        Reimbursement pendente = pedidoDe(new Employee());
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException.class,
+                () -> pendente.contest("n.pdf", "EMP/n.pdf", "x", RECUSADO_EM));
+        org.assertj.core.api.Assertions.assertThat(pendente.contestDeadline()).isNull();
+    }
+
+    @org.junit.jupiter.api.Test
+    @org.junit.jupiter.api.DisplayName("sem comentário é recusado, e nada muda")
+    void semComentario() {
+        Reimbursement r = recusado();
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException.class,
+                () -> r.contest("n.pdf", "EMP/n.pdf", "   ", RECUSADO_EM.plusDays(1)));
+        org.assertj.core.api.Assertions.assertThat(r.getStatus().name()).isEqualTo("REJECTED");
+        org.assertj.core.api.Assertions.assertThat(r.getContestedAt()).isNull();
+    }
 }

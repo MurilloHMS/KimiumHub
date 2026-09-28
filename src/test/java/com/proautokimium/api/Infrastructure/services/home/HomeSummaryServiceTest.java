@@ -68,7 +68,8 @@ class HomeSummaryServiceTest {
         return new ReimbursementResponseDTO(UUID.randomUUID(), employeeId,
                 LocalDate.of(2026, 8, 2), new BigDecimal("120.00"), "Viagem", "Almoço",
                 "nota.pdf", status, LocalDateTime.of(2026, 8, 3, 8, 0),
-                null, null, null, null, null);
+                null, null, null, null, null,
+                null, null, null, null, null, null, null);
     }
 
     private void semDadosPessoais() {

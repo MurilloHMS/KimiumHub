@@ -17,6 +17,13 @@ public interface ReimbursementRepository extends JpaRepository<Reimbursement, UU
     List<Reimbursement> findByStatusOrderByRequestedAtDesc(ReimbursementStatus status);
     List<Reimbursement> findAllByOrderByRequestedAtDesc();
 
+    /** Totais do mês e grade filtrada por mês: pela data da despesa, como o comprovante. */
+    List<Reimbursement> findByExpenseDateBetween(LocalDate from, LocalDate to);
+    List<Reimbursement> findByEmployeeAndExpenseDateBetween(Employee employee, LocalDate from, LocalDate to);
+    List<Reimbursement> findByExpenseDateBetweenOrderByRequestedAtDesc(LocalDate from, LocalDate to);
+    List<Reimbursement> findByStatusAndExpenseDateBetweenOrderByRequestedAtDesc(
+            ReimbursementStatus status, LocalDate from, LocalDate to);
+
     /**
      * Linhas do comprovante para a diretoria: período pela DATA DA DESPESA,
      * status escolhidos na tela. Traz funcionário e revisor no mesmo SELECT —
