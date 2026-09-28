@@ -301,4 +301,101 @@ class VacationRequestServiceTest {
                 .as("12 de saldo menos 8 dias úteis")
                 .isEqualTo(4);
     }
+
+    // ─── O saldo não fica negativo ───────────────────────────────────────────
+    //
+    // O saldo era conferido só ao CRIAR o pedido, e sem contar os outros
+    // pendentes. Com 10 de saldo, dois pedidos de 8 passavam na criação, o RH
+    // aprovava os dois, e o saldo terminava em -6.
+    //
+    // Os stubs que dependem da ordem da correção (conferir o saldo antes ou
+    // depois de resolver o revisor, de olhar a sobreposição) são `lenient`:
+    // o teste afirma o resultado, não o caminho.
+
+    /**
+     * **Aprovar confere o saldo de novo.**
+     *
+     * Dois asserts, como nas máquinas de estado: a exceção, e o estado que
+     * ficou intacto. Sem o segundo, uma correção que confere o saldo DEPOIS
+     * de `request.approve(...)` passaria — e o pedido ficaria APPROVED na
+     * memória, pronto para qualquer save posterior gravar.
+     */
+    @Test
+    @DisplayName("aprovar além do saldo é recusado, e nada muda")
+    void aprovarAlemDoSaldoEhRecusado() {
+        VacationRequest request = VacationRequest.request(
+                employee, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10),
+                null, LocalDateTime.of(2026, 7, 20, 9, 0)
+        );
+        UUID requestId = UUID.randomUUID();
+        employee.setVacationBalanceDays(5);
+
+        when(vacationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        lenient().when(userRepository.findByLoginWithEmployee("reviewer.login")).thenReturn(Optional.empty());
+        lenient().when(employeeRepository.findByUsername("reviewer.login")).thenReturn(Optional.of(new Employee()));
+        // Com o defeito, o código segue e grava — o save precisa responder
+        // para o teste falhar pelo motivo certo (nenhuma exceção), e não por NPE.
+        lenient().when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(brazilianBussinessCalculator.countBusinessDays(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10)))
+                .thenReturn(6L);
+
+        assertThrows(InsufficientVacationBalanceException.class,
+                () -> service.approve(requestId, new ReviewVacationRequestDTO("ok"), "reviewer.login"));
+
+        assertThat(employee.getVacationBalanceDays()).as("o saldo não se mexe").isEqualTo(5);
+        assertThat(request.getStatus().name()).as("o pedido continua pendente").isEqualTo("PENDING");
+        verify(employeeRepository, never()).save(any());
+        verify(vacationRequestRepository, never()).save(any());
+    }
+
+    /** O limite é o saldo inteiro: usar tudo é permitido, e termina em zero. */
+    @Test
+    @DisplayName("aprovar exatamente o saldo é permitido, e zera")
+    void aprovarExatamenteOSaldoZera() {
+        VacationRequest request = VacationRequest.request(
+                employee, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10),
+                null, LocalDateTime.of(2026, 7, 20, 9, 0)
+        );
+        UUID requestId = UUID.randomUUID();
+        employee.setVacationBalanceDays(6);
+
+        when(vacationRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        lenient().when(userRepository.findByLoginWithEmployee("reviewer.login")).thenReturn(Optional.empty());
+        lenient().when(employeeRepository.findByUsername("reviewer.login")).thenReturn(Optional.of(new Employee()));
+        when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(brazilianBussinessCalculator.countBusinessDays(LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 10)))
+                .thenReturn(6L);
+
+        service.approve(requestId, new ReviewVacationRequestDTO("ok"), "reviewer.login");
+
+        assertThat(employee.getVacationBalanceDays()).isZero();
+    }
+
+    /**
+     * **O lançamento do RH sem saldo informado também não passa do saldo.**
+     *
+     * Com saldo informado a conta é outra — o RH está corrigindo o cadastro,
+     * e o número dele vale (ver `saldoInformadoNaoEhDescontado`). Em branco, o
+     * sistema desconta, e descontar além do que existe é o mesmo -6 da
+     * aprovação.
+     */
+    @Test
+    @DisplayName("lançamento do RH sem saldo informado não passa do saldo")
+    void lancamentoSemSaldoInformadoNaoPassaDoSaldo() {
+        employee.setVacationBalanceDays(5);
+        lenient().when(userRepository.findByLoginWithEmployee(LOGIN)).thenReturn(Optional.empty());
+        lenient().when(employeeRepository.findByUsername(LOGIN)).thenReturn(Optional.of(new Employee()));
+        when(employeeRepository.findById(any())).thenReturn(Optional.of(employee));
+        lenient().when(vacationRequestRepository.findOverlappingInTeam(eq(team), eq(employee), any(), any()))
+                .thenReturn(List.of());
+        lenient().when(vacationRequestRepository.save(any(VacationRequest.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(brazilianBussinessCalculator.countBusinessDays(any(), any())).thenReturn(8L);
+
+        assertThrows(InsufficientVacationBalanceException.class,
+                () -> service.createByRh(lancamento(null), LOGIN));
+
+        assertThat(employee.getVacationBalanceDays()).isEqualTo(5);
+        verify(employeeRepository, never()).save(any());
+        verify(vacationRequestRepository, never()).save(any());
+    }
 }

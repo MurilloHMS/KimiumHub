@@ -67,11 +67,7 @@ public class VacationRequestService {
                 employee, dto.startDate(), dto.endDate(), replacement, LocalDateTime.now(clock)
         );
 
-        int balance = employee.getVacationBalanceDays() != null ? employee.getVacationBalanceDays() : 0;
-        long businessDay = businessDayCalculator.countBusinessDays(dto.startDate(), dto.endDate());
-        if (businessDay > balance) {
-            throw new InsufficientVacationBalanceException();
-        }
+        balanceAfter(employee, dto.startDate(), dto.endDate());
 
         if (employee.getTeam() != null) {
             List<VacationRequest> overlapping = vacationRequestRepository.findOverlappingInTeam(
@@ -91,13 +87,14 @@ public class VacationRequestService {
         VacationRequest request = vacationRequestRepository.findById(id)
                 .orElseThrow(VacationRequestNotFoundException::new);
         Employee reviewer = resolveEmployee(reviewerLogin);
+        Employee employee = request.getEmployee();
+
+        // Confere o saldo ANTES de mudar o estado: o saldo só era conferido ao
+        // criar, e dois pedidos pendentes aprovados em sequência o deixavam negativo.
+        int newBalance = balanceAfter(employee, request.getStartDate(), request.getEndDate());
 
         request.approve(reviewer, dto.notes(), LocalDateTime.now(clock));
-
-        Employee employee = request.getEmployee();
-        int balance = employee.getVacationBalanceDays() != null ? employee.getVacationBalanceDays() : 0;
-        long businessDay = businessDayCalculator.countBusinessDays(request.getStartDate(), request.getEndDate());
-        employee.setVacationBalanceDays(balance - (int) businessDay);
+        employee.setVacationBalanceDays(newBalance);
         employeeRepository.save(employee);
 
         VacationRequest saved = vacationRequestRepository.save(request);
@@ -259,16 +256,25 @@ public class VacationRequestService {
         if (dto.vacationBalanceDays() != null) {
             employee.setVacationBalanceDays(dto.vacationBalanceDays());
         } else {
-            int balance = employee.getVacationBalanceDays() != null
-                    ? employee.getVacationBalanceDays() : 0;
-            long businessDays = businessDayCalculator.countBusinessDays(
-                    dto.startDate(), dto.endDate());
-            employee.setVacationBalanceDays(balance - (int) businessDays);
+            employee.setVacationBalanceDays(balanceAfter(employee, dto.startDate(), dto.endDate()));
         }
         employeeRepository.save(employee);
 
         VacationRequest saved = vacationRequestRepository.save(request);
         return toResponse(saved);
+    }
+
+    /**
+     * O saldo que sobra depois destas férias — ou recusa, se não houver saldo.
+     * Única conta do saldo: criar, aprovar e o lançamento do RH passam por aqui.
+     */
+    private int balanceAfter(Employee employee, LocalDate startDate, LocalDate endDate) {
+        int balance = employee.getVacationBalanceDays() != null ? employee.getVacationBalanceDays() : 0;
+        long businessDays = businessDayCalculator.countBusinessDays(startDate, endDate);
+        if (businessDays > balance) {
+            throw new InsufficientVacationBalanceException();
+        }
+        return balance - (int) businessDays;
     }
 
     private Employee resolveEmployee(String login) {
