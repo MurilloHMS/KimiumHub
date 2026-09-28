@@ -26,4 +26,13 @@ public class MedicalCertificateStorageService {
     public Path resolve(String relativePath) {
         return Paths.get(storagePath).resolve(relativePath);
     }
+
+    /**
+     * Apaga um arquivo salvo por {@link #save}. Existe para desfazer o save
+     * quando a criação do registro é recusada — senão o arquivo fica órfão no
+     * disco, sem linha no banco que aponte para ele.
+     */
+    public void delete(String relativePath) throws IOException {
+        Files.deleteIfExists(resolve(relativePath));
+    }
 }

@@ -1,5 +1,10 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
 import com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.PayReimbursementDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.ReimbursementResponseDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.ReviewReimbursementDTO;
@@ -146,5 +151,63 @@ class ReimbursementServiceTest {
         when(userRepository.findByLoginWithEmployee("outro.login")).thenReturn(Optional.empty());
         when(employeeRepository.findByUsername("outro.login")).thenReturn(Optional.of(outro));
         assertThat(service.podeAcessar(reimbursement, "outro.login", false)).isFalse();
+    }
+
+    // ─── O arquivo não fica órfão quando o pedido é recusado ─────────────────
+    //
+    // O comprovante é salvo ANTES de a entidade validar (ela precisa do
+    // caminho). Recusado o pedido, o arquivo ficava no disco sem nenhuma linha
+    // no banco apontando para ele — e ninguém o apagaria pela tela.
+
+    @Test
+    @DisplayName("pedido recusado apaga o comprovante que acabou de ser salvo")
+    void pedidoRecusadoApagaOComprovante() throws Exception {
+        MockMultipartFile receipt = new MockMultipartFile("receipt", "nota.jpg", "image/jpeg", "conteudo".getBytes());
+        String login = "emp001.login";
+        when(userRepository.findByLoginWithEmployee(login)).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername(login)).thenReturn(Optional.of(employee));
+        when(storage.save(any(), eq("EMP001"), eq("nota.jpg"))).thenReturn("EMP001/uuid-nota.jpg");
+
+        assertThrows(InvalidRequestDataException.class, () -> service.request(
+                login, LocalDate.of(2026, 7, 20), BigDecimal.ZERO, "Restaurante", "Almoço", receipt));
+
+        verify(storage).delete("EMP001/uuid-nota.jpg");
+        verify(repository, never()).save(any());
+    }
+
+    /**
+     * Se apagar também falhar, a pessoa continua vendo o motivo REAL da
+     * recusa — o erro do disco vai junto, como suprimido, para o log.
+     */
+    @Test
+    @DisplayName("falha ao apagar não esconde o motivo da recusa")
+    void falhaAoApagarNaoEscondeARecusa() throws Exception {
+        MockMultipartFile receipt = new MockMultipartFile("receipt", "nota.jpg", "image/jpeg", "conteudo".getBytes());
+        String login = "emp001.login";
+        when(userRepository.findByLoginWithEmployee(login)).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername(login)).thenReturn(Optional.of(employee));
+        when(storage.save(any(), eq("EMP001"), eq("nota.jpg"))).thenReturn("EMP001/uuid-nota.jpg");
+        doThrow(new java.io.IOException("disco")).when(storage).delete("EMP001/uuid-nota.jpg");
+
+        InvalidRequestDataException recusa = assertThrows(InvalidRequestDataException.class, () -> service.request(
+                login, LocalDate.of(2026, 7, 20), BigDecimal.ZERO, "Restaurante", "Almoço", receipt));
+
+        assertThat(recusa.getSuppressed()).hasSize(1);
+        assertThat(recusa.getSuppressed()[0]).hasMessage("disco");
+    }
+
+    @Test
+    @DisplayName("pedido aceito não apaga nada")
+    void pedidoAceitoNaoApaga() throws Exception {
+        MockMultipartFile receipt = new MockMultipartFile("receipt", "nota.jpg", "image/jpeg", "conteudo".getBytes());
+        String login = "emp001.login";
+        when(userRepository.findByLoginWithEmployee(login)).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername(login)).thenReturn(Optional.of(employee));
+        when(storage.save(any(), eq("EMP001"), eq("nota.jpg"))).thenReturn("EMP001/uuid-nota.jpg");
+        when(repository.save(any(Reimbursement.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.request(login, LocalDate.of(2026, 7, 20), new BigDecimal("150.00"), "Restaurante", "Almoço", receipt);
+
+        verify(storage, never()).delete(any());
     }
 }

@@ -1,5 +1,10 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
 import com.proautokimium.api.Application.DTOs.humanResources.MedicalCertificate.EmployeeMedicalCertificatesDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.MedicalCertificate.MedicalCertificateResponseDTO;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
@@ -107,5 +112,25 @@ class MedicalCertificateServiceTest {
         when(userRepository.findByLoginWithEmployee("outro.login")).thenReturn(Optional.empty());
         when(employeeRepository.findByUsername("outro.login")).thenReturn(Optional.of(outro));
         assertThat(service.podeAcessar(certificate, "outro.login", false)).isFalse();
+    }
+
+    // ─── O arquivo não fica órfão quando o envio é recusado ──────────────────
+
+    @Test
+    @DisplayName("atestado recusado apaga o arquivo que acabou de ser salvo")
+    void atestadoRecusadoApagaOArquivo() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "atestado.pdf", "application/pdf", "conteudo".getBytes());
+        String login = "emp001.login";
+        when(userRepository.findByLoginWithEmployee(login)).thenReturn(Optional.empty());
+        when(employeeRepository.findByUsername(login)).thenReturn(Optional.of(employee));
+        when(storage.save(any(), eq("EMP001"), eq("atestado.pdf"))).thenReturn("EMP001/uuid-atestado.pdf");
+
+        // data final antes da inicial
+        assertThrows(InvalidRequestDataException.class, () -> service.submit(
+                login, LocalDate.of(2026, 7, 21), LocalDate.of(2026, 7, 20),
+                SubmissionType.FILE, null, file));
+
+        verify(storage).delete("EMP001/uuid-atestado.pdf");
+        verify(repository, never()).save(any());
     }
 }
