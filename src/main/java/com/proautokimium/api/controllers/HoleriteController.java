@@ -89,8 +89,10 @@ public class HoleriteController {
             return ResponseEntity.notFound().build();
         }
 
+        // "Vê de todos" é ter a tela do RH — a mesma authority do @PreAuthorize.
+        // equals, e não contains: contains("ADMIN") casava com ROLE_ADMINISTRATIVO.
         boolean isRh = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().contains("ADMIN") || a.getAuthority().contains("RH"));
+                .anyMatch(a -> a.getAuthority().equals("rh/holerit:BAIXAR"));
 
         if (!service.podeAcessar(docOpt.get(), auth.getName(), isRh)) {
             return ResponseEntity.status(403).build();

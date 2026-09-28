@@ -14,6 +14,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -99,13 +100,13 @@ public class ReimbursementController {
             return ResponseEntity.notFound().build();
         }
 
-        // todo: remove comment and include rule HR in user matheus
-        //boolean isRh = auth.getAuthorities().stream()
-        //       .anyMatch(a -> a.getAuthority().contains("ADMIN") || a.getAuthority().contains("RH"));
+        // "Vê de todos" é ter a tela do RH — a mesma authority do @PreAuthorize.
+        // equals, e não contains: contains("ADMIN") casava com ROLE_ADMINISTRATIVO.
+        boolean isRh = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("rh/reimbursements:BAIXAR"));
 
-        // need to remove "true" and put isRh
-        if (!service.podeAcessar(reimbursementOpt.get(), auth.getName(), true)) {
-            return ResponseEntity.status(403).build();
+        if (!service.podeAcessar(reimbursementOpt.get(), auth.getName(), isRh)) {
+            throw new AccessDeniedException("Você só pode baixar os seus próprios comprovantes.");
         }
 
         byte[] bytes = service.lerComprovante(reimbursementOpt.get());
