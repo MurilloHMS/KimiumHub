@@ -1,4 +1,5 @@
 <!-- Layout do Guia de Utilizacao - Letter paisagem (792x612) com margens grandes para impressao de adesivo -->
+<!-- Created with Jaspersoft Studio version 7.0.3.final using JasperReports Library version 7.0.3-41034ca841d452f3305ba55b9042260aaa1ab5dd  -->
 <jasperReport name="guia_utilizacao" language="java" pageWidth="792" pageHeight="612" orientation="Landscape" columnWidth="680" leftMargin="56" rightMargin="56" topMargin="40" bottomMargin="40" uuid="daa6e6b6-7e99-4c55-8a3b-70af86f325fc">
 	<parameter name="TITULO_GUIA" class="java.lang.String"/>
 	<parameter name="LOGO_CLIENTE" class="java.io.InputStream"/>
@@ -37,10 +38,10 @@
 		<element kind="line" uuid="76d44066-25a9-4037-9e1d-9417e2f0cfd4" x="90" y="8" width="1" height="46" forecolor="#CCCCCC">
 			<pen lineWidth="0.8"/>
 		</element>
-		<element kind="staticText" uuid="894d35d5-351a-4f8f-9a1f-55c4b8076fcc" x="98" y="12" width="170" height="40" forecolor="#1A3A5C" fontSize="14.0" bold="true" vTextAlign="Middle">
+		<element kind="staticText" uuid="894d35d5-351a-4f8f-9a1f-55c4b8076fcc" x="98" y="12" width="152" height="40" forecolor="#1A3A5C" fontSize="14.0" bold="true" vTextAlign="Middle">
 			<text><![CDATA[GUIA DE UTILIZAÇÃO:]]></text>
 		</element>
-		<element kind="textField" uuid="66e2e0e5-9cce-4364-beca-34fdd22ee75f" x="270" y="12" width="200" height="40" forecolor="#00B4A0" fontSize="14.0" bold="true" vTextAlign="Middle">
+		<element kind="textField" uuid="66e2e0e5-9cce-4364-beca-34fdd22ee75f" x="256" y="12" width="200" height="40" forecolor="#00B4A0" fontSize="14.0" bold="true" vTextAlign="Middle">
 			<expression><![CDATA[$P{TITULO_GUIA} != null ? $P{TITULO_GUIA}.toUpperCase() : "GERAL"]]></expression>
 		</element>
 		<element kind="image" uuid="32ee0cb7-ef01-4e80-9b8c-f430dccf3bfc" x="552" y="4" width="124" height="54" scaleImage="RetainShape" hImageAlign="Right" vImageAlign="Middle">
@@ -100,13 +101,9 @@
 	</columnHeader>
 	<detail>
 		<band height="64" splitType="Prevent">
-			<element kind="rectangle" uuid="d002221b-d366-4a33-9ee4-ab94baae2241" x="0" y="0" width="680" height="63" forecolor="#E8EEF4" backcolor="#EEF3F8">
-				<printWhenExpression><![CDATA[$V{REPORT_COUNT} % 2 == 0]]></printWhenExpression>
-				<pen lineWidth="0.0"/>
-			</element>
-			<element kind="rectangle" uuid="38374c87-06e2-4acd-a6cf-aa3b0eff89e7" x="0" y="0" width="680" height="63" forecolor="#FFFFFF" backcolor="#FFFFFF">
-				<printWhenExpression><![CDATA[$V{REPORT_COUNT} % 2 != 0]]></printWhenExpression>
-				<pen lineWidth="0.0"/>
+			<!-- Sem cor de fundo nas linhas (pedido dele, 2026-09-29): só um fio cinza embaixo separa uma da outra. -->
+			<element kind="line" uuid="7c1e2a54-3f0b-4d8e-9a61-2b5c8d4e1f03" x="0" y="63" width="680" height="1" forecolor="#E0E4EA">
+				<pen lineWidth="0.5"/>
 			</element>
 			<element kind="textField" uuid="4b94c097-41b5-4860-b54a-6034c854c967" x="2" y="3" width="64" height="13" fontSize="6.5" textAdjust="StretchHeight" bold="true" hTextAlign="Center" vTextAlign="Middle">
 				<expression><![CDATA[$F{nome} != null ? $F{nome}.toUpperCase() : ""]]></expression>
