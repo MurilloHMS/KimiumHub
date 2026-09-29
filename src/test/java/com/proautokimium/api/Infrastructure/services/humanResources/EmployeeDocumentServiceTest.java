@@ -4,35 +4,57 @@ import com.proautokimium.api.Application.DTOs.humanResources.EmployeeDocument.Em
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.EmployeeDocumentRepository;
+import com.proautokimium.api.Infrastructure.repositories.humanResources.EmployeeDocumentTypeRepository;
 import com.proautokimium.api.Infrastructure.services.notification.NotificationService;
 import com.proautokimium.api.Infrastructure.services.storage.EmployeeDocumentStorageService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.entities.humanResources.EmployeeDocument;
+import com.proautokimium.api.domain.entities.humanResources.EmployeeDocumentType;
+import com.proautokimium.api.domain.enums.humanResources.EmployeeDocumentStatus;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
-import java.lang.reflect.Field;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+/**
+ * O vínculo de documento pelo RH.
+ *
+ * O que estes testes protegem, em ordem de gravidade: o disco nunca fica com
+ * arquivo órfão; um documento não substitui o de outro funcionário; e o
+ * funcionário é avisado com um link que chega à tela dele.
+ */
 @ExtendWith(MockitoExtension.class)
 class EmployeeDocumentServiceTest {
 
+    private static final ZoneId ZONE = ZoneId.of("America/Sao_Paulo");
+    private static final LocalDate TODAY = LocalDate.of(2026, 9, 29);
+
     @Mock private EmployeeDocumentRepository repository;
+    @Mock private EmployeeDocumentTypeRepository typeRepository;
     @Mock private EmployeeRepository employeeRepository;
     @Mock private UserRepository userRepository;
     @Mock private EmployeeDocumentStorageService storage;
@@ -40,74 +62,231 @@ class EmployeeDocumentServiceTest {
 
     private EmployeeDocumentService service;
 
-    private UUID employeeId;
     private Employee employee;
-    private EmployeeDocument document;
+    private EmployeeDocumentType aso;
 
     @BeforeEach
-    void setUp() throws Exception {
-        Clock clock = Clock.fixed(LocalDateTime.of(2026, 7, 23, 10, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
-        service = new EmployeeDocumentService(repository, employeeRepository, userRepository, storage, notificationService, clock);
+    void setUp() {
+        Clock clock = Clock.fixed(TODAY.atTime(10, 0).atZone(ZONE).toInstant(), ZONE);
+        service = new EmployeeDocumentService(repository, typeRepository, employeeRepository, userRepository,
+                storage, notificationService, clock);
 
-        employeeId = UUID.randomUUID();
         employee = new Employee();
+        employee.id = UUID.randomUUID();
         employee.setCodParceiro("EMP001");
-        setId(employee, employeeId);
+        employee.setName("Ana Souza");
 
-        document = new EmployeeDocument();
-        document.setEmployee(employee);
-        document.setTitle("Contrato assinado");
+        aso = EmployeeDocumentType.create("ASO", LocalDateTime.of(2026, 1, 1, 0, 0));
+        aso.id = UUID.randomUUID();
     }
 
-    private void setId(com.proautokimium.api.domain.abstractions.Entity entity, UUID id) throws Exception {
-        Field field = com.proautokimium.api.domain.abstractions.Entity.class.getDeclaredField("id");
-        field.setAccessible(true);
-        field.set(entity, id);
+    private static MockMultipartFile pdf(String name) {
+        return new MockMultipartFile("file", name, "application/pdf", "conteudo".getBytes());
+    }
+
+    /** O caminho feliz do vínculo, com tudo que ele precisa encontrar. */
+    private void employeeAndTypeExist() throws Exception {
+        when(employeeRepository.findById(employee.getId())).thenReturn(Optional.of(employee));
+        when(typeRepository.findById(aso.getId())).thenReturn(Optional.of(aso));
+        when(storage.save(any(), eq("EMP001"), anyString())).thenReturn("EMP001/uuid-aso.pdf");
+    }
+
+    private EmployeeDocument stored(Employee owner) {
+        EmployeeDocument document = new EmployeeDocument();
+        document.id = UUID.randomUUID();
+        document.setEmployee(owner);
+        document.setTitle("ASO 2025");
+        document.setStoragePath("EMP001/antigo.pdf");
+        return document;
+    }
+
+    @Nested
+    @DisplayName("vincular")
+    class Link {
+
+        @Test
+        @DisplayName("grava tipo, vencimento, quem enviou e o tipo do arquivo, e avisa o funcionário")
+        void gravaEAvisa() throws Exception {
+            employeeAndTypeExist();
+            when(repository.save(any(EmployeeDocument.class))).thenAnswer(inv -> inv.getArgument(0));
+            User linked = mock(User.class);
+            when(linked.getLogin()).thenReturn("ana.login");
+            when(userRepository.findByEmployee_Id(employee.getId())).thenReturn(Optional.of(linked));
+
+            EmployeeDocumentResponseDTO response = service.link(employee.getId(), aso.getId(), "ASO periódico",
+                    TODAY.plusYears(1), null, pdf("aso.pdf"), "rh.maria");
+
+            ArgumentCaptor<EmployeeDocument> saved = ArgumentCaptor.forClass(EmployeeDocument.class);
+            verify(repository).save(saved.capture());
+            assertThat(saved.getValue().getType()).isSameAs(aso);
+            assertThat(saved.getValue().getDueDate()).isEqualTo(TODAY.plusYears(1));
+            assertThat(saved.getValue().getUploadedBy()).isEqualTo("rh.maria");
+            assertThat(saved.getValue().getContentType()).isEqualTo("application/pdf");
+            assertThat(response.status()).isEqualTo(EmployeeDocumentStatus.VALID);
+            assertThat(response.employeeName()).isEqualTo("Ana Souza");
+
+            // O link leva à tela do funcionário, e não ao hub de Documentos.
+            verify(notificationService).notify(eq("ana.login"), any(), any(), any(), eq("/documentos/rh/documents"));
+        }
+
+        @Test
+        @DisplayName("sem título, usa o nome do tipo")
+        void tituloPadraoEOTipo() throws Exception {
+            employeeAndTypeExist();
+            when(repository.save(any(EmployeeDocument.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            EmployeeDocumentResponseDTO response = service.link(employee.getId(), aso.getId(), "  ",
+                    null, null, pdf("aso.pdf"), "rh.maria");
+
+            assertThat(response.title()).isEqualTo("ASO");
+        }
+
+        /**
+         * **Nada no disco antes de tudo estar conferido.** Arquivo recusado não
+         * pode nem chegar ao `save` — senão cada tentativa errada deixa um arquivo.
+         */
+        @ParameterizedTest
+        @ValueSource(strings = {"virus.exe", "planilha.xlsx", "sem-extensao"})
+        @DisplayName("recusa o que não é PDF, JPG ou PNG, sem gravar nada")
+        void recusaTipoDeArquivo(String name) throws Exception {
+            assertThatThrownBy(() -> service.link(employee.getId(), aso.getId(), null, null, null,
+                    pdf(name), "rh.maria"))
+                    .isInstanceOf(InvalidRequestDataException.class);
+            verify(storage, never()).save(any(), anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("aceita JPG e PNG, em qualquer caixa")
+        void aceitaImagem() throws Exception {
+            employeeAndTypeExist();
+            when(repository.save(any(EmployeeDocument.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            EmployeeDocumentResponseDTO response = service.link(employee.getId(), aso.getId(), null, null, null,
+                    new MockMultipartFile("file", "FOTO.JPG", "image/jpeg", new byte[]{1}), "rh.maria");
+
+            assertThat(response.contentType()).isEqualTo("image/jpeg");
+        }
+
+        @Test
+        @DisplayName("recusa arquivo vazio e acima de 10 MB")
+        void recusaVazioEGrande() {
+            MockMultipartFile vazio = new MockMultipartFile("file", "a.pdf", "application/pdf", new byte[0]);
+            MockMultipartFile grande = new MockMultipartFile("file", "a.pdf", "application/pdf",
+                    new byte[(int) EmployeeDocumentService.MAX_FILE_BYTES + 1]);
+
+            assertThatThrownBy(() -> service.link(employee.getId(), aso.getId(), null, null, null, vazio, "rh"))
+                    .isInstanceOf(InvalidRequestDataException.class);
+            assertThatThrownBy(() -> service.link(employee.getId(), aso.getId(), null, null, null, grande, "rh"))
+                    .isInstanceOf(InvalidRequestDataException.class);
+        }
+
+        @Test
+        @DisplayName("tipo desativado não recebe documento novo")
+        void tipoInativo() throws Exception {
+            aso.deactivate();
+            when(employeeRepository.findById(employee.getId())).thenReturn(Optional.of(employee));
+            when(typeRepository.findById(aso.getId())).thenReturn(Optional.of(aso));
+
+            assertThatThrownBy(() -> service.link(employee.getId(), aso.getId(), null, null, null,
+                    pdf("aso.pdf"), "rh"))
+                    .isInstanceOf(InvalidRequestDataException.class);
+            verify(storage, never()).save(any(), anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("substituir marca o antigo com o novo")
+        void substitui() throws Exception {
+            employeeAndTypeExist();
+            EmployeeDocument old = stored(employee);
+            when(repository.findById(old.getId())).thenReturn(Optional.of(old));
+            when(repository.save(any(EmployeeDocument.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            EmployeeDocumentResponseDTO response = service.link(employee.getId(), aso.getId(), null, null,
+                    old.getId(), pdf("aso.pdf"), "rh");
+
+            assertThat(old.getReplacedBy()).isNotNull();
+            assertThat(old.getReplacedBy().getTitle()).isEqualTo(response.title());
+            assertThat(old.statusOn(TODAY)).isEqualTo(EmployeeDocumentStatus.REPLACED);
+        }
+
+        /**
+         * **O teste que justifica a compensação.** A recusa vem DEPOIS do arquivo
+         * gravado (a entidade só confere o dono quando o novo tem id); sem o
+         * `catch`, o arquivo ficaria no disco sem linha nenhuma apontando para ele.
+         */
+        @Test
+        @DisplayName("substituir documento de outro funcionário é recusado, e o arquivo gravado é apagado")
+        void substituirDeOutroApagaOArquivo() throws Exception {
+            employeeAndTypeExist();
+            Employee other = new Employee();
+            other.id = UUID.randomUUID();
+            EmployeeDocument othersDocument = stored(other);
+            when(repository.findById(othersDocument.getId())).thenReturn(Optional.of(othersDocument));
+            when(repository.save(any(EmployeeDocument.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            assertThatThrownBy(() -> service.link(employee.getId(), aso.getId(), null, null,
+                    othersDocument.getId(), pdf("aso.pdf"), "rh"))
+                    .isInstanceOf(InvalidRequestDataException.class);
+
+            verify(storage).delete("EMP001/uuid-aso.pdf");
+            assertThat(othersDocument.getReplacedBy()).isNull();
+            verify(notificationService, never()).notify(any(), any(), any(), any(), any());
+        }
     }
 
     @Test
-    @DisplayName("Deve vincular documento, salvar no storage e notificar o funcionário")
-    void deveVincularDocumentoESalvarNoStorage() throws Exception {
-        MockMultipartFile file = new MockMultipartFile("file", "contrato.pdf", "application/pdf", "conteudo".getBytes());
+    @DisplayName("o filtro de situação usa a regra calculada no dia")
+    void filtraPorSituacao() {
+        EmployeeDocument expired = stored(employee);
+        expired.setDueDate(TODAY.minusDays(1));
+        EmployeeDocument valid = stored(employee);
+        valid.setDueDate(TODAY.plusYears(1));
+        when(repository.search(null, null)).thenReturn(List.of(expired, valid));
 
-        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
-        when(storage.save(any(), eq("EMP001"), eq("contrato.pdf"))).thenReturn("EMP001/uuid-contrato.pdf");
-        when(repository.save(any(EmployeeDocument.class))).thenAnswer(inv -> inv.getArgument(0));
+        List<EmployeeDocumentResponseDTO> result = service.search(null, null, EmployeeDocumentStatus.EXPIRED);
 
-        User linkedUser = mock(User.class);
-        when(linkedUser.getLogin()).thenReturn("emp001.login");
-        when(userRepository.findByEmployee_Id(employeeId)).thenReturn(Optional.of(linkedUser));
-
-        EmployeeDocumentResponseDTO response = service.vincular(employeeId, "Contrato assinado", file);
-
-        assertThat(response.title()).isEqualTo("Contrato assinado");
-        assertThat(response.originalFilename()).isEqualTo("contrato.pdf");
-        verify(notificationService).notify(eq("emp001.login"), any(), any(), any(), eq("/documentos"));
+        assertThat(result).extracting(EmployeeDocumentResponseDTO::id).containsExactly(expired.getId());
+        assertThat(result.get(0).daysUntilDue()).isEqualTo(-1L);
     }
 
+    /** Fora de transação (o teste), o arquivo sai na hora; dentro, só depois do commit. */
     @Test
-    @DisplayName("RH sempre pode acessar, mesmo não sendo o dono")
-    void rhSempreConsegueAcessar() {
-        assertThat(service.podeAcessar(document, "qualquer-login", true)).isTrue();
+    @DisplayName("excluir apaga a linha e o arquivo")
+    void exclui() throws Exception {
+        EmployeeDocument document = stored(employee);
+        when(repository.findById(document.getId())).thenReturn(Optional.of(document));
+
+        service.delete(document.getId());
+
+        verify(repository).delete(document);
+        verify(storage).delete("EMP001/antigo.pdf");
     }
 
-    @Test
-    @DisplayName("O dono do documento consegue acessar")
-    void donoConsegueAcessar() {
-        when(userRepository.findByLoginWithEmployee("dono.login")).thenReturn(Optional.empty());
-        when(employeeRepository.findByUsername("dono.login")).thenReturn(Optional.of(employee));
+    @Nested
+    @DisplayName("quem acessa")
+    class Access {
 
-        assertThat(service.podeAcessar(document, "dono.login", false)).isTrue();
-    }
+        @Test
+        void rhSempreAcessa() {
+            assertThat(service.canAccess(stored(employee), "qualquer", true)).isTrue();
+        }
 
-    @Test
-    @DisplayName("Funcionário que não é o dono não consegue acessar")
-    void terceiroNaoConsegueAcessar() {
-        Employee outroFuncionario = new Employee();
+        @Test
+        void donoAcessa() {
+            when(userRepository.findByLoginWithEmployee("ana.login")).thenReturn(Optional.empty());
+            when(employeeRepository.findByUsername("ana.login")).thenReturn(Optional.of(employee));
 
-        when(userRepository.findByLoginWithEmployee("outro.login")).thenReturn(Optional.empty());
-        when(employeeRepository.findByUsername("outro.login")).thenReturn(Optional.of(outroFuncionario));
+            assertThat(service.canAccess(stored(employee), "ana.login", false)).isTrue();
+        }
 
-        assertThat(service.podeAcessar(document, "outro.login", false)).isFalse();
+        @Test
+        void terceiroNaoAcessa() {
+            Employee other = new Employee();
+            other.id = UUID.randomUUID();
+            when(userRepository.findByLoginWithEmployee("joao.login")).thenReturn(Optional.empty());
+            when(employeeRepository.findByUsername("joao.login")).thenReturn(Optional.of(other));
+
+            assertThat(service.canAccess(stored(employee), "joao.login", false)).isFalse();
+        }
     }
 }

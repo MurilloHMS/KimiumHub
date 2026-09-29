@@ -94,10 +94,10 @@ class FileDownloadAccessTest {
                 .thenAnswer(inv -> regraReal(inv.getArgument(1), inv.getArgument(2)));
         when(medicalCertificateService.lerArquivo(any())).thenReturn(new byte[]{1});
 
-        when(employeeDocumentService.buscar(any())).thenReturn(Optional.of(mock(EmployeeDocument.class)));
-        when(employeeDocumentService.podeAcessar(any(), anyString(), anyBoolean()))
+        when(employeeDocumentService.find(any())).thenReturn(Optional.of(mock(EmployeeDocument.class)));
+        when(employeeDocumentService.canAccess(any(), anyString(), anyBoolean()))
                 .thenAnswer(inv -> regraReal(inv.getArgument(1), inv.getArgument(2)));
-        when(employeeDocumentService.lerArquivo(any())).thenReturn(new byte[]{1});
+        when(employeeDocumentService.readFile(any())).thenReturn(new byte[]{1});
 
         when(holeriteService.buscar(any())).thenReturn(Optional.of(mock(HoleriteDocumento.class)));
         when(holeriteService.podeAcessar(any(), anyString(), anyBoolean()))
@@ -128,8 +128,10 @@ class FileDownloadAccessTest {
         @DisplayName("documento")
         @WithMockUser(username = OUTRO, authorities = {"ROLE_ADMINISTRATIVO", "documentos/rh/documents:BAIXAR"})
         void documento() throws Exception {
-            mockMvc.perform(get(FileDownloadAccessTest.documento())).andExpect(status().isForbidden());
-            verify(employeeDocumentService, never()).lerArquivo(any());
+            // 404, e não 403: para quem não é dono, o documento "não existe" —
+            // um 403 confirmaria que o id é de alguém.
+            mockMvc.perform(get(FileDownloadAccessTest.documento())).andExpect(status().isNotFound());
+            verify(employeeDocumentService, never()).readFile(any());
         }
 
         @Test
@@ -178,9 +180,21 @@ class FileDownloadAccessTest {
 
         @Test
         @DisplayName("documento")
-        @WithMockUser(username = OUTRO, authorities = {"rh/employees:BAIXAR"})
+        @WithMockUser(username = OUTRO, authorities = {"rh/employee-documents:BAIXAR"})
         void documento() throws Exception {
             mockMvc.perform(get(FileDownloadAccessTest.documento())).andExpect(status().isOk());
+        }
+
+        /**
+         * A tela de Funcionários não baixa mais documento: a permissão mudou para
+         * a tela própria (V110), que abre para os mesmos modelos RH e ADMIN.
+         */
+        @Test
+        @DisplayName("documento: a tela de Funcionários não basta mais")
+        @WithMockUser(username = OUTRO, authorities = {"rh/employees:BAIXAR"})
+        void documentoPelaTelaAntiga() throws Exception {
+            mockMvc.perform(get(FileDownloadAccessTest.documento())).andExpect(status().isForbidden());
+            verify(employeeDocumentService, never()).readFile(any());
         }
 
         @Test
@@ -227,6 +241,14 @@ class FileDownloadAccessTest {
         @WithMockUser(username = DONO, authorities = {"documentos/rh/reimbursements:BAIXAR"})
         void reembolso() throws Exception {
             mockMvc.perform(get(FileDownloadAccessTest.reembolso())).andExpect(status().isOk());
+        }
+
+        /** O caso que faltava desde a auditoria: o dono baixando o próprio documento. */
+        @Test
+        @DisplayName("documento")
+        @WithMockUser(username = DONO, authorities = {"documentos/rh/documents:BAIXAR"})
+        void documento() throws Exception {
+            mockMvc.perform(get(FileDownloadAccessTest.documento())).andExpect(status().isOk());
         }
     }
 }
