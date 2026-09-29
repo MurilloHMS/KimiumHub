@@ -44,4 +44,22 @@ public interface EmployeeDocumentRepository extends JpaRepository<EmployeeDocume
      * RH vincula um ASO novo. "Ativo" = ninguém tomou o lugar dele ainda.
      */
     List<EmployeeDocument> findByEmployee_IdAndType_IdAndReplacedByIsNull(UUID employeeId, UUID typeId);
+
+    /**
+     * Quem pode gerar aviso: tem vencimento, não foi substituído, e o tipo está
+     * ativo. Documento sem tipo (os da V59) não entra — não há de quem ler os
+     * dias nem quem avisar.
+     *
+     * `join fetch` no funcionário e no tipo: o aviso usa os dois em cada
+     * documento, e sem isso seriam dois SELECTs por linha.
+     */
+    @Query("""
+            select d from EmployeeDocument d
+              join fetch d.employee
+              join fetch d.type t
+             where d.dueDate is not null
+               and d.replacedBy is null
+               and t.active = true
+            """)
+    List<EmployeeDocument> findAlertCandidates();
 }
