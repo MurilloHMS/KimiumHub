@@ -84,6 +84,7 @@ public final class ChecklistDiff {
             Map.entry("quantity", "Quantidade"),
             Map.entry("withTable", "Vai com mesa"),
             Map.entry("notes", "Observação"),
+            Map.entry("implantationDate", "Data da implantação"),
             // comodato e visual
             Map.entry("items", "Itens"),
             Map.entry("extraItems", "Itens fora da lista"),
@@ -91,11 +92,9 @@ public final class ChecklistDiff {
             Map.entry("productCode", "Código do produto"),
             Map.entry("description", "Descrição"),
             Map.entry("products", "Produtos usados"),
-            Map.entry("equipmentLabel", "Etiqueta de equipamento"),
-            Map.entry("bottleLabel", "Etiqueta de frasco"),
+            Map.entry("equipmentLabels", "Etiquetas de equipamento"),
+            Map.entry("bottleLabels", "Etiquetas de frasco"),
             Map.entry("dilution", "Diluição"),
-            Map.entry("technicalDocs", "Documentação técnica por e-mail"),
-            Map.entry("technicalDocsEmail", "E-mail da documentação técnica"),
             // pedido
             Map.entry("enabled", "Tem pedido"),
             Map.entry("kind", "Tipo do pedido"),
@@ -103,7 +102,8 @@ public final class ChecklistDiff {
             Map.entry("packageSize", "Tamanho da embalagem"),
             Map.entry("packageLabel", "Embalagem"),
             Map.entry("packages", "Embalagens"),
-            Map.entry("unitPrice", "Preço"),
+            Map.entry("unitPrice", "Preço de venda"),
+            Map.entry("tablePrice", "Preço da tabela"),
             Map.entry("ipiPercent", "IPI (%)"),
             Map.entry("priceSource", "Origem do preço"),
             Map.entry("total", "Total")
@@ -198,6 +198,10 @@ public final class ChecklistDiff {
             return new BigDecimal(node.asText()).stripTrailingZeros().toPlainString();
         }
         String text = node.asText().strip();
+        // A data da implantação chega como "2026-10-05"; o histórico mostra 05/10/2026.
+        if (text.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            return text.substring(8) + "/" + text.substring(5, 7) + "/" + text.substring(0, 4);
+        }
         return VALUES.getOrDefault(text, text);
     }
 

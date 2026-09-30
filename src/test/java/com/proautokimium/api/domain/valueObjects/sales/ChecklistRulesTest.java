@@ -71,7 +71,7 @@ class ChecklistRulesTest {
         var installation = new ChecklistContent.Installation(false, true, List.of(
                 new ChecklistContent.Machine("OUTRA", " ", 1, false),
                 new ChecklistContent.Machine("LAVA-JATO", null, 0, true),
-                new ChecklistContent.Machine("CAPO", null, 1, null)), null);
+                new ChecklistContent.Machine("CAPO", null, 1, null)), null, null);
         var content = new ChecklistContent(v.customer(), v.mainAddress(), true, null, v.unitContact(),
                 installation, v.comodato(), v.visual(), v.order());
 
@@ -80,6 +80,26 @@ class ChecklistRulesTest {
                 "Etapa 4 — máquina 2: escolha o tipo.",
                 "Etapa 4 — máquina 2: a quantidade precisa ser pelo menos 1.",
                 "Etapa 4 — máquina 3: responda se vai com mesa.");
+    }
+
+    /** Opcional (pedido dele, 2026-09-30); quando vem, precisa ser uma data que existe. */
+    @Test
+    @DisplayName("data da implantação: opcional, mas não aceita data que não existe")
+    void implantationDate() {
+        var v = ChecklistFixtures.valid();
+        var i = v.installation();
+        java.util.function.Function<String, ChecklistContent> with = date -> new ChecklistContent(v.customer(),
+                v.mainAddress(), true, null, v.unitContact(),
+                new ChecklistContent.Installation(i.withMaintenance(), i.needsMachine(), i.machines(), i.notes(), date),
+                v.comodato(), v.visual(), v.order());
+
+        assertThat(ChecklistRules.problems(with.apply(null))).isEmpty();
+        assertThat(ChecklistRules.problems(with.apply(" "))).isEmpty();
+        assertThat(ChecklistRules.problems(with.apply("2026-10-05"))).isEmpty();
+        assertThat(ChecklistRules.problems(with.apply("2026-02-30")))
+                .containsExactly("Etapa 4 — a data da implantação é inválida.");
+        assertThat(ChecklistRules.problems(with.apply("05/10/2026")))
+                .containsExactly("Etapa 4 — a data da implantação é inválida.");
     }
 
     /**
@@ -146,7 +166,7 @@ class ChecklistRulesTest {
 
         var badItem = new ChecklistContent(v.customer(), v.mainAddress(), true, null, v.unitContact(),
                 v.installation(), v.comodato(), v.visual(), new ChecklistContent.Order(true, "VENDA", List.of(
-                new ChecklistContent.OrderItem(1, "X", "LT", null, null, 0, null, null, 80, "GERAL", null)), null));
+                new ChecklistContent.OrderItem(1, "X", "LT", null, null, 0, null, null, 80, "GERAL", null, null)), null));
         assertThat(ChecklistRules.problems(badItem)).hasSize(3);
     }
 

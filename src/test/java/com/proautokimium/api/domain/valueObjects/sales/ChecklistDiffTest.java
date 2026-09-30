@@ -77,12 +77,28 @@ class ChecklistDiffTest {
         var before = ChecklistFixtures.valid();
         var i = before.installation();
         var installation = new ChecklistContent.Installation(i.withMaintenance(), true,
-                List.of(new ChecklistContent.Machine("FRONTAL", null, 1, false)), null);
+                List.of(new ChecklistContent.Machine("FRONTAL", null, 1, false)), null, i.implantationDate());
         var after = new ChecklistContent(before.customer(), before.mainAddress(), true, null, before.unitContact(),
                 installation, before.comodato(), before.visual(), before.order());
 
         assertThat(ChecklistDiff.between(before, after, mapper)).containsExactly(
                 new ChecklistDiff.Change("Instalação › Máquina › 1 › Tipo", "Capô", "Frontal"),
                 new ChecklistDiff.Change("Instalação › Máquina › 1 › Vai com mesa", "Sim", "Não"));
+    }
+
+    @Test
+    @DisplayName("data da implantação: trocada e tirada, sempre em dd/mm/aaaa")
+    void implantationDate() {
+        var before = ChecklistFixtures.valid();
+        var i = before.installation();
+        java.util.function.Function<String, ChecklistContent> with = date -> new ChecklistContent(before.customer(),
+                before.mainAddress(), true, null, before.unitContact(),
+                new ChecklistContent.Installation(i.withMaintenance(), i.needsMachine(), i.machines(), i.notes(), date),
+                before.comodato(), before.visual(), before.order());
+
+        assertThat(ChecklistDiff.between(before, with.apply("2026-10-12"), mapper)).containsExactly(
+                new ChecklistDiff.Change("Instalação › Data da implantação", "05/10/2026", "12/10/2026"));
+        assertThat(ChecklistDiff.between(before, with.apply(null), mapper)).containsExactly(
+                new ChecklistDiff.Change("Instalação › Data da implantação", "05/10/2026", ""));
     }
 }

@@ -108,6 +108,9 @@ public final class ChecklistRules {
     }
 
     private static void installation(ChecklistContent.Installation i, List<String> problems) {
+        if (i != null && !blank(i.implantationDate()) && i.implantation() == null) {
+            problems.add("Etapa 4 — a data da implantação é inválida.");
+        }
         if (i == null || i.withMaintenance() == null) {
             problems.add("Etapa 4 — responda se o pedido vai com a manutenção.");
         }
@@ -167,8 +170,10 @@ public final class ChecklistRules {
                 problems.add("Etapa 6 — a quantidade de \"" + item.name() + "\" não pode ser negativa.");
             }
         }
-        if (Boolean.TRUE.equals(v.technicalDocs()) && !emailList(v.technicalDocsEmail())) {
-            problems.add("Etapa 6 — informe o e-mail para a documentação técnica.");
+        for (ChecklistContent.UsedProduct p : v.products()) {
+            if (p.equipmentLabels() < 0 || p.bottleLabels() < 0) {
+                problems.add("Etapa 6 — a quantidade de etiquetas de \"" + p.name() + "\" não pode ser negativa.");
+            }
         }
     }
 

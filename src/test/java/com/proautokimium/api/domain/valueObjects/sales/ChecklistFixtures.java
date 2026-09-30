@@ -35,13 +35,13 @@ public final class ChecklistFixtures {
                 null,
                 new ChecklistContent.UnitContact("Jorge", "8h às 17h", "1932345678"),
                 new ChecklistContent.Installation(false, true,
-                        List.of(new ChecklistContent.Machine("CAPO", null, 1, true)), null),
+                        List.of(new ChecklistContent.Machine("CAPO", null, 1, true)), null, "2026-10-05"),
                 new ChecklistContent.Comodato(
                         List.of(new ChecklistContent.ComodatoItem(1998, "DILUIDOR NTI - AZUL", "Diluidor padrão", 2)),
                         List.of(), null),
                 new ChecklistContent.Visual(
                         List.of(new ChecklistContent.VisualItem(UUID.randomUUID(), "Lave sempre as mãos", 3)),
-                        List.of(), false, null),
+                        List.of()),
                 order());
     }
 
@@ -49,10 +49,10 @@ public final class ChecklistFixtures {
         return new ChecklistContent.Order(true, "VENDA", List.of(
                 new ChecklistContent.OrderItem(197, "PROAUTO REMOCON. - 20 LT BB PRETA", "LT",
                         new BigDecimal("20"), "20 LT", 3, new BigDecimal("10.98"), new BigDecimal("3.25"),
-                        281, "CLIENTE", null),
+                        281, "CLIENTE", new BigDecimal("10.98"), null),
                 new ChecklistContent.OrderItem(455, "POSEIDON - 7,5 KG GL NATURAL", "KG",
                         new BigDecimal("7.5"), "7,5 KG GL", 2, new BigDecimal("35.31"), BigDecimal.ZERO,
-                        80, "GERAL", null)), null);
+                        80, "GERAL", new BigDecimal("35.31"), null)), null);
     }
 
     public static ChecklistContent withCustomer(ChecklistContent c, ChecklistContent.Customer customer) {

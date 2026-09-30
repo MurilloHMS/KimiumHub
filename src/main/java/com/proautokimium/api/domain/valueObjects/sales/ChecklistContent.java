@@ -84,9 +84,28 @@ public record ChecklistContent(
 
     public static final List<String> MACHINE_TYPES = List.of("CAPO", "ESTEIRA", "FRONTAL", "OUTRA");
 
+    /**
+     * {@code implantationDate} é opcional (pedido dele, 2026-09-30) e viaja como
+     * "aaaa-mm-dd", o que o campo de data do celular produz. Texto, e não
+     * {@code LocalDate}, pelo mesmo motivo dos outros campos: um valor estranho
+     * vira frase na validação, e não erro de leitura do jsonb.
+     */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Installation(Boolean withMaintenance, Boolean needsMachine, List<Machine> machines, String notes) {
+    public record Installation(Boolean withMaintenance, Boolean needsMachine, List<Machine> machines, String notes,
+                               String implantationDate) {
         public List<Machine> machines() { return machines == null ? List.of() : machines; }
+
+        /** A data lida; nula quando não informada ou ilegível. */
+        public java.time.LocalDate implantation() {
+            if (implantationDate == null || implantationDate.isBlank()) {
+                return null;
+            }
+            try {
+                return java.time.LocalDate.parse(implantationDate.strip());
+            } catch (java.time.format.DateTimeParseException e) {
+                return null;
+            }
+        }
     }
 
     /**
@@ -111,11 +130,14 @@ public record ChecklistContent(
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ExtraItem(String description, int quantity) {}
 
-    // ── Etapa 6: comunicação visual e técnica ────────────────────────────────
+    // ── Etapa 6: comunicação visual ──────────────────────────────────────────
+    //
+    // A pergunta da documentação técnica (boletim e FISPQ) saiu a pedido dele
+    // (2026-09-30); celular com o site antigo ainda manda o campo, e ele é
+    // ignorado.
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Visual(List<VisualItem> items, List<UsedProduct> products,
-                         Boolean technicalDocs, String technicalDocsEmail) {
+    public record Visual(List<VisualItem> items, List<UsedProduct> products) {
         public List<VisualItem> items() { return items == null ? List.of() : items; }
         public List<UsedProduct> products() { return products == null ? List.of() : products; }
     }
@@ -123,9 +145,15 @@ public record ChecklistContent(
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record VisualItem(UUID itemId, String name, int quantity) {}
 
+    /**
+     * Um produto usado na implantação, com QUANTAS etiquetas de equipamento e
+     * de frasco vão (pedido dele, 2026-09-30 — antes era só "vai ou não vai").
+     * O nome mudou junto com o tipo: o campo antigo (sim/não) de um celular
+     * desatualizado é ignorado, em vez de virar número errado.
+     */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record UsedProduct(int productCode, String name, boolean equipmentLabel,
-                              boolean bottleLabel, String dilution) {}
+    public record UsedProduct(int productCode, String name, int equipmentLabels,
+                              int bottleLabels, String dilution) {}
 
     // ── Etapa 7: pedido (opcional) ───────────────────────────────────────────
 
@@ -141,12 +169,21 @@ public record ChecklistContent(
      * Sankhya guarda; a quantidade é em embalagens ({@code packages} ×
      * {@code packageSize}). {@code priceTable} é a tabela de onde o preço saiu,
      * congelada no momento do preenchimento.
+     *
+     * <p>{@code unitPrice} é o preço de venda, que o vendedor pode mudar (pedido
+     * dele, 2026-09-30); {@code tablePrice} é o que a tabela dizia. Os dois ficam,
+     * para a Controladoria ver o que mudou.
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record OrderItem(int productCode, String name, String unit, BigDecimal packageSize,
                             String packageLabel, int packages, BigDecimal unitPrice,
                             BigDecimal ipiPercent, Integer priceTable, String priceSource,
-                            BigDecimal lineTotal) {
+                            BigDecimal tablePrice, BigDecimal lineTotal) {
+
+        /** O vendedor mudou o preço da tabela. */
+        public boolean priceChanged() {
+            return tablePrice != null && unitPrice != null && unitPrice.compareTo(tablePrice) != 0;
+        }
 
         /** embalagens × tamanho × preço, mais o IPI — a conta da planilha. */
         public BigDecimal computedTotal() {
@@ -160,7 +197,7 @@ public record ChecklistContent(
 
         OrderItem withComputedTotal() {
             return new OrderItem(productCode, name, unit, packageSize, packageLabel, packages, unitPrice,
-                    ipiPercent, priceTable, priceSource, computedTotal());
+                    ipiPercent, priceTable, priceSource, tablePrice, computedTotal());
         }
     }
 

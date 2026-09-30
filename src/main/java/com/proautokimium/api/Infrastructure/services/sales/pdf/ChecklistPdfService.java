@@ -28,6 +28,7 @@ import java.util.Locale;
 public class ChecklistPdfService {
 
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy", Locale.forLanguageTag("pt-BR"));
     private static final Locale PT_BR = Locale.of("pt", "BR");
 
     private final Clock clock;
@@ -50,6 +51,7 @@ public class ChecklistPdfService {
                     "Para liberação de pedido de venda, comodato de equipamentos e máquinas é necessário enviar "
                             + "previamente as informações abaixo. Todas serão inseridas no cadastro do cliente.");
 
+            implantation(pdf, content.installation());
             customer(pdf, checklist, content.customer());
             addresses(pdf, content);
             contract(pdf, content.customer());
@@ -65,6 +67,16 @@ public class ChecklistPdfService {
     // Cada seção é o bloco da planilha, na mesma ordem e com o mesmo título.
     // A arrumação é para caber numa página (pedido dele, 2026-09-30): linhas
     // de quatro campos, e seção vazia vira uma frase em vez de uma tabela.
+
+    /**
+     * A data da implantação é opcional, mas é a primeira coisa que a
+     * Controladoria precisa ver (pedido dele, 2026-09-30): vai em destaque logo
+     * abaixo do título. Sem data, o destaque diz "A definir", em vez de sumir.
+     */
+    private void implantation(PdfSheet pdf, ChecklistContent.Installation i) {
+        java.time.LocalDate date = i == null ? null : i.implantation();
+        pdf.highlight("Data da implantação", date == null ? "A definir" : date.format(DAY));
+    }
 
     private void customer(PdfSheet pdf, Checklist checklist, Customer c) {
         pdf.section("Cliente");
@@ -160,14 +172,12 @@ public class ChecklistPdfService {
         pdf.section("Comunicação visual e diluição de implantação dos produtos");
         String items = v == null ? "" : String.join(" · ", v.items().stream().filter(i -> i.quantity() > 0)
                 .map(i -> i.name() + " (" + i.quantity() + ")").toList());
-        Boolean docs = v == null ? null : v.technicalDocs();
-        pdf.fields(Field.of("Comunicação visual", items.isBlank() ? "Nenhum item" : items, 3),
-                Field.of("Documentação técnica digital (boletim e FISPQ)?",
-                        Boolean.TRUE.equals(docs) ? "Sim — " + emails(v.technicalDocsEmail()) : yesNo(docs), 2));
+        pdf.fields(Field.of("Comunicação visual", items.isBlank() ? "Nenhum item" : items));
         if (v != null && !v.products().isEmpty()) {
             List<String[]> products = new ArrayList<>();
             for (ChecklistContent.UsedProduct p : v.products()) {
-                products.add(new String[]{p.name(), yesNo(p.equipmentLabel()), yesNo(p.bottleLabel()), p.dilution()});
+                products.add(new String[]{p.name(), String.valueOf(p.equipmentLabels()),
+                        String.valueOf(p.bottleLabels()), p.dilution()});
             }
             pdf.table(new String[]{"Produtos utilizados", "Etiqueta equipamentos", "Etiqueta frasco", "Diluição"},
                     new float[]{3.4f, 1.2f, 1f, 1.2f}, products);
@@ -196,7 +206,7 @@ public class ChecklistPdfService {
                     item.name(),
                     String.valueOf(item.packages()),
                     decimal(item.packageSize()) + " " + unit,
-                    money(item.unitPrice()) + " / " + unit,
+                    money(item.unitPrice()) + " / " + unit + (item.priceChanged() ? " *" : ""),
                     table,
                     decimal(item.ipiPercent()) + "%",
                     money(packagePrice),
@@ -205,6 +215,17 @@ public class ChecklistPdfService {
         pdf.table(new String[]{"Produto", "Qtd", "Embalagem", "Preço s/ imposto", "Tabela", "IPI", "Preço embalagem", "Preço total"},
                 new float[]{3.3f, 0.5f, 0.9f, 1.2f, 0.9f, 0.6f, 1.1f, 1.1f}, rows, 18);
         pdf.total("Total", money(o.total()));
+
+        // O preço mudado pelo vendedor fica marcado com "*" na tabela, e aqui o
+        // que a tabela dizia — a linha do item continua uma só.
+        List<String> changed = o.items().stream().filter(ChecklistContent.OrderItem::priceChanged)
+                // Palavras, e não seta: "→" não existe na fonte do PDF e sairia "?".
+                .map(i -> i.name() + ": tabela " + money(i.tablePrice()) + ", vendido a " + money(i.unitPrice())
+                        + " / " + (i.unit() == null ? "" : i.unit()))
+                .toList();
+        if (!changed.isEmpty()) {
+            pdf.fields(Field.of("* Preços alterados pelo vendedor", String.join("; ", changed)));
+        }
     }
 
     private void review(PdfSheet pdf, Checklist c) {

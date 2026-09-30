@@ -179,6 +179,19 @@ final class PdfSheet implements AutoCloseable {
         return false;
     }
 
+    /** Faixa de destaque, largura toda: barra da marca à esquerda, rótulo e valor grande. */
+    void highlight(String label, String value) {
+        ensure(24);
+        y -= 3;
+        fill(FILL, MARGIN, y - 20, width(), 20);
+        fill(BRAND, MARGIN, y - 20, 3.5f, 20);
+        box(MARGIN, y - 20, width(), 20, null);
+        String upper = label.toUpperCase();
+        text(bold, 7.5f, MUTED, MARGIN + 10, y - 12.8f, upper);
+        text(bold, 11, BRAND, MARGIN + 18 + stringWidth(bold, 7.5f, upper), y - 13.5f, value);
+        y -= 20;
+    }
+
     /** Linha de destaque à direita, como o TOTAL da planilha. */
     void total(String label, String value) {
         ensure(16);
