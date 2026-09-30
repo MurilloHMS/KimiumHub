@@ -83,7 +83,15 @@ public class AuthenticationService {
             throw new IllegalArgumentException(e);
         }
 
-        User user = (User) authentication.getPrincipal();
+        return issueSession((User) authentication.getPrincipal());
+    }
+
+    /**
+     * A sessão de quem já provou quem é — pela senha, ou pela digital
+     * (WebAuthnService). As duas entradas passam por aqui, para que bloquear
+     * uma conta valha para as duas sem ninguém lembrar de repetir a regra.
+     */
+    public LoginResponseDTO issueSession(User user) {
         if(!user.isActive()){
             throw new UserBlockedException();
         }

@@ -56,6 +56,13 @@ public final class SecurityPaths {
             "/api/auth/logout",
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
+            // Login com a digital: quem chama ainda não entrou. O primeiro só
+            // devolve um desafio, sem dizer quem tem digital; o segundo só abre
+            // sessão com a assinatura do aparelho conferida. Listados um a um,
+            // e não "/api/auth/webauthn/**": o cadastro e a remoção, pendurados
+            // no mesmo prefixo, exigem login.
+            "/api/auth/webauthn/authentication/options",
+            "/api/auth/webauthn/authentication",
             "/api/candidatura",
             "/api/talent-bank/public",
             "/api/talent-bank/public/access-link",
