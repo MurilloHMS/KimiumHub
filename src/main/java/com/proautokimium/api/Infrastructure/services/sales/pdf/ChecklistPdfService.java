@@ -111,7 +111,7 @@ public class ChecklistPdfService {
                 Field.of("Celular", phone(c.mobile())));
         pdf.fields(Field.of("Responsável assinatura", c.signatory()),
                 Field.of("CPF", document(c.signatoryCpf())),
-                Field.of("E-mail para envio de NFs", c.invoiceEmail()),
+                Field.of("E-mail para envio de NFs", emails(c.invoiceEmail())),
                 Field.of("E-mail envio do contrato", c.contractEmail()));
     }
 
@@ -163,7 +163,7 @@ public class ChecklistPdfService {
         Boolean docs = v == null ? null : v.technicalDocs();
         pdf.fields(Field.of("Comunicação visual", items.isBlank() ? "Nenhum item" : items, 3),
                 Field.of("Documentação técnica digital (boletim e FISPQ)?",
-                        Boolean.TRUE.equals(docs) ? "Sim — " + v.technicalDocsEmail() : yesNo(docs), 2));
+                        Boolean.TRUE.equals(docs) ? "Sim — " + emails(v.technicalDocsEmail()) : yesNo(docs), 2));
         if (v != null && !v.products().isEmpty()) {
             List<String[]> products = new ArrayList<>();
             for (ChecklistContent.UsedProduct p : v.products()) {
@@ -242,6 +242,12 @@ public class ChecklistPdfService {
             case "FRONTAL" -> "Frontal";
             default -> type;
         };
+    }
+
+    /** "a@x;b@y" vira "a@x; b@y": com o espaço, a célula quebra entre um e-mail e outro. */
+    private static String emails(String value) {
+        return value == null ? null : String.join("; ",
+                com.proautokimium.api.domain.valueObjects.sales.ChecklistRules.emails(value));
     }
 
     private static String yesNo(Boolean value) {

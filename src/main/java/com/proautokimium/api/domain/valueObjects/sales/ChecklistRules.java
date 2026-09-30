@@ -74,8 +74,8 @@ public final class ChecklistRules {
         if (!BrazilianDocument.isValidCpf(c.signatoryCpf())) {
             problems.add("Etapa 3 — o CPF de quem assina é inválido.");
         }
-        if (!Email.isValid(trim(c.invoiceEmail()))) {
-            problems.add("Etapa 3 — o e-mail para as notas fiscais é inválido.");
+        if (!emailList(c.invoiceEmail())) {
+            problems.add("Etapa 3 — o e-mail para as notas fiscais é inválido. Se forem vários, separe por ponto e vírgula (;).");
         }
         if (!Email.isValid(trim(c.contractEmail()))) {
             problems.add("Etapa 3 — o e-mail para o contrato é inválido.");
@@ -167,7 +167,7 @@ public final class ChecklistRules {
                 problems.add("Etapa 6 — a quantidade de \"" + item.name() + "\" não pode ser negativa.");
             }
         }
-        if (Boolean.TRUE.equals(v.technicalDocs()) && !Email.isValid(trim(v.technicalDocsEmail()))) {
+        if (Boolean.TRUE.equals(v.technicalDocs()) && !emailList(v.technicalDocsEmail())) {
             problems.add("Etapa 6 — informe o e-mail para a documentação técnica.");
         }
     }
@@ -194,6 +194,39 @@ public final class ChecklistRules {
                 problems.add("Etapa 7 — " + name + " está sem preço.");
             }
         }
+    }
+
+    /**
+     * Um ou mais e-mails, como o Sankhya guarda o de NF (medido em 2026-09-30
+     * sobre os 6.854 clientes ativos): separados por ";" (1.937 clientes) ou
+     * por ":" (44). O ":" não existe dentro de um e-mail, então vale como
+     * separador sem ambiguidade. Espaço em volta não conta; cada um precisa ser
+     * válido. O que sobra recusado é erro de digitação de verdade: "@@", ".b"
+     * no fim, e-mails colados sem separador.
+     */
+    static boolean emailList(String value) {
+        List<String> emails = emails(value);
+        return !emails.isEmpty() && emails.stream().allMatch(Email::isValid);
+    }
+
+    /** Os e-mails do campo, já sem caractere invisível e sem vazio. */
+    public static List<String> emails(String value) {
+        if (value == null) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(withoutInvisible(value).split("[;:]"))
+                .map(String::trim)
+                .filter(e -> !e.isEmpty())
+                .toList();
+    }
+
+    /**
+     * Tira o que não se vê: caractere de controle (o ERP tem um DEL, \u007f,
+     * grudado num e-mail) e espaço de largura zero. Na tela o e-mail parece
+     * perfeito, e sem isso ele falha a validação sem ninguém entender por quê.
+     */
+    public static String withoutInvisible(String value) {
+        return value == null ? null : value.replaceAll("[\\p{Cc}\\p{Cf}]", "");
     }
 
     /**

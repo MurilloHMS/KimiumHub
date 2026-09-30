@@ -7,6 +7,7 @@ import com.proautokimium.api.Infrastructure.repositories.sales.ChecklistComodato
 import com.proautokimium.api.Infrastructure.repositories.sales.ChecklistVisualItemRepository;
 import com.proautokimium.api.Infrastructure.utils.LinhaSankhya;
 import com.proautokimium.api.domain.valueObjects.BrazilianDocument;
+import com.proautokimium.api.domain.valueObjects.sales.ChecklistRules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -180,7 +181,9 @@ public class ChecklistCatalogService {
                 r.texto("TIPPESSOA"),
                 r.texto("IE"),
                 r.texto("TELEFONE"),
-                r.texto("EMAILNFE"),
+                // O ERP tem caractere invisível grudado em e-mail (um DEL, medido):
+                // limpo aqui, o que chega ao celular e ao PDF já vem certo.
+                ChecklistRules.withoutInvisible(r.texto("EMAILNFE")),
                 r.texto("CEP"),
                 street,
                 r.texto("NUMERO"),

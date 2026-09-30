@@ -39,7 +39,7 @@ class ChecklistRulesTest {
                 "Etapa 3 — informe o celular com DDD.",
                 "Etapa 3 — informe quem assina o contrato.",
                 "Etapa 3 — o CPF de quem assina é inválido.",
-                "Etapa 3 — o e-mail para as notas fiscais é inválido.",
+                "Etapa 3 — o e-mail para as notas fiscais é inválido. Se forem vários, separe por ponto e vírgula (;).",
                 "Etapa 3 — o e-mail para o contrato é inválido.");
     }
 
@@ -80,6 +80,37 @@ class ChecklistRulesTest {
                 "Etapa 4 — máquina 2: escolha o tipo.",
                 "Etapa 4 — máquina 2: a quantidade precisa ser pelo menos 1.",
                 "Etapa 4 — máquina 3: responda se vai com mesa.");
+    }
+
+    /**
+     * O e-mail de NF vem do Sankhya com mais de um, separado por ";" (28% dos
+     * clientes ativos). Pedido dele em 2026-09-30.
+     */
+    @Test
+    @DisplayName("e-mail de NF: um ou vários separados por ';', cada um válido")
+    void invoiceEmailList() {
+        assertThat(ChecklistRules.emailList("nf@mercado.com.br")).isTrue();
+        assertThat(ChecklistRules.emailList("nf@mercado.com.br;compras@mercado.com.br;fiscal@proautokimium.com.br")).isTrue();
+        assertThat(ChecklistRules.emailList(" nf@mercado.com.br ; compras@mercado.com.br; ")).isTrue();
+        assertThat(ChecklistRules.emailList("nf@mercado.com.br;compras@")).isFalse();
+        // 44 clientes do Sankhya separam com ":" — os e-mails são válidos.
+        assertThat(ChecklistRules.emailList("nf@mercado.com.br:compras@mercado.com.br")).isTrue();
+        assertThat(ChecklistRules.emailList("nf@mercado.com.br;compras@mercado.com.br:fiscal@mercado.com.br")).isTrue();
+        // Um DEL invisível grudado, como o ERP guarda em um cliente.
+        assertThat(ChecklistRules.emailList("\u007fnf@mercado.com.br")).isTrue();
+        assertThat(ChecklistRules.emailList("nf@mercado.com.br\u200b")).isTrue();
+        // Erro de digitação de verdade continua recusado.
+        assertThat(ChecklistRules.emailList("nf@mercado.com.b")).isFalse();
+        assertThat(ChecklistRules.emailList(".nf@mercado.com.br")).isFalse();
+        assertThat(ChecklistRules.emailList("nf@mercado@gmail.com")).isFalse();
+        assertThat(ChecklistRules.emailList("nfe@@santaluzia.com.br")).isFalse();
+        assertThat(ChecklistRules.emailList(" ; ")).isFalse();
+
+        var c = ChecklistFixtures.customer();
+        var varios = new ChecklistContent.Customer(c.code(), false, c.name(), c.legalName(), c.document(),
+                c.stateRegistration(), c.mainPhone(), c.mobile(), c.signatory(), c.signatoryCpf(),
+                "nf@mercado.com.br;compras@mercado.com.br", c.contractEmail(), c.priceTable(), c.erp());
+        assertThat(ChecklistRules.problems(ChecklistFixtures.withCustomer(ChecklistFixtures.valid(), varios))).isEmpty();
     }
 
     @Test
