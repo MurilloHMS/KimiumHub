@@ -10,6 +10,8 @@ public enum NotificationType {
     REEMBOLSO,
     /** Mensagem composta manualmente pelo RH pra um ou mais funcionários. */
     PERSONALIZADA,
+    /** Checklist de vendas: chegou um para a Controladoria, ou a Controladoria respondeu. */
+    CHECKLIST,
     /** Notificação genérica do sistema. */
     GERAL
 }
