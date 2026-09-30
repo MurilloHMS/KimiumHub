@@ -180,6 +180,13 @@
             <version>2.3.232</version>
             <scope>test</scope>
         </dependency>
+
+		<!-- Login com digital/Face ID (WebAuthn): confere a assinatura que o aparelho manda. -->
+		<dependency>
+			<groupId>com.webauthn4j</groupId>
+			<artifactId>webauthn4j-core</artifactId>
+			<version>0.30.3.RELEASE</version>
+		</dependency>
     </dependencies>
 
 	<build>
