@@ -81,6 +81,11 @@ public final class EventDTOs {
      * @param placeName    obrigatório quando {@code ADDRESS}
      * @param address      obrigatório (rua e cidade) quando {@code ADDRESS}
      * @param removeCover  tira a capa atual sem mandar outra
+     * @param audienceAll  nulo mantém o público como está — o site de antes da
+     *                     V113 não manda estes campos, e salvar por ele não pode
+     *                     zerar a lista que alguém escolheu
+     * @param reminderEnabled nulo mantém o lembrete como está, pelo mesmo motivo
+     * @param reminderTime na hora cheia: o lembrete roda de hora em hora
      */
     public record EventRequestDTO(
             @NotBlank(message = "Informe o nome do evento.")
@@ -103,7 +108,18 @@ public final class EventDTOs {
 
             @Valid AddressDTO address,
 
-            boolean removeCover
+            boolean removeCover,
+
+            Boolean audienceAll,
+            List<UUID> audienceCompanyIds,
+            List<UUID> audienceDepartmentIds,
+            List<UUID> audienceEmployeeIds,
+
+            Boolean reminderEnabled,
+            LocalTime reminderTime,
+
+            /** Quantos dias antes do primeiro dia o lembrete começa, de 1 a 60. */
+            Integer reminderDaysBefore
     ) {
     }
 
@@ -114,12 +130,27 @@ public final class EventDTOs {
             LocalDateTime publishedAt, LocalDateTime updatedAt, String updatedBy) {
     }
 
-    /** O evento aberto, com a programação inteira em ordem de dia e horário. */
+    /**
+     * O evento aberto, com a programação inteira em ordem de dia e horário.
+     *
+     * @param startsAt até quando dá para responder ao convite
+     * @param settings público e lembrete; só para quem cadastra — os nomes das
+     *                 pessoas escolhidas não são da conta de quem só vê
+     */
     public record EventDetailDTO(
             UUID id, String name, String description, LocalDate startDate, LocalDate endDate,
             String coverUrl, EventLocationType locationType, LocationDTO location,
             LocalDateTime publishedAt, LocalDateTime updatedAt, String updatedBy,
-            List<TalkDTO> talks) {
+            List<TalkDTO> talks, LocalDateTime startsAt, EventSettingsDTO settings) {
+    }
+
+    /** Quem é convidado e o lembrete, como o formulário reabre. */
+    public record EventSettingsDTO(
+            boolean audienceAll,
+            List<EventAttendanceDTOs.AudienceOptionDTO> companies,
+            List<EventAttendanceDTOs.AudienceOptionDTO> departments,
+            List<EventAttendanceDTOs.AudienceOptionDTO> employees,
+            boolean reminderEnabled, LocalTime reminderTime, Integer reminderDaysBefore) {
     }
 
     // ─── Palestra ────────────────────────────────────────────────────────────

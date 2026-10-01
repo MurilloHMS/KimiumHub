@@ -6,6 +6,7 @@ import com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.Reimb
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.EmployeeVacationOverviewDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationRequestResponseDTO;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
+import com.proautokimium.api.Infrastructure.services.events.EventAttendanceService;
 import com.proautokimium.api.Infrastructure.services.holerite.HoleriteService;
 import com.proautokimium.api.Infrastructure.services.humanResources.ReimbursementService;
 import com.proautokimium.api.Infrastructure.services.humanResources.VacationRequestService;
@@ -48,6 +49,7 @@ class HomeSummaryServiceTest {
     @Mock private VacationRequestService vacationRequestService;
     @Mock private ReimbursementService reimbursementService;
     @Mock private EmployeeRepository employeeRepository;
+    @Mock private EventAttendanceService eventAttendanceService;
 
     @InjectMocks private HomeSummaryService service;
 
@@ -213,5 +215,26 @@ class HomeSummaryServiceTest {
 
         assertThat(resumo.approvals()).hasSize(1);
         assertThat(resumo.approvals().get(0).title()).isEqualTo("Funcionário");
+    }
+
+    @Test
+    @DisplayName("Convite sem resposta entra com o id do evento, para a home abrir aquele convite")
+    void conviteSemRespostaEntra() {
+        semDadosPessoais();
+        UUID evento = UUID.randomUUID();
+        var resumoDoEvento = new com.proautokimium.api.Application.DTOs.events.EventDTOs.EventSummaryDTO(
+                evento, "Poseidon Week", LocalDate.of(2026, 10, 6), LocalDate.of(2026, 10, 8), null,
+                null, 3, 0, LocalDateTime.of(2026, 9, 20, 9, 0), null, null);
+        when(eventAttendanceService.pendingInvitations(LOGIN)).thenReturn(List.of(
+                new com.proautokimium.api.Application.DTOs.events.EventAttendanceDTOs.InvitationDTO(
+                        resumoDoEvento, LocalDateTime.of(2026, 10, 6, 8, 0), true, null)));
+
+        HomeSummaryDTO resumo = service.getSummary(LOGIN, false);
+
+        assertThat(resumo.mine()).singleElement().satisfies(p -> {
+            assertThat(p.type()).isEqualTo(PendingType.EVENT_RSVP);
+            assertThat(p.detail()).isEqualTo("Poseidon Week · 06/10");
+            assertThat(p.refId()).isEqualTo(evento);
+        });
     }
 }

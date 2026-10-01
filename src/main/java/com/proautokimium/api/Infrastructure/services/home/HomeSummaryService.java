@@ -6,6 +6,7 @@ import com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.Reimb
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.EmployeeVacationOverviewDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.VacationRequestResponseDTO;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
+import com.proautokimium.api.Infrastructure.services.events.EventAttendanceService;
 import com.proautokimium.api.Infrastructure.services.holerite.HoleriteService;
 import com.proautokimium.api.Infrastructure.services.humanResources.ReimbursementService;
 import com.proautokimium.api.Infrastructure.services.humanResources.VacationRequestService;
@@ -48,15 +49,18 @@ public class HomeSummaryService {
     private final VacationRequestService vacationRequestService;
     private final ReimbursementService reimbursementService;
     private final EmployeeRepository employeeRepository;
+    private final EventAttendanceService eventAttendanceService;
 
     public HomeSummaryService(HoleriteService holeriteService,
                               VacationRequestService vacationRequestService,
                               ReimbursementService reimbursementService,
-                              EmployeeRepository employeeRepository) {
+                              EmployeeRepository employeeRepository,
+                              EventAttendanceService eventAttendanceService) {
         this.holeriteService = holeriteService;
         this.vacationRequestService = vacationRequestService;
         this.reimbursementService = reimbursementService;
         this.employeeRepository = employeeRepository;
+        this.eventAttendanceService = eventAttendanceService;
     }
 
     /**
@@ -85,6 +89,10 @@ public class HomeSummaryService {
         } catch (EmployeeNotFoundException e) {
             log.debug("Login {} não tem funcionário vinculado — home sem pendências pessoais", login);
         }
+
+        // Fora do try: sem funcionário vinculado a lista já volta vazia, e um
+        // convite não pode sumir porque o holerite falhou antes dele.
+        mine.addAll(convitesSemResposta(login));
 
         mine.sort(maisAntigaPrimeiro());
 
@@ -127,6 +135,22 @@ public class HomeSummaryService {
                         "Reembolso de " + moeda(r),
                         "Aguardando aprovação",
                         r.requestedAt()))
+                .toList();
+    }
+
+    /**
+     * Convite aberto e sem resposta. Quem respondeu "não vou" também respondeu:
+     * some daqui, como some do lembrete. `since` é a publicação — o convite
+     * nasceu ali.
+     */
+    private List<PendingItemDTO> convitesSemResposta(String login) {
+        return eventAttendanceService.pendingInvitations(login).stream()
+                .map(i -> new PendingItemDTO(
+                        PendingType.EVENT_RSVP,
+                        "Confirme sua presença",
+                        i.event().name() + " · " + i.event().startDate().format(DIA_MES),
+                        i.event().publishedAt(),
+                        i.event().id()))
                 .toList();
     }
 

@@ -1,28 +1,20 @@
 package com.proautokimium.api.domain.entities.events;
 
 import com.proautokimium.api.domain.abstractions.Entity;
+import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.humanResources.Company;
+import com.proautokimium.api.domain.entities.humanResources.Department;
 import com.proautokimium.api.domain.enums.events.EventLocationType;
 import com.proautokimium.api.domain.valueObjects.Address;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Embedded;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OrderBy;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalTime;
+import java.util.*;
 
 /**
  * Um evento da empresa: a Poseidon Week, de 22 a 25.
@@ -89,6 +81,41 @@ public class CompanyEvent extends Entity {
     @OrderBy("date ASC, startTime ASC")
     private List<EventTalk> talks = new ArrayList<>();
 
+    // ── Convidados e lembrete (V113) ─────────────────────────────────────────
+
+    /** Verdadeiro: todos os funcionários ativos. Falso: a soma das três listas abaixo. */
+    @Column(name = "audience_all", nullable = false)
+    private boolean audienceAll = true;
+
+    @ManyToMany
+    @JoinTable(name = "company_event_audience_companies",
+        joinColumns = @JoinColumn(name = "event_id"),
+        inverseJoinColumns = @JoinColumn(name = "company_id"))
+    private Set<Company> audienceCompanies = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(name = "company_event_audience_departments",
+            joinColumns = @JoinColumn(name = "event_id"),
+            inverseJoinColumns = @JoinColumn(name = "department_id"))
+    private Set<Department> audienceDepartments = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(name = "company_event_audience_employees",
+            joinColumns = @JoinColumn(name = "event_id"),
+            inverseJoinColumns = @JoinColumn(name = "employee_id"))
+    private Set<Employee> audienceEmployees = new HashSet<>();
+
+    @Column(name = "reminder_enabled", nullable = false)
+    private boolean reminderEnabled = false;
+
+    /** A hora do lembrete diário; só vale com {@link #reminderEnabled} ligado. */
+    @Column(name = "reminder_time")
+    private LocalTime reminderTime;
+
+    /** Quantos dias antes do primeiro dia o lembrete começa (V114); obrigatório com o lembrete ligado. */
+    @Column(name = "reminder_days_before")
+    private Integer reminderDaysBefore;
+
     public boolean isPublished() {
         return publishedAt != null;
     }
@@ -96,5 +123,27 @@ public class CompanyEvent extends Entity {
     /** Inclusivo nas duas pontas: a palestra do último dia está dentro. */
     public boolean covers(LocalDate date) {
         return date != null && !date.isBefore(startDate) && !date.isAfter(endDate);
+    }
+
+    /**
+     * Se o lembrete já entrou na janela neste dia: do dia {@code startDate - N}
+     * em diante. Sem N (evento de antes da V114), vale desde a publicação.
+     */
+    public boolean remindsOn(LocalDate day) {
+        return reminderDaysBefore == null || !day.isBefore(startDate.minusDays(reminderDaysBefore));
+    }
+
+    /**
+     * Quando o evento começa: o primeiro dia, na hora da primeira palestra
+     * desse dia; sem palestra nesse dia, à meia-noite. Até este instante dá
+     * para responder ao convite, e até ele o lembrete é enviado.
+     */
+    public LocalDateTime startsAt(){
+        LocalTime firstTalk = talks.stream()
+                .filter(t -> startDate.equals(t.getDate()))
+                .map(EventTalk::getStartTime)
+                .min(Comparator.naturalOrder())
+                .orElse(LocalTime.MIDNIGHT);
+        return startDate.atTime(firstTalk);
     }
 }

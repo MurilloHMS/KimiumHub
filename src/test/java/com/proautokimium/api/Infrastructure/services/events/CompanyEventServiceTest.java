@@ -11,7 +11,9 @@ import com.proautokimium.api.Infrastructure.exceptions.events.EventExceptions.In
 import com.proautokimium.api.Infrastructure.exceptions.events.EventExceptions.SpeakerNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.events.CompanyEventRepository;
 import com.proautokimium.api.Infrastructure.repositories.events.SpeakerRepository;
+import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.CompanyRepository;
+import com.proautokimium.api.Infrastructure.repositories.humanResources.DepartmentRepository;
 import com.proautokimium.api.Infrastructure.services.storage.EventImageStorageService;
 import com.proautokimium.api.domain.abstractions.Entity;
 import com.proautokimium.api.domain.entities.events.CompanyEvent;
@@ -36,6 +38,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Set;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -56,6 +59,8 @@ class CompanyEventServiceTest {
     @Mock CompanyEventRepository eventRepository;
     @Mock SpeakerRepository speakerRepository;
     @Mock CompanyRepository companyRepository;
+    @Mock DepartmentRepository departmentRepository;
+    @Mock EmployeeRepository employeeRepository;
     @Mock EventImageStorageService imageStorage;
 
     private static final Clock RELOGIO =
@@ -68,7 +73,8 @@ class CompanyEventServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CompanyEventService(eventRepository, speakerRepository, companyRepository, imageStorage, RELOGIO);
+        service = new CompanyEventService(eventRepository, speakerRepository, companyRepository,
+                departmentRepository, employeeRepository, imageStorage, RELOGIO);
         lenient().when(eventRepository.save(any(CompanyEvent.class))).thenAnswer(i -> comId(i.getArgument(0)));
         lenient().when(eventRepository.saveAndFlush(any(CompanyEvent.class))).thenAnswer(i -> {
             CompanyEvent e = i.getArgument(0);
@@ -95,7 +101,7 @@ class CompanyEventServiceTest {
     }
 
     private static EventRequestDTO evento(LocalDate inicio, LocalDate fim) {
-        return new EventRequestDTO("Poseidon Week", null, inicio, fim, null, null, null, null, false);
+        return new EventRequestDTO("Poseidon Week", null, inicio, fim, null, null, null, null, false, null, null, null, null, null, null, null);
     }
 
     private static TalkRequestDTO palestra(LocalDate dia, String ini, String fim) {
@@ -181,7 +187,7 @@ class CompanyEventServiceTest {
     @DisplayName("local numa empresa do grupo exige a empresa")
     void localEmpresaExigeEmpresa() {
         EventRequestDTO dto = new EventRequestDTO("Poseidon Week", null, DIA_22, DIA_25,
-                EventLocationType.COMPANY, null, null, null, false);
+                EventLocationType.COMPANY, null, null, null, false, null, null, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.create(dto, null, "x"))
                 .isInstanceOf(InvalidEventDataException.class)
@@ -192,7 +198,7 @@ class CompanyEventServiceTest {
     @DisplayName("endereco digitado exige rua e cidade, que e o que o mapa procura")
     void enderecoExigeRuaECidade() {
         EventRequestDTO semCidade = new EventRequestDTO("Poseidon Week", null, DIA_22, DIA_25,
-                EventLocationType.ADDRESS, null, "Kartódromo", endereco("Av. Morangueira", null), false);
+                EventLocationType.ADDRESS, null, "Kartódromo", endereco("Av. Morangueira", null), false, null, null, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.create(semCidade, null, "x"))
                 .isInstanceOf(InvalidEventDataException.class)
@@ -213,7 +219,7 @@ class CompanyEventServiceTest {
         when(companyRepository.findById(matriz.getId())).thenReturn(Optional.of(matriz));
 
         EventDetailDTO salvo = service.update(e.getId(), new EventRequestDTO("Poseidon Week", null, DIA_22, DIA_25,
-                EventLocationType.COMPANY, matriz.getId(), null, null, false), null, "x");
+                EventLocationType.COMPANY, matriz.getId(), null, null, false, null, null, null, null, null, null, null), null, "x");
 
         assertThat(e.getPlaceName()).isNull();
         assertThat(e.getAddress()).isNull();
@@ -387,5 +393,112 @@ class CompanyEventServiceTest {
 
         assertThat(salva.location().name()).isEqualTo("Kimium Logística");
         assertThat(salva.location().address()).isNull();
+    }
+
+    // ─── Convidados e lembrete (V113) ────────────────────────────────────────
+
+    private static EventRequestDTO publico(Boolean todos, List<UUID> empresas, Boolean lembrete, LocalTime hora) {
+        return publico(todos, empresas, lembrete, hora, lembrete != null && lembrete ? 7 : null);
+    }
+
+    private static EventRequestDTO publico(Boolean todos, List<UUID> empresas, Boolean lembrete, LocalTime hora, Integer dias) {
+        return new EventRequestDTO("Poseidon Week", null, DIA_22, DIA_25, null, null, null, null, false,
+                todos, empresas, null, null, lembrete, hora, dias);
+    }
+
+    @Test
+    @DisplayName("lembrete ligado exige os dias de antecedência, de 1 a 60")
+    void lembreteExigeAntecedencia() throws Exception {
+        CompanyEvent e = poseidon();
+
+        assertThatThrownBy(() -> service.update(e.getId(), publico(true, null, true, LocalTime.of(9, 0), null), null, "x"))
+                .isInstanceOf(InvalidEventDataException.class).hasMessageContaining("antecedência");
+        assertThatThrownBy(() -> service.update(e.getId(), publico(true, null, true, LocalTime.of(9, 0), 0), null, "x"))
+                .isInstanceOf(InvalidEventDataException.class);
+        assertThatThrownBy(() -> service.update(e.getId(), publico(true, null, true, LocalTime.of(9, 0), 61), null, "x"))
+                .isInstanceOf(InvalidEventDataException.class);
+
+        EventDetailDTO salvo = service.update(e.getId(), publico(true, null, true, LocalTime.of(9, 0), 5), null, "x");
+        assertThat(e.getReminderDaysBefore()).isEqualTo(5);
+        assertThat(salvo.settings().reminderDaysBefore()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("escolher empresas troca o público e desliga o todos")
+    void escolherEmpresas() throws Exception {
+        CompanyEvent e = poseidon();
+        Company matriz = comId(new Company());
+        matriz.setName("Matriz");
+        when(companyRepository.findAllById(Set.of(matriz.getId()))).thenReturn(List.of(matriz));
+
+        EventDetailDTO salvo = service.update(e.getId(), publico(false, List.of(matriz.getId()), null, null), null, "x");
+
+        assertThat(e.isAudienceAll()).isFalse();
+        assertThat(e.getAudienceCompanies()).containsExactly(matriz);
+        assertThat(salvo.settings().companies()).extracting(o -> o.name()).containsExactly("Matriz");
+    }
+
+    @Test
+    @DisplayName("escolher sem marcar nada é recusado: convidaria ninguém")
+    void escolherNadaRecusa() {
+        CompanyEvent e = poseidon();
+
+        assertThatThrownBy(() -> service.update(e.getId(), publico(false, List.of(), null, null), null, "x"))
+                .isInstanceOf(InvalidEventDataException.class)
+                .hasMessageContaining("pelo menos uma");
+    }
+
+    @Test
+    @DisplayName("empresa que não existe mais é recusada, e não ignorada")
+    void empresaSumiu() {
+        CompanyEvent e = poseidon();
+        UUID sumiu = UUID.randomUUID();
+        when(companyRepository.findAllById(Set.of(sumiu))).thenReturn(List.of());
+
+        assertThatThrownBy(() -> service.update(e.getId(), publico(false, List.of(sumiu), null, null), null, "x"))
+                .isInstanceOf(InvalidEventDataException.class);
+    }
+
+    @Test
+    @DisplayName("o site antigo não manda o público: salvar por ele mantém a lista")
+    void siteAntigoNaoZeraOPublico() throws Exception {
+        CompanyEvent e = poseidon();
+        Company matriz = comId(new Company());
+        e.setAudienceAll(false);
+        e.getAudienceCompanies().add(matriz);
+        e.setReminderEnabled(true);
+        e.setReminderTime(LocalTime.of(9, 0));
+
+        service.update(e.getId(), evento(DIA_22, DIA_25), null, "x");
+
+        assertThat(e.isAudienceAll()).isFalse();
+        assertThat(e.getAudienceCompanies()).containsExactly(matriz);
+        assertThat(e.isReminderEnabled()).isTrue();
+    }
+
+    @Test
+    @DisplayName("lembrete ligado exige a hora, e a hora é cheia")
+    void lembreteNaHoraCheia() throws Exception {
+        CompanyEvent e = poseidon();
+
+        assertThatThrownBy(() -> service.update(e.getId(), publico(true, null, true, null), null, "x"))
+                .isInstanceOf(InvalidEventDataException.class);
+        assertThatThrownBy(() -> service.update(e.getId(), publico(true, null, true, LocalTime.of(9, 30)), null, "x"))
+                .isInstanceOf(InvalidEventDataException.class)
+                .hasMessageContaining("hora cheia");
+
+        service.update(e.getId(), publico(true, null, true, LocalTime.of(9, 0)), null, "x");
+        assertThat(e.isReminderEnabled()).isTrue();
+        assertThat(e.getReminderTime()).isEqualTo(LocalTime.of(9, 0));
+    }
+
+    @Test
+    @DisplayName("quem só vê não recebe o público: os nomes escolhidos não são da conta dele")
+    void quemSoVeNaoRecebeOPublico() {
+        CompanyEvent e = poseidon();
+        e.setPublishedAt(AGORA);
+
+        assertThat(service.get(e.getId(), false).settings()).isNull();
+        assertThat(service.get(e.getId(), true).settings()).isNotNull();
     }
 }

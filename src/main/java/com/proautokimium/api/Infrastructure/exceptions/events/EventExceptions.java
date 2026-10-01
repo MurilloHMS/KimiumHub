@@ -30,17 +30,29 @@ public final class EventExceptions {
         }
     }
 
-    /** Dado que não fecha: período invertido, horário ao contrário, local incompleto. */
+    /**
+     * Dado que não fecha: período invertido, horário ao contrário, local incompleto.
+     */
     public static class InvalidEventDataException extends DomainException {
         public InvalidEventDataException(String message) {
             super(message, HttpStatus.BAD_REQUEST);
         }
     }
 
-    /** O pedido faz sentido sozinho, mas quebra algo que já existe. */
+    /**
+     * O pedido faz sentido sozinho, mas quebra algo que já existe.
+     */
     public static class EventConflictException extends DomainException {
         public EventConflictException(String message) {
             super(message, HttpStatus.CONFLICT);
+        }
+    }
+
+    /**
+     * O evento já começou: a resposta fica como está.
+     */
+    public static class InvitationClosedException extends DomainException {
+        public InvitationClosedException() { super("O evento já começou: a resposta não pode mais ser alterada.", HttpStatus.CONFLICT);
         }
     }
 }

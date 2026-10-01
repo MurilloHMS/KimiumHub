@@ -26,6 +26,10 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     Optional<User> findByEmployee_Id(UUID employeeId);
 
+    /** Os logins ativos destes funcionários — para quem a notificação vai. */
+    @Query("SELECT u FROM users u WHERE u.active = true AND u.employee.id IN :employeeIds")
+    List<User> findActiveByEmployeeIds(@Param("employeeIds") java.util.Collection<UUID> employeeIds);
+
     List<User> findByCustomer_Id(UUID customerId);
 
     /** Usuários que possuem qualquer uma das roles informadas (DISTINCT: usuário com mais de uma role vem uma vez só). */

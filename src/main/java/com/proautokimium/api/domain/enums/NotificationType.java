@@ -12,6 +12,8 @@ public enum NotificationType {
     PERSONALIZADA,
     /** Checklist de vendas: chegou um para a Controladoria, ou a Controladoria respondeu. */
     CHECKLIST,
+    /** Evento da empresa: o lembrete diário para quem ainda não respondeu ao convite. */
+    EVENTO,
     /** Notificação genérica do sistema. */
     GERAL
 }
