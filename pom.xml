@@ -207,6 +207,26 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
+			<!--
+				A JVM dos testes já nasce no fuso de São Paulo, o mesmo que o
+				ClockConfig crava na aplicação.
+
+				Sem isto, no GitHub (que roda em UTC) o fuso mudava NO MEIO da
+				suíte: o primeiro @SpringBootTest sobe o H2 ainda em UTC — e o H2
+				guarda o fuso num cache estático — e só depois o ClockConfig faz
+				o TimeZone.setDefault. Dali em diante, data gravada à meia-noite
+				voltava do banco um dia antes: o lembrete dizia "de 05 a 07/10"
+				para um evento de 06 a 08/10 (EventAttendanceFlowTest, CI de
+				2026-10-01). Na máquina local passava, porque ela já está em São
+				Paulo e a troca não troca nada.
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>-Duser.timezone=America/Sao_Paulo</argLine>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
