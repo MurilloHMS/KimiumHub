@@ -12,5 +12,7 @@ public enum PendingType {
     FERIAS_AGUARDANDO,
     REEMBOLSO_AGUARDANDO,
     APROVACAO_FERIAS,
-    APROVACAO_REEMBOLSO
+    APROVACAO_REEMBOLSO,
+    /** Convite de evento aberto e ainda sem resposta; {@code refId} é o evento. */
+    EVENT_RSVP
 }

@@ -11,9 +11,11 @@ import com.proautokimium.api.Infrastructure.exceptions.events.EventExceptions.In
 import com.proautokimium.api.Infrastructure.exceptions.events.EventExceptions.SpeakerNotFoundException;
 import com.proautokimium.api.Infrastructure.exceptions.events.EventExceptions.TalkNotFoundException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.CompanyNotFoundException;
+import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.events.CompanyEventRepository;
 import com.proautokimium.api.Infrastructure.repositories.events.SpeakerRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.CompanyRepository;
+import com.proautokimium.api.Infrastructure.repositories.humanResources.DepartmentRepository;
 import com.proautokimium.api.Infrastructure.services.storage.EventImageStorageService;
 import com.proautokimium.api.domain.entities.events.CompanyEvent;
 import com.proautokimium.api.domain.entities.events.EventTalk;
@@ -29,11 +31,15 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -50,20 +56,29 @@ public class CompanyEventService {
 
     private static final DateTimeFormatter DIA = DateTimeFormatter.ofPattern("dd/MM");
 
+    /** O mesmo teto do CHECK da V114. */
+    static final int MAX_REMINDER_DAYS = 60;
+
     private final CompanyEventRepository eventRepository;
     private final SpeakerRepository speakerRepository;
     private final CompanyRepository companyRepository;
+    private final DepartmentRepository departmentRepository;
+    private final EmployeeRepository employeeRepository;
     private final EventImageStorageService imageStorage;
     private final Clock clock;
 
     public CompanyEventService(CompanyEventRepository eventRepository,
                                SpeakerRepository speakerRepository,
                                CompanyRepository companyRepository,
+                               DepartmentRepository departmentRepository,
+                               EmployeeRepository employeeRepository,
                                EventImageStorageService imageStorage,
                                Clock clock) {
         this.eventRepository = eventRepository;
         this.speakerRepository = speakerRepository;
         this.companyRepository = companyRepository;
+        this.departmentRepository = departmentRepository;
+        this.employeeRepository = employeeRepository;
         this.imageStorage = imageStorage;
         this.clock = clock;
     }
@@ -95,7 +110,7 @@ public class CompanyEventService {
         if (!event.isPublished() && !canSeeDrafts) {
             throw new EventNotFoundException();
         }
-        return EventMapper.detail(event);
+        return canSeeDrafts ? EventMapper.detailWithSettings(event) : EventMapper.detail(event);
     }
 
     // ─── Evento ──────────────────────────────────────────────────────────────
@@ -111,7 +126,7 @@ public class CompanyEventService {
         if (hasFile(cover)) {
             event.setCoverUrl(imageStorage.saveImage(cover, "event"));
         }
-        return EventMapper.detail(event);
+        return EventMapper.detailWithSettings(event);
     }
 
     @Transactional
@@ -133,7 +148,7 @@ public class CompanyEventService {
         if (anterior != null && !anterior.equals(event.getCoverUrl())) {
             imageStorage.deleteByUrl(anterior);
         }
-        return EventMapper.detail(event);
+        return EventMapper.detailWithSettings(event);
     }
 
     @Transactional
@@ -152,7 +167,7 @@ public class CompanyEventService {
             event.setPublishedAt(LocalDateTime.now(clock));
             touch(event, author);
         }
-        return EventMapper.detail(eventRepository.saveAndFlush(event));
+        return EventMapper.detailWithSettings(eventRepository.saveAndFlush(event));
     }
 
     @Transactional
@@ -162,7 +177,7 @@ public class CompanyEventService {
             event.setPublishedAt(null);
             touch(event, author);
         }
-        return EventMapper.detail(eventRepository.saveAndFlush(event));
+        return EventMapper.detailWithSettings(eventRepository.saveAndFlush(event));
     }
 
     // ─── Programação ─────────────────────────────────────────────────────────
@@ -175,7 +190,7 @@ public class CompanyEventService {
         applyTalk(event, talk, dto);
         event.getTalks().add(talk);
         touch(event, author);
-        return EventMapper.detail(eventRepository.saveAndFlush(event));
+        return EventMapper.detailWithSettings(eventRepository.saveAndFlush(event));
     }
 
     @Transactional
@@ -184,7 +199,7 @@ public class CompanyEventService {
         EventTalk talk = findTalk(event, talkId);
         applyTalk(event, talk, dto);
         touch(event, author);
-        return EventMapper.detail(eventRepository.saveAndFlush(event));
+        return EventMapper.detailWithSettings(eventRepository.saveAndFlush(event));
     }
 
     @Transactional
@@ -193,7 +208,7 @@ public class CompanyEventService {
         EventTalk talk = findTalk(event, talkId);
         event.getTalks().remove(talk);
         touch(event, author);
-        return EventMapper.detail(eventRepository.saveAndFlush(event));
+        return EventMapper.detailWithSettings(eventRepository.saveAndFlush(event));
     }
 
     // ─── Regras ──────────────────────────────────────────────────────────────
@@ -221,7 +236,86 @@ public class CompanyEventService {
             event.setAddress(requireAddress(dto.address()));
         }
 
+        applyAudience(event, dto);
+        applyReminder(event, dto);
         touch(event, author);
+    }
+
+    /**
+     * Quem é convidado. Nulo em {@code audienceAll} mantém o que está salvo: é
+     * o site de antes da V113, que não manda estes campos.
+     *
+     * <p>"Escolher" com as três listas vazias convidaria ninguém — e um evento
+     * sem convidado nenhum é sempre engano, não decisão.
+     */
+    private void applyAudience(CompanyEvent event, EventRequestDTO dto) {
+        if (dto.audienceAll() == null) {
+            return;
+        }
+        event.setAudienceAll(dto.audienceAll());
+        if (dto.audienceAll()) {
+            event.getAudienceCompanies().clear();
+            event.getAudienceDepartments().clear();
+            event.getAudienceEmployees().clear();
+            return;
+        }
+
+        Set<UUID> companies = ids(dto.audienceCompanyIds());
+        Set<UUID> departments = ids(dto.audienceDepartmentIds());
+        Set<UUID> employees = ids(dto.audienceEmployeeIds());
+        if (companies.isEmpty() && departments.isEmpty() && employees.isEmpty()) {
+            throw new InvalidEventDataException("Escolha pelo menos uma empresa, um setor ou uma pessoa para convidar.");
+        }
+
+        replace(event.getAudienceCompanies(), companyRepository.findAllById(companies), companies.size(),
+                "Uma das empresas escolhidas não existe mais.");
+        replace(event.getAudienceDepartments(), departmentRepository.findAllById(departments), departments.size(),
+                "Um dos setores escolhidos não existe mais.");
+        replace(event.getAudienceEmployees(), employeeRepository.findAllById(employees), employees.size(),
+                "Uma das pessoas escolhidas não existe mais.");
+    }
+
+    /**
+     * O lembrete roda de hora em hora ({@code EventReminderService}): 09:30
+     * sairia às 09:00, e a tela estaria prometendo um horário que não cumpre.
+     */
+    private static void applyReminder(CompanyEvent event, EventRequestDTO dto) {
+        if (dto.reminderEnabled() == null) {
+            return;
+        }
+        LocalTime time = dto.reminderTime();
+        if (dto.reminderEnabled() && time == null) {
+            throw new InvalidEventDataException("Escolha a hora do lembrete.");
+        }
+        if (time != null && (time.getMinute() != 0 || time.getSecond() != 0)) {
+            throw new InvalidEventDataException("O lembrete sai na hora cheia: escolha 08:00, 09:00…");
+        }
+        Integer days = dto.reminderDaysBefore();
+        if (dto.reminderEnabled() && days == null) {
+            throw new InvalidEventDataException("Informe com quantos dias de antecedência o lembrete começa.");
+        }
+        if (days != null && (days < 1 || days > MAX_REMINDER_DAYS)) {
+            throw new InvalidEventDataException("O lembrete começa de 1 a " + MAX_REMINDER_DAYS + " dias antes do evento.");
+        }
+        event.setReminderEnabled(dto.reminderEnabled());
+        event.setReminderTime(time);
+        event.setReminderDaysBefore(days);
+    }
+
+    private static Set<UUID> ids(List<UUID> ids) {
+        Set<UUID> unique = new HashSet<>();
+        if (ids != null) {
+            ids.stream().filter(java.util.Objects::nonNull).forEach(unique::add);
+        }
+        return unique;
+    }
+
+    private static <T> void replace(Set<T> target, Collection<T> found, int expected, String missing) {
+        if (found.size() != expected) {
+            throw new InvalidEventDataException(missing);
+        }
+        target.clear();
+        target.addAll(found);
     }
 
     /**

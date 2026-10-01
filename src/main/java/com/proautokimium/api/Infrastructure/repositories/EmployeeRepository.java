@@ -50,4 +50,65 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
     List<Employee> findAllByCpfDigits(@Param("cpf") String cpfDigits);
 
     List<Employee> findByTransportTypeAndAtivoTrue(TransportType transportType);
+
+    /**
+     * Os convidados de um evento, calculados na hora: funcionários ativos, com
+     * login ativo, que entram pelo público do evento — todos, ou a soma das
+     * empresas, dos setores (pela equipe) e das pessoas escolhidas.
+     *
+     * <p>LEFT JOIN explícito na equipe: quem não tem equipe precisa continuar na
+     * lista (convidado pela empresa ou pelo nome). Pela especificação do JPA, o
+     * caminho com ponto ({@code e.team.department}) é INNER JOIN e tiraria essa
+     * pessoa; o Hibernate 6.6 gera LEFT JOIN aqui (medido em 2026-10-01), mas é
+     * escolha dele e já mudou entre versões. Escrito, não depende dela.
+     *
+     * <p>O {@code EXISTS} + {@code OR} pergunta "existe ao menos uma porta de
+     * entrada?", e por isso ninguém sai repetido.
+     */
+    @Query("""
+            SELECT e FROM Employee e
+            LEFT JOIN e.team t
+            WHERE e.ativo = true
+              AND EXISTS (SELECT u FROM users u WHERE u.employee = e AND u.active = true)
+              AND EXISTS (
+                  SELECT ev FROM CompanyEvent ev
+                  WHERE ev.id = :eventId
+                    AND (ev.audienceAll = true
+                         OR e.company MEMBER OF ev.audienceCompanies
+                         OR t.department MEMBER OF ev.audienceDepartments
+                         OR e MEMBER OF ev.audienceEmployees))
+            ORDER BY e.name
+            """)
+    List<Employee> findEventInvitees(@Param("eventId") UUID eventId);
+
+    /**
+     * Quem pode ser escolhido a dedo como convidado: ativo e com login — a mesma
+     * porta de entrada de {@link #findEventInvitees}. Escolher quem não entra
+     * por ela seria uma escolha que não convida ninguém.
+     */
+    @Query("""
+            SELECT e FROM Employee e
+            WHERE e.ativo = true
+              AND EXISTS (SELECT u FROM users u WHERE u.employee = e AND u.active = true)
+            ORDER BY e.name
+            """)
+    List<Employee> findInvitable();
+
+    /** A mesma regra para uma pessoa só: abrir o evento, responder, contar a visualização. */
+    @Query("""
+            SELECT CASE WHEN COUNT(e) > 0 THEN true ELSE false END
+            FROM Employee e
+            LEFT JOIN e.team t
+            WHERE e.id = :employeeId
+              AND e.ativo = true
+              AND EXISTS (SELECT u FROM users u WHERE u.employee = e AND u.active = true)
+              AND EXISTS (
+                  SELECT ev FROM CompanyEvent ev
+                  WHERE ev.id = :eventId
+                    AND (ev.audienceAll = true
+                         OR e.company MEMBER OF ev.audienceCompanies
+                         OR t.department MEMBER OF ev.audienceDepartments
+                         OR e MEMBER OF ev.audienceEmployees))
+            """)
+    boolean isInvitedToEvent(@Param("eventId") UUID eventId, @Param("employeeId") UUID employeeId);
 }

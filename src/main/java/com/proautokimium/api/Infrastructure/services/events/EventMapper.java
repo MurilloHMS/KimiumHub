@@ -1,18 +1,23 @@
 package com.proautokimium.api.Infrastructure.services.events;
 
 import com.proautokimium.api.Application.DTOs.address.AddressDTO;
+import com.proautokimium.api.Application.DTOs.events.EventAttendanceDTOs.AudienceOptionDTO;
 import com.proautokimium.api.Application.DTOs.events.EventDTOs.EventDetailDTO;
+import com.proautokimium.api.Application.DTOs.events.EventDTOs.EventSettingsDTO;
 import com.proautokimium.api.Application.DTOs.events.EventDTOs.EventSummaryDTO;
 import com.proautokimium.api.Application.DTOs.events.EventDTOs.LocationDTO;
 import com.proautokimium.api.Application.DTOs.events.EventDTOs.SpeakerDTO;
 import com.proautokimium.api.Application.DTOs.events.EventDTOs.TalkDTO;
+import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.events.CompanyEvent;
 import com.proautokimium.api.domain.entities.events.EventTalk;
 import com.proautokimium.api.domain.entities.events.Speaker;
 import com.proautokimium.api.domain.entities.humanResources.Company;
+import com.proautokimium.api.domain.entities.humanResources.Department;
 import com.proautokimium.api.domain.enums.events.EventLocationType;
 import com.proautokimium.api.domain.enums.events.TalkLocationType;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -100,6 +105,15 @@ final class EventMapper {
      * lista em memória até a próxima leitura do banco.
      */
     static EventDetailDTO detail(CompanyEvent e) {
+        return detail(e, null);
+    }
+
+    /** O evento como o cadastro vê: com o público e o lembrete. */
+    static EventDetailDTO detailWithSettings(CompanyEvent e) {
+        return detail(e, settings(e));
+    }
+
+    private static EventDetailDTO detail(CompanyEvent e, EventSettingsDTO settings) {
         List<TalkDTO> talks = e.getTalks().stream()
                 .sorted(Comparator.comparing(EventTalk::getDate)
                         .thenComparing(EventTalk::getStartTime)
@@ -108,6 +122,46 @@ final class EventMapper {
                 .toList();
         return new EventDetailDTO(e.getId(), e.getName(), e.getDescription(), e.getStartDate(), e.getEndDate(),
                 e.getCoverUrl(), e.getLocationType(), locationOf(e),
-                e.getPublishedAt(), e.getUpdatedAt(), e.getUpdatedBy(), talks);
+                e.getPublishedAt(), e.getUpdatedAt(), e.getUpdatedBy(), talks, e.startsAt(), settings);
+    }
+
+    static EventSettingsDTO settings(CompanyEvent e) {
+        return new EventSettingsDTO(e.isAudienceAll(),
+                sorted(e.getAudienceCompanies().stream().map(EventMapper::option).toList()),
+                sorted(e.getAudienceDepartments().stream().map(EventMapper::option).toList()),
+                sorted(e.getAudienceEmployees().stream().map(EventMapper::option).toList()),
+                e.isReminderEnabled(), e.getReminderTime(), e.getReminderDaysBefore());
+    }
+
+    static AudienceOptionDTO option(Company c) {
+        return new AudienceOptionDTO(c.getId(), c.getName(), null);
+    }
+
+    static AudienceOptionDTO option(Department d) {
+        return new AudienceOptionDTO(d.getId(), d.getName(), null);
+    }
+
+    /** A pessoa com empresa e setor ao lado: dois "Carlos" precisam ser distinguíveis. */
+    static AudienceOptionDTO option(Employee e) {
+        return new AudienceOptionDTO(e.getId(), e.getName(), whereWorks(e));
+    }
+
+    /** "Matriz · Comercial", ou o que houver dos dois. */
+    static String whereWorks(Employee e) {
+        String company = e.getCompany() == null ? null : e.getCompany().getName();
+        String department = departmentName(e);
+        if (company == null) return department;
+        return department == null ? company : company + " · " + department;
+    }
+
+    static String departmentName(Employee e) {
+        return e.getTeam() == null || e.getTeam().getDepartment() == null
+                ? null : e.getTeam().getDepartment().getName();
+    }
+
+    static List<AudienceOptionDTO> sorted(Collection<AudienceOptionDTO> options) {
+        return options.stream()
+                .sorted(Comparator.comparing(AudienceOptionDTO::name, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 }
