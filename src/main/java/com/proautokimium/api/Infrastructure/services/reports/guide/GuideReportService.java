@@ -1,9 +1,9 @@
 package com.proautokimium.api.Infrastructure.services.reports.guide;
 
+import com.proautokimium.api.Application.DTOs.guide.GuideLayoutPreviewRequestDTO;
 import com.proautokimium.api.Application.DTOs.guide.GuideReportRequestDTO;
 import com.proautokimium.api.Application.DTOs.guide.GuideReportRowDTO;
 import com.proautokimium.api.Infrastructure.exceptions.product.ProductNotFoundException;
-import com.proautokimium.api.Infrastructure.factories.ReportFactory;
 import com.proautokimium.api.Infrastructure.repositories.ProductWebSiteRepository;
 import com.proautokimium.api.Infrastructure.services.storage.EquipmentImageStorageService;
 import com.proautokimium.api.Infrastructure.services.storage.ProductImageStorageService;
@@ -11,17 +11,19 @@ import com.proautokimium.api.Infrastructure.utils.ColorCircleRenderer;
 import com.proautokimium.api.Infrastructure.utils.ColorNameUtil;
 import com.proautokimium.api.domain.entities.EquipmentGuide;
 import com.proautokimium.api.domain.entities.ProductWebsite;
+import com.proautokimium.api.domain.enums.guide.GuideImageSource;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperExportManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -30,20 +32,26 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
- * Serviço responsável por gerar o "Guia de Utilização" em PDF.
+ * Gera o "Guia de Utilização" em PDF.
+ *
+ * <p>
+ * O desenho vem do layout publicado ({@link GuideLayoutService}), montado pelo
+ * {@link GuideJasperDesignBuilder}. A prévia do designer passa pelo mesmo
+ * caminho com o layout que está na tela dele — por isso a prévia É o arquivo:
+ * não existe um segundo desenho para discordar do primeiro.
+ * </p>
  *
  * <p>
  * Fluxo:
  * <ol>
- *   <li>Recebe a lista de IDs dos produtos selecionados pelo usuário.</li>
  *   <li>Busca cada {@link ProductWebsite} pelo ID, respeitando a ordem enviada.</li>
- *   <li>Converte cada produto em um {@link GuideReportRowDTO}
- *       resolvendo as imagens via {@link ProductImageStorageService}
- *       e {@link EquipmentImageStorageService}.</li>
- *   <li>Monta os parâmetros do relatório (logos, título).</li>
- *   <li>Delega a geração do PDF à {@link ReportFactory}.</li>
+ *   <li>Converte cada produto em um {@link GuideReportRowDTO}, resolvendo as
+ *       imagens do disco.</li>
+ *   <li>Monta os parâmetros (título e imagens do cabeçalho e do rodapé).</li>
+ *   <li>Compila o layout (com cache) e preenche.</li>
  * </ol>
  * </p>
  */
@@ -51,12 +59,11 @@ import java.util.Map;
 public class GuideReportService {
     private final Logger logger = LoggerFactory.getLogger(GuideReportService.class);
 
-    private static final String REPORT_LOCATION = "guide/guia_utilizacao.jasper";
-
     private final ProductWebSiteRepository productRepository;
     private final ProductImageStorageService productImageStorage;
     private final EquipmentImageStorageService equipmentImageStorage;
-    private final ReportFactory reportFactory;
+    private final GuideLayoutService layoutService;
+    private final GuideReportCompiler compiler;
 
     @Value("${report.logo.empresa:classpath:/static/images/logo_empresa.png}")
     private String logoEmpresaPath;
@@ -65,50 +72,64 @@ public class GuideReportService {
             ProductWebSiteRepository productRepository,
             ProductImageStorageService productImageStorage,
             EquipmentImageStorageService equipmentImageStorage,
-            ReportFactory reportFactory
+            GuideLayoutService layoutService,
+            GuideReportCompiler compiler
     ) {
         this.productRepository     = productRepository;
         this.productImageStorage   = productImageStorage;
         this.equipmentImageStorage = equipmentImageStorage;
-        this.reportFactory         = reportFactory;
+        this.layoutService         = layoutService;
+        this.compiler              = compiler;
     }
 
     /**
-     * Gera o Guia de Utilização em PDF com os produtos selecionados pelo usuário.
+     * O guia de Contratos, sempre com o layout publicado.
      *
-     * @param request     DTO com título e lista de IDs dos produtos na ordem desejada
-     * @param logoCliente Stream do logo do cliente (pode ser null)
-     * @return PDF como array de bytes
+     * @param customerLogo bytes do logo do cliente (pode ser null)
      * @throws ProductNotFoundException se algum ID não for encontrado
      */
-    public byte[] gerarGuia(GuideReportRequestDTO request, InputStream logoCliente) {
-        List<GuideReportRowDTO> rows = request.productIds().stream()
+    @Transactional(readOnly = true)
+    public byte[] generate(GuideReportRequestDTO request, byte[] customerLogo) {
+        GuideLayoutService.ParsedLayout layout = layoutService.publishedLayout();
+        return render(layout, request.productIds(), request.tituloGuia(), customerLogo);
+    }
+
+    /** A prévia do designer: o layout da tela dele, salvo ou não. Nada é gravado. */
+    @Transactional(readOnly = true)
+    public byte[] preview(GuideLayoutPreviewRequestDTO request) {
+        GuideLayoutService.ParsedLayout layout = layoutService.parseAndValidate(request.document());
+        String title = request.title() == null || request.title().isBlank() ? "Exemplo" : request.title();
+        return render(layout, request.productIds(), title, null);
+    }
+
+    private byte[] render(GuideLayoutService.ParsedLayout layout, List<UUID> productIds, String title, byte[] customerLogo) {
+        List<GuideReportRowDTO> rows = productIds.stream()
                 .map(id -> productRepository.findById(id)
                         .orElseThrow(ProductNotFoundException::new))
                 .map(this::toRow)
                 .toList();
 
-        JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(rows);
-
-        InputStream aventalImage = getClass().getResourceAsStream("/templates/images/icones-guia/avental.png");
-        InputStream botaImage = getClass().getResourceAsStream("/templates/images/icones-guia/bota.png");
-        InputStream luvaImage = getClass().getResourceAsStream("/templates/images/icones-guia/luva.png");
-        InputStream mascaraImage = getClass().getResourceAsStream("/templates/images/icones-guia/mascara.png");
-        InputStream oculosImage = getClass().getResourceAsStream("/templates/images/icones-guia/oculos.png");
-        InputStream toucaImage = getClass().getResourceAsStream("/templates/images/icones-guia/touca.png");
-
         Map<String, Object> params = new HashMap<>();
-        params.put("TITULO_GUIA",  request.tituloGuia().toUpperCase());
-        params.put("LOGO_CLIENTE", logoCliente);
-        params.put("LOGO_EMPRESA", resolveLogoEmpresa());
-        params.put("LOGO_AVENTAL", aventalImage);
-        params.put("LOGO_LUVA", luvaImage);
-        params.put("LOGO_BOTA", botaImage);
-        params.put("LOGO_MASCARA", mascaraImage);
-        params.put("LOGO_OCULOS", oculosImage);
-        params.put("LOGO_TOUCA", toucaImage);
+        params.put(GuideJasperDesignBuilder.PARAM_TITLE, title == null ? null : title.toUpperCase());
+        for (GuideImageSource source : GuideImageSource.values()) {
+            if (source.getClasspathResource() != null) {
+                params.put(GuideJasperDesignBuilder.imageParameter(source), readClasspath(source.getClasspathResource()));
+            }
+        }
+        params.put(GuideJasperDesignBuilder.imageParameter(GuideImageSource.COMPANY_LOGO), resolveLogoEmpresa());
+        params.put(GuideJasperDesignBuilder.imageParameter(GuideImageSource.CUSTOMER_LOGO),
+                customerLogo == null || customerLogo.length == 0 ? null : customerLogo);
+        for (UUID id : GuideJasperDesignBuilder.uploadedImageIds(layout.layout())) {
+            params.put(GuideJasperDesignBuilder.uploadedImageParameter(id), layoutService.image(id).getContent());
+        }
 
-        return reportFactory.generatePdf(params, dataSource, REPORT_LOCATION);
+        try {
+            JasperReport report = compiler.compile(layout.text(), layout.layout());
+            JasperPrint print = JasperFillManager.fillReport(report, params, new JRBeanCollectionDataSource(rows));
+            return JasperExportManager.exportReportToPdf(print);
+        } catch (JRException e) {
+            throw new IllegalStateException("Erro ao gerar o guia de utilização", e);
+        }
     }
 
     // ── Conversão produto → DTO ─────────────────────────────────────────────
@@ -118,20 +139,21 @@ public class GuideReportService {
 
         // Equipamentos: imagens e nomes em paralelo (apenas os que têm imagem),
         // para o template exibir cada ícone com o nome logo abaixo.
-        List<InputStream> equipImagens = new ArrayList<>();
+        List<byte[]> equipImagens = new ArrayList<>();
         List<String> equipNomes = new ArrayList<>();
         List<EquipmentGuide> equipamentos = p.getEquipmentGuides();
         if (equipamentos != null) {
             for (EquipmentGuide eq : equipamentos) {
                 if (eq.getImagem() == null || eq.getImagem().isBlank()) continue;
-                InputStream is = openEquipImage(eq.getImagem());
-                if (is != null) {
-                    equipImagens.add(is);
+                byte[] bytes = readStoredImage(equipmentImageStorage.searchFile(extractFilename(eq.getImagem())), "equipamento");
+                if (bytes != null) {
+                    equipImagens.add(bytes);
                     equipNomes.add(eq.getNome());
                 }
             }
         }
 
+        String corNome = ColorNameUtil.toNames(coresHex);
         return new GuideReportRowDTO(
                 p.getName(),
                 p.getSystemCode(),
@@ -146,33 +168,44 @@ public class GuideReportService {
                 p.getLocalUso(),
                 buildEquipNomes(equipamentos),
                 equipImagens,
-                ColorCircleRenderer.render(coresHex),   // renderiza todas as cores
-                ColorNameUtil.toNames(coresHex),         // nome(s) básico(s) da cor
+                readAll(ColorCircleRenderer.render(coresHex)),   // renderiza todas as cores
+                corNome != null ? corNome : coresHex,             // nome básico; o hex cru se não der para nomear
                 equipNomes
         );
     }
 
     // ── Resolução de imagens ────────────────────────────────────────────────
 
-    private InputStream resolveProductImage(String filename) {
+    private byte[] resolveProductImage(String filename) {
         if (filename == null || filename.isBlank()) return null;
+        return readStoredImage(productImageStorage.searchFile(extractFilename(filename)), "produto");
+    }
+
+    private byte[] readStoredImage(Path path, String what) {
         try {
-            Path path = productImageStorage.searchFile(extractFilename(filename));
-            if (Files.exists(path)) return Files.newInputStream(path);
+            if (path != null && Files.exists(path)) return Files.readAllBytes(path);
         } catch (IOException ex) {
-            logger.error("Ocorreu um erro ao obter a imagem do produto: {}", ex.getMessage(), ex);
+            logger.error("Ocorreu um erro ao obter a imagem do {}: {}", what, ex.getMessage(), ex);
         }
         return null;
     }
 
-    private InputStream openEquipImage(String imagemPath) {
-        try {
-            Path path = equipmentImageStorage.searchFile(extractFilename(imagemPath));
-            if (Files.exists(path)) return Files.newInputStream(path);
+    private byte[] readClasspath(String resource) {
+        try (InputStream in = getClass().getResourceAsStream(resource)) {
+            return in == null ? null : in.readAllBytes();
         } catch (IOException ex) {
-            logger.error("Ocorreu um erro ao obter a imagem do equipamento: {}", ex.getMessage(), ex);
+            logger.error("Ocorreu um erro ao ler {}: {}", resource, ex.getMessage(), ex);
+            return null;
         }
-        return null;
+    }
+
+    private static byte[] readAll(InputStream in) {
+        if (in == null) return null;
+        try (in) {
+            return in.readAllBytes();
+        } catch (IOException ex) {
+            return null;
+        }
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
@@ -196,14 +229,13 @@ public class GuideReportService {
         return idx >= 0 ? path.substring(idx + 1) : path;
     }
 
-    private InputStream resolveLogoEmpresa() {
+    private byte[] resolveLogoEmpresa() {
         try {
             if (logoEmpresaPath.startsWith("classpath:")) {
-                return getClass().getResourceAsStream(
-                        logoEmpresaPath.substring("classpath:".length()));
+                return readClasspath(logoEmpresaPath.substring("classpath:".length()));
             }
             Path path = Path.of(logoEmpresaPath);
-            if (Files.exists(path)) return Files.newInputStream(path);
+            if (Files.exists(path)) return Files.readAllBytes(path);
         } catch (IOException ex) {
             logger.error("Ocorreu um erro obter a logo da empresa: {}", ex.getMessage(), ex);
         }
