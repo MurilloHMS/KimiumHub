@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.io.InputStream;
 
 /**
  * Controller responsável pela geração do "Guia de Utilização" em PDF.
@@ -24,8 +23,9 @@ import java.io.InputStream;
  * <ul>
  *   <li>{@code request} — JSON com {@link GuideReportRequestDTO}
  *       (título do guia + lista de IDs dos produtos selecionados)</li>
- *   <li>{@code logoCliente} — arquivo de imagem do logo do cliente</li>
+ *   <li>{@code logoCliente} — arquivo de imagem do logo do cliente (opcional)</li>
  * </ul>
+ * O desenho é o do layout publicado; ver {@link GuideLayoutController}.
  * </p>
  */
 @RestController
@@ -44,6 +44,7 @@ public class GuideReportController {
      *
      * @param request     JSON com título e IDs dos produtos na ordem desejada
      * @param logoCliente Logo do cliente (PNG ou JPG)
+     * @param inline      true devolve para mostrar na prévia em vez de baixar
      * @return PDF para download
      */
     @PostMapping(
@@ -62,12 +63,16 @@ public class GuideReportController {
             @Valid GuideReportRequestDTO request,
 
             @Parameter(description = "Logo do cliente (PNG ou JPG)")
-            @RequestPart("logoCliente")
-            MultipartFile logoCliente
+            @RequestPart(value = "logoCliente", required = false)
+            MultipartFile logoCliente,
+
+            @Parameter(description = "true para exibir na prévia, em vez de baixar")
+            @RequestParam(defaultValue = "false")
+            boolean inline
     ) throws IOException {
 
-        InputStream logoStream = logoCliente.isEmpty() ? null : logoCliente.getInputStream();
-        byte[] pdf = guideReportService.gerarGuia(request, logoStream);
+        byte[] logo = logoCliente == null || logoCliente.isEmpty() ? null : logoCliente.getBytes();
+        byte[] pdf = guideReportService.generate(request, logo);
 
         String filename = "guia-" + request.tituloGuia()
                 .toLowerCase()
@@ -76,7 +81,7 @@ public class GuideReportController {
                 + ".pdf";
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, (inline ? "inline" : "attachment") + "; filename=\"" + filename + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .contentLength(pdf.length)
                 .body(pdf);

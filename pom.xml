@@ -167,6 +167,19 @@
 			<version>7.0.3</version>
 		</dependency>
 
+		<!--
+			Compilador de relatório que funciona DENTRO do jar empacotado.
+			Sem ele, o Jasper compila com o javac, que procura as classes no
+			disco e não as acha dentro do jar do Spring Boot: "package
+			net.sf.jasperreports.engine does not exist". O guia editável monta
+			o relatório em tempo de execução e depende disto.
+		-->
+		<dependency>
+			<groupId>net.sf.jasperreports</groupId>
+			<artifactId>jasperreports-jdt</artifactId>
+			<version>7.0.3</version>
+		</dependency>
+
 		<dependency>
 			<groupId>custom.fonts</groupId>
 			<artifactId>montserrat</artifactId>
