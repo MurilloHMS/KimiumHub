@@ -8,7 +8,10 @@ import com.proautokimium.api.Application.DTOs.humanResources.VacationRequest.Vac
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.services.events.EventAttendanceService;
 import com.proautokimium.api.Infrastructure.services.holerite.HoleriteService;
+import com.proautokimium.api.Infrastructure.services.humanResources.MedicalCertificateService;
 import com.proautokimium.api.Infrastructure.services.humanResources.ReimbursementService;
+import com.proautokimium.api.Application.DTOs.humanResources.MedicalCertificate.MedicalCertificateResponseDTO;
+import com.proautokimium.api.domain.enums.humanResources.MedicalCertificateStatus;
 import com.proautokimium.api.Infrastructure.services.humanResources.VacationRequestService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.enums.home.PendingType;
@@ -50,17 +53,20 @@ public class HomeSummaryService {
     private final ReimbursementService reimbursementService;
     private final EmployeeRepository employeeRepository;
     private final EventAttendanceService eventAttendanceService;
+    private final MedicalCertificateService medicalCertificateService;
 
     public HomeSummaryService(HoleriteService holeriteService,
                               VacationRequestService vacationRequestService,
                               ReimbursementService reimbursementService,
                               EmployeeRepository employeeRepository,
-                              EventAttendanceService eventAttendanceService) {
+                              EventAttendanceService eventAttendanceService,
+                              MedicalCertificateService medicalCertificateService) {
         this.holeriteService = holeriteService;
         this.vacationRequestService = vacationRequestService;
         this.reimbursementService = reimbursementService;
         this.employeeRepository = employeeRepository;
         this.eventAttendanceService = eventAttendanceService;
+        this.medicalCertificateService = medicalCertificateService;
     }
 
     /**
@@ -85,6 +91,8 @@ public class HomeSummaryService {
             mine.addAll(feriasAguardando(ferias));
 
             mine.addAll(reembolsosAguardando(login));
+
+            mine.addAll(atestados(login));
 
         } catch (EmployeeNotFoundException e) {
             log.debug("Login {} não tem funcionário vinculado — home sem pendências pessoais", login);
@@ -139,6 +147,36 @@ public class HomeSummaryService {
     }
 
     /**
+     * Atestado em conferência, e o recusado que ainda dá para reenviar. O
+     * recusado fora do prazo some: não há mais o que a pessoa possa fazer.
+     */
+    private List<PendingItemDTO> atestados(String login) {
+        List<PendingItemDTO> itens = new ArrayList<>();
+        for (MedicalCertificateResponseDTO c : medicalCertificateService.listMine(login)) {
+            String titulo = "Atestado de " + periodo(c);
+            if (c.status() == MedicalCertificateStatus.PENDING) {
+                itens.add(new PendingItemDTO(PendingType.ATESTADO_AGUARDANDO, titulo,
+                        "Aguardando o RH confirmar", ultimoEnvio(c)));
+            } else if (c.status() == MedicalCertificateStatus.REJECTED && c.resubmitDeadline() != null) {
+                itens.add(new PendingItemDTO(PendingType.ATESTADO_RECUSADO, titulo,
+                        "Recusado — envie outro arquivo até " + c.resubmitDeadline().format(DIA_MES),
+                        c.reviewedAt()));
+            }
+        }
+        return itens;
+    }
+
+    private static String periodo(MedicalCertificateResponseDTO c) {
+        return c.startDate().equals(c.endDate())
+                ? c.startDate().format(DIA_MES)
+                : c.startDate().format(DIA_MES) + " a " + c.endDate().format(DIA_MES);
+    }
+
+    private static java.time.LocalDateTime ultimoEnvio(MedicalCertificateResponseDTO c) {
+        return c.resubmittedAt() != null ? c.resubmittedAt() : c.submittedAt();
+    }
+
+    /**
      * Convite aberto e sem resposta. Quem respondeu "não vou" também respondeu:
      * some daqui, como some do lembrete. `since` é a publicação — o convite
      * nasceu ali.
@@ -189,6 +227,15 @@ public class HomeSummaryService {
                     nomes.getOrDefault(r.employeeId(), "Funcionário"),
                     "Reembolso de " + moeda(r),
                     r.requestedAt()));
+        }
+
+        // O DTO do atestado já traz o nome: não entra no nomesPorId.
+        for (MedicalCertificateResponseDTO c : medicalCertificateService.listAll(MedicalCertificateStatus.PENDING)) {
+            itens.add(new PendingItemDTO(
+                    PendingType.CONFERENCIA_ATESTADO,
+                    c.employeeName() != null ? c.employeeName() : "Funcionário",
+                    (c.resubmittedAt() != null ? "Atestado reenviado · " : "Atestado de ") + periodo(c),
+                    ultimoEnvio(c)));
         }
 
         itens.sort(maisAntigaPrimeiro());

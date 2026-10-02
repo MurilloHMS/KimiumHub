@@ -13,6 +13,12 @@ public enum PendingType {
     REEMBOLSO_AGUARDANDO,
     APROVACAO_FERIAS,
     APROVACAO_REEMBOLSO,
+    /** Atestado enviado e ainda não conferido pelo RH. */
+    ATESTADO_AGUARDANDO,
+    /** Atestado recusado que ainda dá para reenviar. */
+    ATESTADO_RECUSADO,
+    /** Atestado esperando a conferência do RH. */
+    CONFERENCIA_ATESTADO,
     /** Convite de evento aberto e ainda sem resposta; {@code refId} é o evento. */
     EVENT_RSVP
 }

@@ -43,6 +43,7 @@ class MedicalCertificateServiceTest {
     @Mock private EmployeeRepository employeeRepository;
     @Mock private UserRepository userRepository;
     @Mock private MedicalCertificateStorageService storage;
+    @Mock private com.proautokimium.api.Infrastructure.services.notification.NotificationService notificationService;
 
     private MedicalCertificateService service;
     private UUID employeeId;
@@ -51,7 +52,7 @@ class MedicalCertificateServiceTest {
     @BeforeEach
     void setUp() throws Exception {
         Clock clock = Clock.fixed(LocalDateTime.of(2026, 7, 23, 10, 0).atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
-        service = new MedicalCertificateService(repository, employeeRepository, userRepository, storage, clock);
+        service = new MedicalCertificateService(repository, employeeRepository, userRepository, storage, notificationService, clock);
 
         employeeId = UUID.randomUUID();
         employee = new Employee();
@@ -82,12 +83,13 @@ class MedicalCertificateServiceTest {
     }
 
     @Test
-    @DisplayName("getForRh soma o histórico completo com a contagem só do ano corrente")
+    @DisplayName("getForRh soma o histórico completo com a contagem só do ano corrente, sem os recusados")
     void getForRhRetornaHistoricoEContagemDoAno() {
         when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
         when(repository.findByEmployeeOrderByStartDateDesc(employee)).thenReturn(List.of());
-        when(repository.countByEmployeeAndStartDateBetween(
-                employee, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31))).thenReturn(4L);
+        when(repository.countByEmployeeAndStatusNotAndStartDateBetween(
+                employee, com.proautokimium.api.domain.enums.humanResources.MedicalCertificateStatus.REJECTED,
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31))).thenReturn(4L);
 
         EmployeeMedicalCertificatesDTO result = service.getForRh(employeeId);
 
