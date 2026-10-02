@@ -72,6 +72,7 @@ class FileDownloadAccessTest {
     @MockitoBean MedicalCertificateService medicalCertificateService;
     @MockitoBean EmployeeDocumentService employeeDocumentService;
     @MockitoBean HoleriteService holeriteService;
+    @MockitoBean com.proautokimium.api.Infrastructure.services.holerite.PayslipTypeService payslipTypeService;
     @MockitoBean PermissionService permissionService;
     @MockitoBean UserRepository userRepository;
     @MockitoBean TokenService tokenService;

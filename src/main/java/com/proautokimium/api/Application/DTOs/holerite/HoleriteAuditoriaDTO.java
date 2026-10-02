@@ -1,6 +1,5 @@
 package com.proautokimium.api.Application.DTOs.holerite;
 
-import com.proautokimium.api.domain.enums.HoleriteTipo;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,7 +18,7 @@ public record HoleriteAuditoriaDTO(
         String employeeNome,
         String codParceiro,
         LocalDate competencia,
-        HoleriteTipo tipo,
+        String tipo,
         String originalFilename,
         LocalDateTime createdAt,
         LocalDateTime openedAt,

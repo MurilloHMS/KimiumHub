@@ -11,7 +11,6 @@ import com.proautokimium.api.Infrastructure.services.holerite.HoleriteService;
 import com.proautokimium.api.Infrastructure.services.humanResources.ReimbursementService;
 import com.proautokimium.api.Infrastructure.services.humanResources.VacationRequestService;
 import com.proautokimium.api.domain.entities.Employee;
-import com.proautokimium.api.domain.enums.HoleriteTipo;
 import com.proautokimium.api.domain.enums.home.PendingType;
 import com.proautokimium.api.domain.enums.humanResources.ReimbursementStatus;
 import com.proautokimium.api.domain.enums.humanResources.VacationRequestStatus;
@@ -56,7 +55,7 @@ class HomeSummaryServiceTest {
     // ─── Fábricas ────────────────────────────────────────────────────────────
 
     private HoleriteResponseDTO holerite(LocalDate competencia, LocalDateTime confirmedAt) {
-        return new HoleriteResponseDTO(UUID.randomUUID(), competencia, HoleriteTipo.SALARIO,
+        return new HoleriteResponseDTO(UUID.randomUUID(), competencia, "SALARIO",
                 "holerite.pdf", LocalDateTime.of(2026, 8, 1, 9, 0), null, confirmedAt);
     }
 

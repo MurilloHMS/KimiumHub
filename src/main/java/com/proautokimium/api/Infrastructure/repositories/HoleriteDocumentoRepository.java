@@ -2,7 +2,6 @@ package com.proautokimium.api.Infrastructure.repositories;
 
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.HoleriteDocumento;
-import com.proautokimium.api.domain.enums.HoleriteTipo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,9 +22,12 @@ public interface HoleriteDocumentoRepository extends JpaRepository<HoleriteDocum
      * por CPF já faz `regexp_replace` sem índice, e somar N desses num PDF de
      * 200 páginas deixa o envio lento a ponto de ninguém usar.
      */
-    @Query("SELECT h.employee.id FROM HoleriteDocumento h WHERE h.competencia = :competencia AND h.tipo = :tipo")
+    // Cancelado não conta: o índice único (V80) já libera o lugar quando um
+    // holerite é cancelado, e sem este filtro o envio continuava pulando a
+    // pessoa — o RH não conseguia reenviar o certo pelo fluxo normal.
+    @Query("SELECT h.employee.id FROM HoleriteDocumento h WHERE h.competencia = :competencia AND h.tipo = :tipo AND h.canceledAt IS NULL")
     Set<UUID> findEmployeeIdsByCompetenciaAndTipo(@Param("competencia") LocalDate competencia,
-                                                  @Param("tipo") HoleriteTipo tipo);
+                                                  @Param("tipo") String tipo);
 
     /** A tela do funcionário não mostra cancelado. Ele continua na auditoria. */
     List<HoleriteDocumento> findByEmployeeAndCanceledAtIsNullOrderByCompetenciaDesc(Employee employee);
@@ -41,5 +43,5 @@ public interface HoleriteDocumentoRepository extends JpaRepository<HoleriteDocum
         ORDER BY e.name
     """)
     List<HoleriteDocumento> findParaAuditoria(@Param("competencia") LocalDate competencia,
-                                              @Param("tipo") HoleriteTipo tipo);
+                                              @Param("tipo") String tipo);
 }

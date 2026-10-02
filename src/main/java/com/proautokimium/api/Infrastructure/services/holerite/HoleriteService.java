@@ -15,7 +15,7 @@ import com.proautokimium.api.Infrastructure.services.storage.HoleriteStorageServ
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.HoleriteDocumento;
 import com.proautokimium.api.domain.entities.auth.User;
-import com.proautokimium.api.domain.enums.HoleriteTipo;
+import com.proautokimium.api.domain.entities.PayslipType;
 import com.proautokimium.api.domain.enums.NotificationType;
 import com.proautokimium.api.domain.enums.humanResources.HoleritePreviewStatus;
 import jakarta.transaction.Transactional;
@@ -44,6 +44,7 @@ public class HoleriteService {
     private final HoleriteDocumentoRepository repository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final PayslipTypeService payslipTypes;
     private final Clock clock;
 
     public HoleriteService(HolerithExtractorService extractor,
@@ -51,13 +52,14 @@ public class HoleriteService {
                            EmployeeRepository employeeRepository,
                            HoleriteDocumentoRepository repository,
                            UserRepository userRepository,
-                           NotificationService notificationService, Clock clock) {
+                           NotificationService notificationService, PayslipTypeService payslipTypes, Clock clock) {
         this.extractor = extractor;
         this.storage = storage;
         this.employeeRepository = employeeRepository;
         this.repository = repository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.payslipTypes = payslipTypes;
         this.clock = clock;
     }
 
@@ -79,7 +81,10 @@ public class HoleriteService {
     // e o arquivo vai para o disco ANTES do registro ir para o banco. Com a
     // transação no lote inteiro, um erro na página 137 desfazia 136 registros e
     // deixava os 136 PDFs órfãos no disco.
-    public VincularHoleriteResultDTO vincular(MultipartFile file, LocalDate competencia, HoleriteTipo tipo) throws IOException {
+    public VincularHoleriteResultDTO vincular(MultipartFile file, LocalDate competencia, String tipoCode) throws IOException {
+        // Antes de qualquer coisa: tipo desconhecido não pode virar holerite gravado.
+        PayslipType payslipType = payslipTypes.requireActive(tipoCode);
+        String tipo = payslipType.getCode();
         File temp = File.createTempFile("holerite_", ".pdf");
         file.transferTo(temp);
 
@@ -139,7 +144,7 @@ public class HoleriteService {
                     vinculados += pageIndices.size();
                 }
 
-                notificarFuncionarios(afetados, competencia, tipo);
+                notificarFuncionarios(afetados, competencia, payslipType.getLabel());
                 return new VincularHoleriteResultDTO(total, vinculados, naoEncontrados, jaExistiam);
             }
         } finally {
@@ -156,7 +161,8 @@ public class HoleriteService {
      * uma funcionalidade: entre conferir e enviar, o RH cadastra quem faltava, e
      * o status precisa mudar.
      */
-    public List<HoleritePreviewItemDTO> preview(MultipartFile file, LocalDate competencia, HoleriteTipo tipo) throws IOException {
+    public List<HoleritePreviewItemDTO> preview(MultipartFile file, LocalDate competencia, String tipoCode) throws IOException {
+        String tipo = payslipTypes.requireActive(tipoCode).getCode();
         File temp = File.createTempFile("holerite_preview_", ".pdf");
         file.transferTo(temp);
 
@@ -208,13 +214,14 @@ public class HoleriteService {
     }
 
     /** Notifica (uma vez por funcionário) os usuários cujos holerites foram disponibilizados. */
-    private void notificarFuncionarios(Set<Employee> afetados, LocalDate competencia, HoleriteTipo tipo) {
+    private void notificarFuncionarios(Set<Employee> afetados, LocalDate competencia, String tipoLabel) {
         if (afetados.isEmpty()) return;
 
         String compLabel = competencia.format(DateTimeFormatter.ofPattern("MM/yyyy"));
-        String tipoLabel = tipo.getLabel();
         String title = "Novo holerite disponível";
-        String message = "Seu holerite de " + tipoLabel + " (" + compLabel + ") já está disponível para download.";
+        // O nome como o RH cadastrou ("PLR", "Férias coletivas"), entre
+        // parênteses: no meio da frase, "de PLR" funciona e "de Salário" não.
+        String message = "Seu holerite (" + tipoLabel + " · " + compLabel + ") já está disponível para download.";
 
         for (Employee emp : afetados) {
             userRepository.findByEmployee_Id(emp.getId()).ifPresent(user ->
@@ -339,7 +346,7 @@ public class HoleriteService {
         repository.save(doc);
     }
 
-    public List<HoleriteAuditoriaDTO> auditoria(LocalDate competencia, HoleriteTipo tipo) {
+    public List<HoleriteAuditoriaDTO> auditoria(LocalDate competencia, String tipo) {
         return repository.findParaAuditoria(competencia, tipo).stream()
                 .map(h -> new HoleriteAuditoriaDTO(
                         h.getId(),

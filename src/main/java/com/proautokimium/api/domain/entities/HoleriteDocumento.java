@@ -1,7 +1,6 @@
 package com.proautokimium.api.domain.entities;
 
 import com.proautokimium.api.domain.entities.auth.User;
-import com.proautokimium.api.domain.enums.HoleriteTipo;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,9 +25,9 @@ public class HoleriteDocumento extends com.proautokimium.api.domain.abstractions
     @Column(nullable = false)
     private LocalDate competencia;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tipo", length = 20, nullable = false)
-    private HoleriteTipo tipo;
+    /** O código do tipo (`payslip_types.code`, com FK): SALARIO, PLR… */
+    @Column(name = "tipo", length = 40, nullable = false)
+    private String tipo;
 
     @Column(name = "original_filename", length = 255)
     private String originalFilename;
@@ -63,7 +62,7 @@ public class HoleriteDocumento extends com.proautokimium.api.domain.abstractions
     private User replacedBy;
 
 
-    public HoleriteDocumento(Employee employee, LocalDate competencia, HoleriteTipo tipo,
+    public HoleriteDocumento(Employee employee, LocalDate competencia, String tipo,
                              String originalFilename, String storagePath) {
         this.employee = employee;
         this.competencia = competencia;
