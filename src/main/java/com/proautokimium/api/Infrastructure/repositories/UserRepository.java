@@ -58,4 +58,22 @@ public interface UserRepository extends JpaRepository<User, String> {
     /** Carrega o usuário já com o cliente, evitando lazy loading fora da transação. */
     @Query("SELECT u FROM users u LEFT JOIN FETCH u.customer WHERE u.login = :login")
     Optional<User> findByLoginWithCustomer(@Param("login") String login);
+
+    /**
+     * Quem está ativo e tem a permissão {@code screen:permission} — por
+     * exemplo, quem confere atestados ({@code rh/medical-certificates:ALTERAR}).
+     *
+     * Pela grade e não pela role: a role RH não diz quem tem a célula, e quem
+     * recebe o aviso tem que ser quem consegue agir sobre ele.
+     */
+    @Query(value = """
+        SELECT DISTINCT u.login
+          FROM users u
+          JOIN user_permissions p ON p.user_id = u.id
+         WHERE p.screen_code = :screen
+           AND p.permission  = :permission
+           AND p.allowed
+           AND u.active
+        """, nativeQuery = true)
+    List<String> findActiveLoginsAllowed(@Param("screen") String screen, @Param("permission") String permission);
 }

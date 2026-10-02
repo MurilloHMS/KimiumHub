@@ -2,8 +2,11 @@ package com.proautokimium.api.controllers.humanResources;
 
 import com.proautokimium.api.Application.DTOs.humanResources.MedicalCertificate.EmployeeMedicalCertificatesDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.MedicalCertificate.MedicalCertificateResponseDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.MedicalCertificate.ReviewMedicalCertificateDTO;
 import com.proautokimium.api.Infrastructure.services.humanResources.MedicalCertificateService;
 import com.proautokimium.api.domain.entities.humanResources.MedicalCertificate;
+import com.proautokimium.api.domain.entities.humanResources.MedicalCertificateAttempt;
+import com.proautokimium.api.domain.enums.humanResources.MedicalCertificateStatus;
 import com.proautokimium.api.domain.enums.humanResources.SubmissionType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -58,9 +61,42 @@ public class MedicalCertificateController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('rh/medical-certificates:CONSULTAR')")
-    @Operation(summary = "Todos os atestados", description = "Lista todos os atestados para gestao do RH")
-    public ResponseEntity<List<MedicalCertificateResponseDTO>> listAll() {
-        return ResponseEntity.ok(service.listAll());
+    @Operation(summary = "Todos os atestados", description = "Lista os atestados para gestao do RH, opcionalmente por status")
+    public ResponseEntity<List<MedicalCertificateResponseDTO>> listAll(
+            @RequestParam(required = false) MedicalCertificateStatus status) {
+        return ResponseEntity.ok(service.listAll(status));
+    }
+
+    @PostMapping("/{id}/receive")
+    @PreAuthorize("hasAuthority('rh/medical-certificates:ALTERAR')")
+    @Operation(summary = "Confirma o recebimento", description = "O RH confirma que recebeu o atestado; quem enviou é avisado")
+    public ResponseEntity<MedicalCertificateResponseDTO> receive(@PathVariable UUID id,
+                                                                 @RequestBody(required = false) ReviewMedicalCertificateDTO dto,
+                                                                 Authentication auth) {
+        return ResponseEntity.ok(service.confirmReceipt(id, dto, auth.getName()));
+    }
+
+    @PostMapping("/{id}/reject")
+    @PreAuthorize("hasAuthority('rh/medical-certificates:ALTERAR')")
+    @Operation(summary = "Recusa o atestado", description = "Motivo obrigatório; quem enviou é avisado e pode reenviar")
+    public ResponseEntity<MedicalCertificateResponseDTO> reject(@PathVariable UUID id,
+                                                                @RequestBody ReviewMedicalCertificateDTO dto,
+                                                                Authentication auth) {
+        return ResponseEntity.ok(service.reject(id, dto, auth.getName()));
+    }
+
+    @PreAuthorize("hasAuthority('documentos/rh/medical-certificates:ALTERAR')")
+    @PostMapping(value = "/{id}/resubmit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Reenvia atestado recusado", description = "O dono manda outro arquivo, até 30 dias depois da recusa")
+    public ResponseEntity<MedicalCertificateResponseDTO> resubmit(
+            @PathVariable UUID id,
+            @RequestParam SubmissionType submissionType,
+            @RequestParam(required = false) Boolean confirmedLegible,
+            @RequestParam(required = false) String comment,
+            @RequestParam("file") MultipartFile file,
+            Authentication auth
+    ) throws IOException {
+        return ResponseEntity.ok(service.resubmit(id, auth.getName(), submissionType, confirmedLegible, comment, file));
     }
 
     @GetMapping("/employee/{employeeId}")
@@ -92,5 +128,33 @@ public class MedicalCertificateController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + certificateOpt.get().getOriginalFilename() + "\"")
                 .body(bytes);
+    }
+
+    @PreAuthorize("hasAnyAuthority('rh/medical-certificates:BAIXAR', 'documentos/rh/medical-certificates:BAIXAR')")
+    @GetMapping("/{id}/attempts/{attemptId}/file")
+    @Operation(summary = "Baixa um arquivo recusado", description = "Arquivo anterior da trilha do atestado (dono ou RH)")
+    public ResponseEntity<byte[]> attemptFile(@PathVariable UUID id, @PathVariable UUID attemptId,
+                                              Authentication auth) throws IOException {
+        Optional<MedicalCertificate> certificateOpt = service.buscar(id);
+        if (certificateOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        boolean isRh = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("rh/medical-certificates:BAIXAR"));
+
+        // A mesma regra do arquivo atual: a trilha é do mesmo atestado.
+        if (!service.podeAcessar(certificateOpt.get(), auth.getName(), isRh)) {
+            return ResponseEntity.status(403).build();
+        }
+
+        Optional<MedicalCertificateAttempt> attempt = service.findAttempt(certificateOpt.get(), attemptId);
+        if (attempt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + attempt.get().getOriginalFilename() + "\"")
+                .body(service.readAttemptFile(attempt.get()));
     }
 }

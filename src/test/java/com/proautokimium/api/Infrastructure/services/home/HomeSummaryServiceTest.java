@@ -49,6 +49,7 @@ class HomeSummaryServiceTest {
     @Mock private ReimbursementService reimbursementService;
     @Mock private EmployeeRepository employeeRepository;
     @Mock private EventAttendanceService eventAttendanceService;
+    @Mock private com.proautokimium.api.Infrastructure.services.humanResources.MedicalCertificateService medicalCertificateService;
 
     @InjectMocks private HomeSummaryService service;
 
@@ -235,5 +236,60 @@ class HomeSummaryServiceTest {
             assertThat(p.detail()).isEqualTo("Poseidon Week · 06/10");
             assertThat(p.refId()).isEqualTo(evento);
         });
+    }
+
+    // ─── Atestado ────────────────────────────────────────────────────────────
+
+    private com.proautokimium.api.Application.DTOs.humanResources.MedicalCertificate.MedicalCertificateResponseDTO atestado(
+            com.proautokimium.api.domain.enums.humanResources.MedicalCertificateStatus status,
+            LocalDateTime resubmitDeadline) {
+        return new com.proautokimium.api.Application.DTOs.humanResources.MedicalCertificate.MedicalCertificateResponseDTO(
+                UUID.randomUUID(), UUID.randomUUID(), "Ana Souza",
+                LocalDate.of(2026, 9, 29), LocalDate.of(2026, 9, 30), 2,
+                com.proautokimium.api.domain.enums.humanResources.SubmissionType.FILE, null, "a.pdf",
+                LocalDateTime.of(2026, 10, 1, 8, 0), status, null,
+                LocalDateTime.of(2026, 10, 1, 9, 0), null, null, null, resubmitDeadline, List.of());
+    }
+
+    @Test
+    @DisplayName("Atestado: em conferência e recusado no prazo entram; recebido e recusado fora do prazo não")
+    void atestadosDoFuncionario() {
+        semDadosPessoais();
+        when(medicalCertificateService.listMine(LOGIN)).thenReturn(List.of(
+                atestado(com.proautokimium.api.domain.enums.humanResources.MedicalCertificateStatus.PENDING, null),
+                atestado(com.proautokimium.api.domain.enums.humanResources.MedicalCertificateStatus.RECEIVED, null),
+                atestado(com.proautokimium.api.domain.enums.humanResources.MedicalCertificateStatus.REJECTED,
+                        LocalDateTime.of(2026, 10, 31, 9, 0)),
+                atestado(com.proautokimium.api.domain.enums.humanResources.MedicalCertificateStatus.REJECTED, null)));
+
+        HomeSummaryDTO resumo = service.getSummary(LOGIN, false);
+
+        assertThat(resumo.mine()).extracting("type").containsExactlyInAnyOrder(
+                PendingType.ATESTADO_AGUARDANDO, PendingType.ATESTADO_RECUSADO);
+        assertThat(resumo.mine()).filteredOn(i -> i.type() == PendingType.ATESTADO_RECUSADO)
+                .singleElement().satisfies(i -> assertThat(i.detail()).contains("até 31/10"));
+    }
+
+    @Test
+    @DisplayName("RH vê os atestados para conferir com o nome de quem enviou; quem não é RH nem consulta")
+    void conferenciaDeAtestadoSoParaRh() {
+        semDadosPessoais();
+        when(vacationRequestService.listAll(VacationRequestStatus.PENDING)).thenReturn(List.of());
+        when(reimbursementService.listAll(ReimbursementStatus.PENDING)).thenReturn(List.of());
+        when(medicalCertificateService.listAll(
+                com.proautokimium.api.domain.enums.humanResources.MedicalCertificateStatus.PENDING))
+                .thenReturn(List.of(atestado(
+                        com.proautokimium.api.domain.enums.humanResources.MedicalCertificateStatus.PENDING, null)));
+
+        HomeSummaryDTO rh = service.getSummary(LOGIN, true);
+        assertThat(rh.approvals()).singleElement().satisfies(i -> {
+            assertThat(i.type()).isEqualTo(PendingType.CONFERENCIA_ATESTADO);
+            assertThat(i.title()).isEqualTo("Ana Souza");
+            assertThat(i.detail()).isEqualTo("Atestado de 29/09 a 30/09");
+        });
+
+        clearInvocations(medicalCertificateService);
+        service.getSummary(LOGIN, false);
+        verify(medicalCertificateService, never()).listAll(any());
     }
 }
