@@ -54,5 +54,9 @@ public final class EventExceptions {
     public static class InvitationClosedException extends DomainException {
         public InvitationClosedException() { super("O evento já começou: a resposta não pode mais ser alterada.", HttpStatus.CONFLICT);
         }
+
+        public InvitationClosedException(String message) {
+            super(message, HttpStatus.CONFLICT);
+        }
     }
 }

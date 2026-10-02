@@ -224,7 +224,7 @@ class HomeSummaryServiceTest {
         UUID evento = UUID.randomUUID();
         var resumoDoEvento = new com.proautokimium.api.Application.DTOs.events.EventDTOs.EventSummaryDTO(
                 evento, "Poseidon Week", LocalDate.of(2026, 10, 6), LocalDate.of(2026, 10, 8), null,
-                null, 3, 0, LocalDateTime.of(2026, 9, 20, 9, 0), null, null);
+                null, 3, 0, LocalDateTime.of(2026, 9, 20, 9, 0), null, null, null, null);
         when(eventAttendanceService.pendingInvitations(LOGIN)).thenReturn(List.of(
                 new com.proautokimium.api.Application.DTOs.events.EventAttendanceDTOs.InvitationDTO(
                         resumoDoEvento, LocalDateTime.of(2026, 10, 6, 8, 0), true, null)));

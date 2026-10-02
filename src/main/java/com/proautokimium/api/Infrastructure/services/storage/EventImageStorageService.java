@@ -82,6 +82,26 @@ public class EventImageStorageService extends FileStorage {
         delete(url.substring(RETURN_PATH.length()));
     }
 
+    /**
+     * Copia a imagem para um arquivo novo e devolve a URL dele.
+     *
+     * <p>O evento duplicado não pode apontar para o arquivo do original: apagar
+     * um (ou trocar a capa) chama {@link #deleteByUrl} e a capa sumiria do outro.
+     * Arquivo que não está mais no disco devolve nulo — a cópia sai sem capa,
+     * que é melhor do que não sair.
+     */
+    public String copyByUrl(String url) throws IOException {
+        if (url == null || !url.startsWith(RETURN_PATH)) {
+            return url;
+        }
+        String filename = url.substring(RETURN_PATH.length());
+        java.nio.file.Path path = searchFile(filename);
+        if (!java.nio.file.Files.exists(path)) {
+            return null;
+        }
+        return save(java.nio.file.Files.readAllBytes(path), filename, "event");
+    }
+
     static boolean isImage(byte[] b, int n) {
         boolean jpeg = n >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8 && (b[2] & 0xFF) == 0xFF;
         boolean png = n >= 8 && (b[0] & 0xFF) == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G';

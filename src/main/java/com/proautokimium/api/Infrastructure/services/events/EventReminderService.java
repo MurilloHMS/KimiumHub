@@ -124,10 +124,13 @@ public class EventReminderService {
         // Antes de notificar: é esta linha que barra a segunda rodada do dia.
         remindersSent.saveAndFlush(EventReminderSent.of(event, today, logins.size(), now));
 
-        String message = event.getName() + ", " + period(event) + ". Vai participar?";
+        String message = event.isOnline()
+                ? event.getName() + ", " + period(event) + ". Confirme que está ciente."
+                : event.getName() + ", " + period(event) + ". Vai participar?";
+        String title = event.isOnline() ? "Você ainda não confirmou" : "Você ainda não respondeu";
         String link = "/convites?evento=" + eventId;
         for (String login : logins) {
-            notifications.notify(login, NotificationType.EVENTO, "Você ainda não respondeu", message, link);
+            notifications.notify(login, NotificationType.EVENTO, title, message, link);
         }
         return logins.size();
     }
