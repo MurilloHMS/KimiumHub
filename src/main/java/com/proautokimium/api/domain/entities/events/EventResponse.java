@@ -31,7 +31,7 @@ public class EventResponse extends com.proautokimium.api.domain.abstractions.Ent
     private Employee employee;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "answer", nullable = false, length = 10)
+    @Column(name = "answer", nullable = false, length = 20)
     private EventAnswer answer;
 
     @Column(name = "note", length = NOTE_MAX)

@@ -143,11 +143,16 @@ public class HomeSummaryService {
      * some daqui, como some do lembrete. `since` é a publicação — o convite
      * nasceu ali.
      */
+    /** Live de comunicado: a pendência pede o "Estou ciente", e não presença. */
+    private static boolean isOnline(com.proautokimium.api.Application.DTOs.events.EventDTOs.EventSummaryDTO e) {
+        return e.location() != null && "ONLINE".equals(e.location().source());
+    }
+
     private List<PendingItemDTO> convitesSemResposta(String login) {
         return eventAttendanceService.pendingInvitations(login).stream()
                 .map(i -> new PendingItemDTO(
                         PendingType.EVENT_RSVP,
-                        "Confirme sua presença",
+                        isOnline(i.event()) ? "Confirme que está ciente" : "Confirme sua presença",
                         i.event().name() + " · " + i.event().startDate().format(DIA_MES),
                         i.event().publishedAt(),
                         i.event().id()))

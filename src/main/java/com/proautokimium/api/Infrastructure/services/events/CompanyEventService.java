@@ -65,6 +65,7 @@ public class CompanyEventService {
     private final DepartmentRepository departmentRepository;
     private final EmployeeRepository employeeRepository;
     private final EventImageStorageService imageStorage;
+    private final EventAnnouncementService announcements;
     private final Clock clock;
 
     public CompanyEventService(CompanyEventRepository eventRepository,
@@ -73,6 +74,7 @@ public class CompanyEventService {
                                DepartmentRepository departmentRepository,
                                EmployeeRepository employeeRepository,
                                EventImageStorageService imageStorage,
+                               EventAnnouncementService announcements,
                                Clock clock) {
         this.eventRepository = eventRepository;
         this.speakerRepository = speakerRepository;
@@ -80,8 +82,12 @@ public class CompanyEventService {
         this.departmentRepository = departmentRepository;
         this.employeeRepository = employeeRepository;
         this.imageStorage = imageStorage;
+        this.announcements = announcements;
         this.clock = clock;
     }
+
+    /** Uma semana: o intervalo das lives de comunicado. */
+    static final int DUPLICATE_DAYS = 7;
 
     // ─── Leitura ─────────────────────────────────────────────────────────────
 
@@ -159,7 +165,12 @@ public class CompanyEventService {
         imageStorage.deleteByUrl(capa);
     }
 
-    /** Publicar de novo não muda a data: a primeira publicação é a que conta. */
+    /**
+     * Publicar de novo não muda a data: a primeira publicação é a que conta.
+     *
+     * <p>Na primeira publicação, avisa os convidados, se o organizador deixou o
+     * aviso ligado. O evento é gravado antes: os convidados saem do banco.
+     */
     @Transactional
     public EventDetailDTO publish(UUID id, String author) {
         CompanyEvent event = find(id);
@@ -167,7 +178,67 @@ public class CompanyEventService {
             event.setPublishedAt(LocalDateTime.now(clock));
             touch(event, author);
         }
+        event = eventRepository.saveAndFlush(event);
+        announcements.announcePublished(event);
         return EventMapper.detailWithSettings(eventRepository.saveAndFlush(event));
+    }
+
+    /**
+     * Uma cópia do evento uma semana depois, como rascunho: o mesmo público, o
+     * mesmo link, o mesmo lembrete, a programação e a capa.
+     *
+     * <p>Não vão junto: as respostas, as visualizações e os avisos já enviados —
+     * a cópia é outro evento, e quem confirmou a live passada não confirmou esta.
+     * Nasce rascunho para o RH trocar o tema antes de publicar.
+     */
+    @Transactional
+    public EventDetailDTO duplicate(UUID id, String author) throws IOException {
+        CompanyEvent source = find(id);
+        CompanyEvent copy = new CompanyEvent();
+        copy.setCreatedAt(LocalDateTime.now(clock));
+        copy.setName(source.getName());
+        copy.setDescription(source.getDescription());
+        copy.setStartDate(source.getStartDate().plusDays(DUPLICATE_DAYS));
+        copy.setEndDate(source.getEndDate().plusDays(DUPLICATE_DAYS));
+        copy.setStartTime(source.getStartTime());
+        copy.setEndTime(source.getEndTime());
+        copy.setLocationType(source.getLocationType());
+        copy.setCompany(source.getCompany());
+        copy.setPlaceName(source.getPlaceName());
+        copy.setAddress(source.getAddress() == null ? null : source.getAddress().copy());
+        copy.setOnlineUrl(source.getOnlineUrl());
+
+        copy.setAudienceAll(source.isAudienceAll());
+        copy.getAudienceCompanies().addAll(source.getAudienceCompanies());
+        copy.getAudienceDepartments().addAll(source.getAudienceDepartments());
+        copy.getAudienceEmployees().addAll(source.getAudienceEmployees());
+
+        copy.setReminderEnabled(source.isReminderEnabled());
+        copy.setReminderTime(source.getReminderTime());
+        copy.setReminderDaysBefore(source.getReminderDaysBefore());
+        copy.setAnnounceOnPublish(source.isAnnounceOnPublish());
+        copy.setNotifyLiveStart(source.isNotifyLiveStart());
+
+        for (EventTalk t : source.getTalks()) {
+            EventTalk talk = new EventTalk();
+            talk.setEvent(copy);
+            talk.setTitle(t.getTitle());
+            talk.setDescription(t.getDescription());
+            talk.setDate(t.getDate().plusDays(DUPLICATE_DAYS));
+            talk.setStartTime(t.getStartTime());
+            talk.setEndTime(t.getEndTime());
+            talk.setRoom(t.getRoom());
+            talk.setLocationType(t.getLocationType());
+            talk.setCompany(t.getCompany());
+            talk.setPlaceName(t.getPlaceName());
+            talk.setAddress(t.getAddress() == null ? null : t.getAddress().copy());
+            talk.setSpeakers(new ArrayList<>(t.getSpeakers()));
+            copy.getTalks().add(talk);
+        }
+        touch(copy, author);
+        copy = eventRepository.save(copy);
+        copy.setCoverUrl(imageStorage.copyByUrl(source.getCoverUrl()));
+        return EventMapper.detailWithSettings(copy);
     }
 
     @Transactional
@@ -229,16 +300,70 @@ public class CompanyEventService {
         event.setPlaceName(null);
         event.setAddress(null);
 
+        LocalDateTime startedBefore = event.getStartDate() == null ? null : event.startsAt();
+        event.setOnlineUrl(null);
+        event.setStartTime(null);
+        event.setEndTime(null);
+
         if (type == EventLocationType.COMPANY) {
             event.setCompany(requireCompany(dto.companyId()));
         } else if (type == EventLocationType.ADDRESS) {
             event.setPlaceName(requirePlace(dto.placeName()));
             event.setAddress(requireAddress(dto.address()));
+        } else if (type == EventLocationType.ONLINE) {
+            applyOnline(event, dto);
         }
 
         applyAudience(event, dto);
         applyReminder(event, dto);
+        if (dto.announceOnPublish() != null) {
+            event.setAnnounceOnPublish(dto.announceOnPublish());
+        }
+        if (dto.notifyLiveStart() != null) {
+            event.setNotifyLiveStart(dto.notifyLiveStart());
+        }
+        // Remarcada para o futuro depois de o "Começou agora" ter saído: o
+        // aviso precisa sair de novo na hora nova.
+        if (event.getLiveStartNotifiedAt() != null && startedBefore != null
+                && !event.startsAt().equals(startedBefore) && event.startsAt().isAfter(LocalDateTime.now(clock))) {
+            event.setLiveStartNotifiedAt(null);
+        }
         touch(event, author);
+    }
+
+    /**
+     * Evento online: o link e o horário.
+     *
+     * <p><b>Só {@code https://}.</b> O link vai parar num botão que todo
+     * colaborador toca sem pensar, porque veio "do sistema da empresa": um
+     * {@code javascript:} ou um {@code http://} interceptável não pode passar.
+     */
+    private static void applyOnline(CompanyEvent event, EventRequestDTO dto) {
+        String url = dto.onlineUrl() == null ? "" : dto.onlineUrl().strip();
+        if (url.isEmpty()) {
+            throw new InvalidEventDataException("Informe o link da transmissão.");
+        }
+        if (url.length() > CompanyEvent.ONLINE_URL_MAX) {
+            throw new InvalidEventDataException("O link deve ter no máximo 500 caracteres.");
+        }
+        java.net.URI uri;
+        try {
+            uri = java.net.URI.create(url);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidEventDataException("Este link não é válido. Copie o endereço inteiro da transmissão.");
+        }
+        if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null || !uri.getHost().contains(".")) {
+            throw new InvalidEventDataException("Use um link que comece com https://");
+        }
+        if (dto.startTime() == null || dto.endTime() == null) {
+            throw new InvalidEventDataException("Informe o horário de início e de fim da transmissão.");
+        }
+        if (dto.startDate().equals(dto.endDate()) && !dto.endTime().isAfter(dto.startTime())) {
+            throw new InvalidEventDataException("O fim da transmissão precisa ser depois do início.");
+        }
+        event.setOnlineUrl(url);
+        event.setStartTime(dto.startTime());
+        event.setEndTime(dto.endTime());
     }
 
     /**

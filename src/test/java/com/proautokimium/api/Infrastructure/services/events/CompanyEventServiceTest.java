@@ -62,6 +62,7 @@ class CompanyEventServiceTest {
     @Mock DepartmentRepository departmentRepository;
     @Mock EmployeeRepository employeeRepository;
     @Mock EventImageStorageService imageStorage;
+    @Mock EventAnnouncementService announcements;
 
     private static final Clock RELOGIO =
             Clock.fixed(Instant.parse("2026-09-14T14:30:00Z"), ZoneId.of("America/Sao_Paulo"));
@@ -74,7 +75,7 @@ class CompanyEventServiceTest {
     @BeforeEach
     void setUp() {
         service = new CompanyEventService(eventRepository, speakerRepository, companyRepository,
-                departmentRepository, employeeRepository, imageStorage, RELOGIO);
+                departmentRepository, employeeRepository, imageStorage, announcements, RELOGIO);
         lenient().when(eventRepository.save(any(CompanyEvent.class))).thenAnswer(i -> comId(i.getArgument(0)));
         lenient().when(eventRepository.saveAndFlush(any(CompanyEvent.class))).thenAnswer(i -> {
             CompanyEvent e = i.getArgument(0);
@@ -101,7 +102,7 @@ class CompanyEventServiceTest {
     }
 
     private static EventRequestDTO evento(LocalDate inicio, LocalDate fim) {
-        return new EventRequestDTO("Poseidon Week", null, inicio, fim, null, null, null, null, false, null, null, null, null, null, null, null);
+        return new EventRequestDTO("Poseidon Week", null, inicio, fim, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     private static TalkRequestDTO palestra(LocalDate dia, String ini, String fim) {
@@ -187,7 +188,7 @@ class CompanyEventServiceTest {
     @DisplayName("local numa empresa do grupo exige a empresa")
     void localEmpresaExigeEmpresa() {
         EventRequestDTO dto = new EventRequestDTO("Poseidon Week", null, DIA_22, DIA_25,
-                EventLocationType.COMPANY, null, null, null, false, null, null, null, null, null, null, null);
+                EventLocationType.COMPANY, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.create(dto, null, "x"))
                 .isInstanceOf(InvalidEventDataException.class)
@@ -198,7 +199,7 @@ class CompanyEventServiceTest {
     @DisplayName("endereco digitado exige rua e cidade, que e o que o mapa procura")
     void enderecoExigeRuaECidade() {
         EventRequestDTO semCidade = new EventRequestDTO("Poseidon Week", null, DIA_22, DIA_25,
-                EventLocationType.ADDRESS, null, "Kartódromo", endereco("Av. Morangueira", null), false, null, null, null, null, null, null, null);
+                EventLocationType.ADDRESS, null, "Kartódromo", endereco("Av. Morangueira", null), false, null, null, null, null, null, null, null, null, null, null, null, null);
 
         assertThatThrownBy(() -> service.create(semCidade, null, "x"))
                 .isInstanceOf(InvalidEventDataException.class)
@@ -219,7 +220,7 @@ class CompanyEventServiceTest {
         when(companyRepository.findById(matriz.getId())).thenReturn(Optional.of(matriz));
 
         EventDetailDTO salvo = service.update(e.getId(), new EventRequestDTO("Poseidon Week", null, DIA_22, DIA_25,
-                EventLocationType.COMPANY, matriz.getId(), null, null, false, null, null, null, null, null, null, null), null, "x");
+                EventLocationType.COMPANY, matriz.getId(), null, null, false, null, null, null, null, null, null, null, null, null, null, null, null), null, "x");
 
         assertThat(e.getPlaceName()).isNull();
         assertThat(e.getAddress()).isNull();
@@ -403,7 +404,7 @@ class CompanyEventServiceTest {
 
     private static EventRequestDTO publico(Boolean todos, List<UUID> empresas, Boolean lembrete, LocalTime hora, Integer dias) {
         return new EventRequestDTO("Poseidon Week", null, DIA_22, DIA_25, null, null, null, null, false,
-                todos, empresas, null, null, lembrete, hora, dias);
+                todos, empresas, null, null, lembrete, hora, dias, null, null, null, null, null);
     }
 
     @Test

@@ -42,7 +42,10 @@ final class EventMapper {
         if (event.getLocationType() == EventLocationType.COMPANY) {
             return companyLocation(event.getCompany());
         }
-        return new LocationDTO("ADDRESS", null, event.getPlaceName(), usable(AddressDTO.from(event.getAddress())));
+        if (event.getLocationType() == EventLocationType.ONLINE) {
+            return new LocationDTO("ONLINE", null, null, null, event.getOnlineUrl());
+        }
+        return new LocationDTO("ADDRESS", null, event.getPlaceName(), usable(AddressDTO.from(event.getAddress())), null);
     }
 
     static LocationDTO locationOf(EventTalk talk) {
@@ -51,10 +54,10 @@ final class EventMapper {
             case EVENT -> {
                 LocationDTO doEvento = locationOf(talk.getEvent());
                 yield doEvento == null ? null
-                        : new LocationDTO("EVENT", doEvento.companyId(), doEvento.name(), doEvento.address());
+                        : new LocationDTO("EVENT", doEvento.companyId(), doEvento.name(), doEvento.address(), doEvento.onlineUrl());
             }
             case COMPANY -> companyLocation(talk.getCompany());
-            case ADDRESS -> new LocationDTO("ADDRESS", null, talk.getPlaceName(), usable(AddressDTO.from(talk.getAddress())));
+            case ADDRESS -> new LocationDTO("ADDRESS", null, talk.getPlaceName(), usable(AddressDTO.from(talk.getAddress())), null);
         };
     }
 
@@ -63,7 +66,7 @@ final class EventMapper {
             return null;
         }
         return new LocationDTO("COMPANY", company.getId(), company.getName(),
-                usable(AddressDTO.from(company.getAddress())));
+                usable(AddressDTO.from(company.getAddress())), null);
     }
 
     /** Endereço sem rua ou sem cidade não vai para o mapa: abriria em lugar nenhum. */
@@ -96,7 +99,8 @@ final class EventMapper {
                 .count();
         return new EventSummaryDTO(e.getId(), e.getName(), e.getStartDate(), e.getEndDate(), e.getCoverUrl(),
                 locationOf(e), e.getTalks().size(), away,
-                e.getPublishedAt(), e.getUpdatedAt(), e.getUpdatedBy());
+                e.getPublishedAt(), e.getUpdatedAt(), e.getUpdatedBy(),
+                e.getStartTime(), e.getEndTime());
     }
 
     /**
@@ -122,7 +126,8 @@ final class EventMapper {
                 .toList();
         return new EventDetailDTO(e.getId(), e.getName(), e.getDescription(), e.getStartDate(), e.getEndDate(),
                 e.getCoverUrl(), e.getLocationType(), locationOf(e),
-                e.getPublishedAt(), e.getUpdatedAt(), e.getUpdatedBy(), talks, e.startsAt(), settings);
+                e.getPublishedAt(), e.getUpdatedAt(), e.getUpdatedBy(), talks, e.startsAt(), settings,
+                e.getStartTime(), e.getEndTime(), e.endsAt(), e.answersUntil());
     }
 
     static EventSettingsDTO settings(CompanyEvent e) {
@@ -130,7 +135,8 @@ final class EventMapper {
                 sorted(e.getAudienceCompanies().stream().map(EventMapper::option).toList()),
                 sorted(e.getAudienceDepartments().stream().map(EventMapper::option).toList()),
                 sorted(e.getAudienceEmployees().stream().map(EventMapper::option).toList()),
-                e.isReminderEnabled(), e.getReminderTime(), e.getReminderDaysBefore());
+                e.isReminderEnabled(), e.getReminderTime(), e.getReminderDaysBefore(),
+                e.isAnnounceOnPublish(), e.getAnnouncedAt(), e.isNotifyLiveStart());
     }
 
     static AudienceOptionDTO option(Company c) {

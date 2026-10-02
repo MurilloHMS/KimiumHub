@@ -50,4 +50,29 @@ public interface CompanyEventRepository extends JpaRepository<CompanyEvent, UUID
               AND ev.startDate >= :today
             """)
     List<CompanyEvent> findReminderCandidates(@Param("today") LocalDate today);
+
+    /**
+     * Os candidatos ao "Começou agora" de hoje: online, publicados, com o aviso
+     * ligado e ainda não enviado. O instante exato (entre o início e o fim) o
+     * serviço confere.
+     */
+    @Query("""
+            SELECT ev FROM CompanyEvent ev
+            WHERE ev.publishedAt IS NOT NULL
+              AND ev.locationType = com.proautokimium.api.domain.enums.events.EventLocationType.ONLINE
+              AND ev.notifyLiveStart = true
+              AND ev.liveStartNotifiedAt IS NULL
+              AND ev.startDate <= :today
+              AND ev.endDate >= :today
+            """)
+    List<CompanyEvent> findLiveStartCandidates(@Param("today") LocalDate today);
+
+    /**
+     * Marca o "Começou agora" como enviado, só se ainda não estava. Devolve 1
+     * para quem ganhou a corrida e 0 para o resto: duas instâncias da API, ou
+     * duas rodadas sobrepostas, não avisam duas vezes.
+     */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE CompanyEvent ev SET ev.liveStartNotifiedAt = :now WHERE ev.id = :id AND ev.liveStartNotifiedAt IS NULL")
+    int claimLiveStartNotice(@Param("id") UUID id, @Param("now") java.time.LocalDateTime now);
 }

@@ -25,7 +25,7 @@ public final class EventAttendanceDTOs {
     // ─── Quem foi convidado ──────────────────────────────────────────────────
 
     public record RespondRequestDTO(
-            @NotNull(message = "Escolha se vai ou não vai.")
+            @NotNull(message = "Escolha uma resposta.")
             EventAnswer answer,
 
             @Size(max = EventResponse.NOTE_MAX, message = "A observação pode ter no máximo 500 caracteres.")
@@ -94,7 +94,9 @@ public final class EventAttendanceDTOs {
                                 Integer reminderDaysBefore,
                                 List<ReminderDayDTO> reminderDays,
                                 int invited, int going, int notGoing, int noAnswer, int neverViewed,
-                                List<AttendeeDTO> attendees) {
+                                List<AttendeeDTO> attendees,
+                                /** Cientes, nas lives; os presenciais contam em going/notGoing. */
+                                int acknowledged, boolean online) {
     }
 
     public record ReminderDayDTO(LocalDate day, LocalDateTime sentAt, int recipients) {

@@ -4,6 +4,7 @@ import com.proautokimium.api.domain.abstractions.Entity;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.humanResources.Company;
 import com.proautokimium.api.domain.entities.humanResources.Department;
+import com.proautokimium.api.domain.enums.events.EventAnswer;
 import com.proautokimium.api.domain.enums.events.EventLocationType;
 import com.proautokimium.api.domain.valueObjects.Address;
 import jakarta.persistence.*;
@@ -116,8 +117,60 @@ public class CompanyEvent extends Entity {
     @Column(name = "reminder_days_before")
     private Integer reminderDaysBefore;
 
+    // ── Online e avisos (V116) ───────────────────────────────────────────────
+
+    /** O link da transmissão (só {@code https://}); obrigatório com {@link EventLocationType#ONLINE}. */
+    @Column(name = "online_url", length = ONLINE_URL_MAX)
+    private String onlineUrl;
+
+    /** Horário do evento online. O presencial tira o horário da programação. */
+    @Column(name = "start_time")
+    private LocalTime startTime;
+
+    @Column(name = "end_time")
+    private LocalTime endTime;
+
+    /** Avisar todos os convidados quando for publicado — uma vez só. */
+    @Column(name = "announce_on_publish", nullable = false)
+    private boolean announceOnPublish = true;
+
+    /** Quando o aviso de publicação saiu. Preenchido, publicar de novo não avisa outra vez. */
+    @Column(name = "announced_at")
+    private LocalDateTime announcedAt;
+
+    /** Avisar "Começou agora" na hora de início; só em evento online. */
+    @Column(name = "notify_live_start", nullable = false)
+    private boolean notifyLiveStart = false;
+
+    /** Quando o "Começou agora" saiu. A trava contra o segundo envio. */
+    @Column(name = "live_start_notified_at")
+    private LocalDateTime liveStartNotifiedAt;
+
+    public static final int ONLINE_URL_MAX = 500;
+
     public boolean isPublished() {
         return publishedAt != null;
+    }
+
+    public boolean isOnline() {
+        return locationType == EventLocationType.ONLINE;
+    }
+
+    /**
+     * A resposta que este evento aceita: "Estou ciente" no online, Vou / Não
+     * vou no presencial. Misturar daria uma auditoria com as duas coisas.
+     */
+    public boolean accepts(EventAnswer answer) {
+        return answer != null && (isOnline() ? answer == EventAnswer.ACKNOWLEDGED : answer.isPresenceAnswer());
+    }
+
+    /**
+     * Até quando o convite aceita resposta. Presencial: até começar — depois,
+     * "vou" não serve para nada. Online: até acabar — quem perdeu o começo
+     * ainda pode confirmar que viu o comunicado.
+     */
+    public LocalDateTime answersUntil() {
+        return isOnline() ? endsAt() : startsAt();
     }
 
     /** Inclusivo nas duas pontas: a palestra do último dia está dentro. */
@@ -134,16 +187,27 @@ public class CompanyEvent extends Entity {
     }
 
     /**
-     * Quando o evento começa: o primeiro dia, na hora da primeira palestra
-     * desse dia; sem palestra nesse dia, à meia-noite. Até este instante dá
-     * para responder ao convite, e até ele o lembrete é enviado.
+     * Quando o evento começa: o primeiro dia, no horário do evento (online) ou
+     * na hora da primeira palestra desse dia; sem nenhum dos dois, à
+     * meia-noite. Até este instante o lembrete é enviado.
      */
     public LocalDateTime startsAt(){
+        if (startTime != null) {
+            return startDate.atTime(startTime);
+        }
         LocalTime firstTalk = talks.stream()
                 .filter(t -> startDate.equals(t.getDate()))
                 .map(EventTalk::getStartTime)
                 .min(Comparator.naturalOrder())
                 .orElse(LocalTime.MIDNIGHT);
         return startDate.atTime(firstTalk);
+    }
+
+    /**
+     * Quando o evento acaba: o último dia no horário de término; sem ele, o
+     * fim do último dia.
+     */
+    public LocalDateTime endsAt() {
+        return endTime != null ? endDate.atTime(endTime) : endDate.plusDays(1).atStartOfDay();
     }
 }

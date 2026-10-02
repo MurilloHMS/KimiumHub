@@ -9,5 +9,10 @@ public enum EventLocationType {
     /** Uma empresa do grupo; o endereço é lido do cadastro dela. */
     COMPANY,
     /** Um endereço digitado, com nome do lugar. */
-    ADDRESS
+    ADDRESS,
+    /**
+     * Uma transmissão: live no Instagram, YouTube, LinkedIn, Meet… O evento
+     * guarda o link e o horário, e o colaborador responde "Estou ciente".
+     */
+    ONLINE
 }

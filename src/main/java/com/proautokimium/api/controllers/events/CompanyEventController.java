@@ -108,6 +108,17 @@ public class CompanyEventController {
         return ResponseEntity.ok(service.publish(id, authentication.getName()));
     }
 
+    /**
+     * Uma cópia uma semana depois, como rascunho — as lives semanais. Cria um
+     * evento novo, então pede INCLUIR, e não ALTERAR.
+     */
+    @PostMapping("/{id}/duplicate")
+    @PreAuthorize("hasAuthority('" + MANAGE + ":INCLUIR')")
+    @Operation(summary = "Duplica o evento para a semana seguinte, como rascunho")
+    public ResponseEntity<EventDetailDTO> duplicate(@PathVariable UUID id, Authentication authentication) throws IOException {
+        return ResponseEntity.ok(service.duplicate(id, authentication.getName()));
+    }
+
     @PostMapping("/{id}/unpublish")
     @PreAuthorize("hasAuthority('" + MANAGE + ":ALTERAR')")
     public ResponseEntity<EventDetailDTO> unpublish(@PathVariable UUID id, Authentication authentication) {

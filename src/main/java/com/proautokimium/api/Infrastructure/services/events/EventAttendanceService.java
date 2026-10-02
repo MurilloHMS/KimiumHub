@@ -93,7 +93,7 @@ public class EventAttendanceService {
         LocalDateTime now = LocalDateTime.now(clock);
 
         return events.findInvitationsFor(employee.get().getId()).stream()
-                .map(e -> new InvitationDTO(EventMapper.summary(e), e.startsAt(), now.isBefore(e.startsAt()),
+                .map(e -> new InvitationDTO(EventMapper.summary(e), e.startsAt(), now.isBefore(e.answersUntil()),
                         InvitationAnswerDTO.from(answers.get(e.getId()))))
                 .toList();
     }
@@ -117,7 +117,7 @@ public class EventAttendanceService {
         EventResponse answer = responses.findByEventIdAndEmployeeId(eventId, employee.getId()).orElse(null);
         LocalDateTime now = LocalDateTime.now(clock);
         return new InvitationDetailDTO(EventMapper.detail(event), event.startsAt(),
-                now.isBefore(event.startsAt()), InvitationAnswerDTO.from(answer));
+                now.isBefore(event.answersUntil()), InvitationAnswerDTO.from(answer));
     }
 
     /**
@@ -129,14 +129,23 @@ public class EventAttendanceService {
     @Transactional
     public InvitationAnswerDTO respond(UUID eventId, String login, EventAnswer answer, String note) {
         if (answer == null) {
-            throw new InvalidEventDataException("Escolha se vai ou não vai.");
+            throw new InvalidEventDataException("Escolha uma resposta.");
         }
         Employee employee = employeeOf(login);
         CompanyEvent event = invitedEvent(eventId, employee);
         LocalDateTime now = LocalDateTime.now(clock);
 
-        if (!now.isBefore(event.startsAt())) {
-            throw new InvitationClosedException();
+        // Presencial fecha quando começa; online, só quando acaba — quem perdeu
+        // o começo da live ainda confirma que viu o comunicado.
+        if (!now.isBefore(event.answersUntil())) {
+            throw event.isOnline()
+                    ? new InvitationClosedException("A transmissão já terminou: não dá mais para confirmar.")
+                    : new InvitationClosedException();
+        }
+        if (!event.accepts(answer)) {
+            throw new InvalidEventDataException(event.isOnline()
+                    ? "Neste evento a resposta é \"Estou ciente\"."
+                    : "Neste evento a resposta é Vou ou Não vou.");
         }
         if (note != null && note.strip().length() > EventResponse.NOTE_MAX) {
             throw new InvalidEventDataException("A observação pode ter no máximo 500 caracteres.");
@@ -198,11 +207,12 @@ public class EventAttendanceService {
                 .sorted(Comparator.comparing(Employee::getName, String.CASE_INSENSITIVE_ORDER))
                 .forEach(e -> rows.add(row(e, false, viewByEmployee.get(e.getId()), answerByEmployee.get(e.getId()))));
 
-        int going = 0, notGoing = 0, noAnswer = 0, neverViewed = 0;
+        int going = 0, notGoing = 0, acknowledged = 0, noAnswer = 0, neverViewed = 0;
         for (AttendeeDTO r : rows) {
             if (!r.invited()) continue;
             if (r.answer() == EventAnswer.GOING) going++;
             else if (r.answer() == EventAnswer.NOT_GOING) notGoing++;
+            else if (r.answer() == EventAnswer.ACKNOWLEDGED) acknowledged++;
             else noAnswer++;
             if (r.viewCount() == 0) neverViewed++;
         }
@@ -213,7 +223,7 @@ public class EventAttendanceService {
 
         return new AttendanceDTO(event.getId(), event.getName(), event.getStartDate(), event.getEndDate(),
                 event.startsAt(), event.isReminderEnabled(), event.getReminderTime(), event.getReminderDaysBefore(), reminderDays,
-                invitees.size(), going, notGoing, noAnswer, neverViewed, rows);
+                invitees.size(), going, notGoing, noAnswer, neverViewed, rows, acknowledged, event.isOnline());
     }
 
     /**

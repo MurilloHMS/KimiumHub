@@ -32,11 +32,12 @@ public final class EventDTOs {
      * palestra "no local do evento" chega com o endereço do evento, e a empresa
      * do grupo chega com o endereço do cadastro dela.
      *
-     * @param source   {@code EVENT}, {@code COMPANY} ou {@code ADDRESS}
-     * @param address  nulo quando não há endereço usável (empresa sem endereço,
-     *                 rascunho sem local)
+     * @param source    {@code EVENT}, {@code COMPANY}, {@code ADDRESS} ou {@code ONLINE}
+     * @param address   nulo quando não há endereço usável (empresa sem endereço,
+     *                  rascunho sem local, evento online)
+     * @param onlineUrl o link da transmissão; só em evento online
      */
-    public record LocationDTO(String source, UUID companyId, String name, AddressDTO address) {
+    public record LocationDTO(String source, UUID companyId, String name, AddressDTO address, String onlineUrl) {
     }
 
     // ─── Palestrante ─────────────────────────────────────────────────────────
@@ -119,7 +120,21 @@ public final class EventDTOs {
             LocalTime reminderTime,
 
             /** Quantos dias antes do primeiro dia o lembrete começa, de 1 a 60. */
-            Integer reminderDaysBefore
+            Integer reminderDaysBefore,
+
+            /** O link da transmissão; obrigatório com {@code ONLINE}, só {@code https://}. */
+            @Size(max = 500, message = "O link deve ter no máximo 500 caracteres.")
+            String onlineUrl,
+
+            /** Horário do evento online; obrigatórios com {@code ONLINE}. */
+            LocalTime startTime,
+            LocalTime endTime,
+
+            /** Nulo mantém como está: o site de antes da V116 não manda. */
+            Boolean announceOnPublish,
+
+            /** "Começou agora" na hora de início; só vale no online. Nulo mantém. */
+            Boolean notifyLiveStart
     ) {
     }
 
@@ -127,30 +142,39 @@ public final class EventDTOs {
     public record EventSummaryDTO(
             UUID id, String name, LocalDate startDate, LocalDate endDate, String coverUrl,
             LocationDTO location, int talkCount, int awayTalkCount,
-            LocalDateTime publishedAt, LocalDateTime updatedAt, String updatedBy) {
+            LocalDateTime publishedAt, LocalDateTime updatedAt, String updatedBy,
+            LocalTime startTime, LocalTime endTime) {
     }
 
     /**
      * O evento aberto, com a programação inteira em ordem de dia e horário.
      *
-     * @param startsAt até quando dá para responder ao convite
-     * @param settings público e lembrete; só para quem cadastra — os nomes das
-     *                 pessoas escolhidas não são da conta de quem só vê
+     * @param startsAt     quando começa
+     * @param settings     público e avisos; só para quem cadastra — os nomes das
+     *                     pessoas escolhidas não são da conta de quem só vê
+     * @param endsAt       quando acaba: é o fim do "Ao vivo"
+     * @param answersUntil até quando dá para responder ao convite
      */
     public record EventDetailDTO(
             UUID id, String name, String description, LocalDate startDate, LocalDate endDate,
             String coverUrl, EventLocationType locationType, LocationDTO location,
             LocalDateTime publishedAt, LocalDateTime updatedAt, String updatedBy,
-            List<TalkDTO> talks, LocalDateTime startsAt, EventSettingsDTO settings) {
+            List<TalkDTO> talks, LocalDateTime startsAt, EventSettingsDTO settings,
+            LocalTime startTime, LocalTime endTime, LocalDateTime endsAt, LocalDateTime answersUntil) {
     }
 
-    /** Quem é convidado e o lembrete, como o formulário reabre. */
+    /**
+     * Quem é convidado e os avisos, como o formulário reabre.
+     *
+     * @param announcedAt quando o aviso de publicação saiu; nulo se ainda não saiu
+     */
     public record EventSettingsDTO(
             boolean audienceAll,
             List<EventAttendanceDTOs.AudienceOptionDTO> companies,
             List<EventAttendanceDTOs.AudienceOptionDTO> departments,
             List<EventAttendanceDTOs.AudienceOptionDTO> employees,
-            boolean reminderEnabled, LocalTime reminderTime, Integer reminderDaysBefore) {
+            boolean reminderEnabled, LocalTime reminderTime, Integer reminderDaysBefore,
+            boolean announceOnPublish, LocalDateTime announcedAt, boolean notifyLiveStart) {
     }
 
     // ─── Palestra ────────────────────────────────────────────────────────────

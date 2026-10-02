@@ -70,6 +70,15 @@ public class Address {
         this(zipCode, street, number, complement, district, city, state, null, null);
     }
 
+    /**
+     * Uma cópia independente. Embutido não pode ser a mesma instância em duas
+     * entidades: o Hibernate trataria como um valor só, e mexer num mexeria no
+     * outro.
+     */
+    public Address copy() {
+        return new Address(zipCode, street, number, complement, district, city, state, latitude, longitude);
+    }
+
     /** Sem rua e sem cidade não há o que mandar para o mapa. */
     public boolean isUsable() {
         return hasText(street) && hasText(city);
