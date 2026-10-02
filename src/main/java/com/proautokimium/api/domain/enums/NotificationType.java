@@ -14,6 +14,8 @@ public enum NotificationType {
     CHECKLIST,
     /** Evento da empresa: o lembrete diário para quem ainda não respondeu ao convite. */
     EVENTO,
+    /** O resumo diário da programação de máquinas: atrasadas e saídas próximas. */
+    PROGRAMACAO,
     /** Notificação genérica do sistema. */
     GERAL
 }

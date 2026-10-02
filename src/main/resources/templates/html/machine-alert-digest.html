@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${assunto}">Resumo da programação</title>
+</head>
+<!--
+    Um e-mail por dia com tudo: as atrasadas primeiro (a mais atrasada no
+    topo) e depois as saídas próximas (a mais perto no topo). Antes era um
+    e-mail por máquina — com dez atrasadas, dez e-mails por pessoa, todo dia.
+
+    Tabelas e estilo inline: o Outlook ignora <style> e flexbox.
+-->
+<body style="margin:0; padding:0; font-family: Arial, sans-serif; background-color:#f4f4f4;">
+
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+        <td align="center" style="padding:30px 10px;">
+
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="640"
+                   style="background:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 3px 8px rgba(0,0,0,.12);">
+
+                <tr>
+                    <td align="center"
+                        th:style="${totalAtrasadas > 0}
+                                ? 'background:#c0392b; padding:30px 20px; color:#ffffff;'
+                                : 'background:linear-gradient(90deg, #232e61, #57c1ab); padding:30px 20px; color:#ffffff;'">
+                        <h1 style="margin:0; font-size:24px; font-weight:bold;">Resumo da programação</h1>
+                        <p style="margin:10px 0 0; font-size:16px;" th:text="${resumo}">5 atrasadas · 3 saídas próximas</p>
+                    </td>
+                </tr>
+
+                <!-- Atrasadas -->
+                <tr th:if="${totalAtrasadas > 0}">
+                    <td style="padding:26px 30px 6px;">
+                        <h2 style="margin:0 0 12px; font-size:17px; color:#c0392b;"
+                            th:text="'Atrasadas (' + ${totalAtrasadas} + ')'">Atrasadas (5)</h2>
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"
+                               style="border:1px solid #f1d2ce; border-radius:10px;">
+                            <tr th:each="item, st : ${atrasadas}">
+                                <td th:style="${st.first} ? 'padding:12px 16px;' : 'padding:12px 16px; border-top:1px solid #f6e3e0;'">
+                                    <div style="color:#232e61; font-size:15px; font-weight:bold;" th:text="${item.maquina}">CAPÔ NT 300</div>
+                                    <div style="color:#444444; font-size:14px; margin-top:2px;"
+                                         th:text="${item.cliente} + (${item.regiao} != null ? ' · ' + ${item.regiao} : '')">EXAL FRISIA · SP</div>
+                                    <div th:if="${item.pessoas}" style="color:#6b7492; font-size:12px; margin-top:2px;" th:text="${item.pessoas}">Carmen · Fábio</div>
+                                </td>
+                                <td align="right" valign="top"
+                                    th:style="${st.first} ? 'padding:12px 16px; white-space:nowrap;' : 'padding:12px 16px; white-space:nowrap; border-top:1px solid #f6e3e0;'">
+                                    <div style="color:#c0392b; font-size:14px; font-weight:bold;" th:text="${item.chamada}">6 dias de atraso</div>
+                                    <div style="color:#6b7492; font-size:12px; margin-top:2px;" th:text="'previsão ' + ${item.previsao}">previsão 10/08/2026</div>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Saídas próximas -->
+                <tr th:if="${totalProximas > 0}">
+                    <td style="padding:26px 30px 6px;">
+                        <h2 style="margin:0 0 12px; font-size:17px; color:#232e61;"
+                            th:text="'Saídas próximas (' + ${totalProximas} + ')'">Saídas próximas (3)</h2>
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"
+                               style="border:1px solid #e6e9f0; border-radius:10px;">
+                            <tr th:each="item, st : ${proximas}">
+                                <td th:style="${st.first} ? 'padding:12px 16px;' : 'padding:12px 16px; border-top:1px solid #f0f1f6;'">
+                                    <div style="color:#232e61; font-size:15px; font-weight:bold;" th:text="${item.maquina}">KIMI 200</div>
+                                    <div style="color:#444444; font-size:14px; margin-top:2px;"
+                                         th:text="${item.cliente} + (${item.regiao} != null ? ' · ' + ${item.regiao} : '')">Lava Rápido · PR</div>
+                                    <div th:if="${item.pessoas}" style="color:#6b7492; font-size:12px; margin-top:2px;" th:text="${item.pessoas}">Carmen</div>
+                                </td>
+                                <td align="right" valign="top"
+                                    th:style="${st.first} ? 'padding:12px 16px; white-space:nowrap;' : 'padding:12px 16px; white-space:nowrap; border-top:1px solid #f0f1f6;'">
+                                    <div style="color:#232e61; font-size:14px; font-weight:bold;" th:text="${item.chamada}">em 3 dias</div>
+                                    <div style="color:#6b7492; font-size:12px; margin-top:2px;" th:text="${item.previsao}">13/08/2026</div>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td align="center" style="padding:24px 30px 30px;">
+                        <a th:href="${link}"
+                           style="display:inline-block; background:#232e61; color:#ffffff; text-decoration:none;
+                                      padding:14px 28px; border-radius:8px; font-size:15px; font-weight:bold;">
+                            Abrir a programação
+                        </a>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td align="center" style="background:#f7f8fc; padding:18px 30px; color:#9aa6bd; font-size:12px;">
+                        Aviso automático do Portal Proauto Kimium, uma vez por dia. Não responda a este e-mail.
+                    </td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
