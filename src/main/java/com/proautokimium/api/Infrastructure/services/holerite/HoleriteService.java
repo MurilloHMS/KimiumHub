@@ -13,6 +13,7 @@ import com.proautokimium.api.Infrastructure.services.notification.NotificationSe
 import com.proautokimium.api.Infrastructure.services.pdf.holerith.HolerithExtractorService;
 import com.proautokimium.api.Infrastructure.services.storage.HoleriteStorageService;
 import com.proautokimium.api.domain.entities.Employee;
+import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import com.proautokimium.api.domain.entities.HoleriteDocumento;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.entities.PayslipType;
@@ -348,22 +349,39 @@ public class HoleriteService {
 
     public List<HoleriteAuditoriaDTO> auditoria(LocalDate competencia, String tipo) {
         return repository.findParaAuditoria(competencia, tipo).stream()
-                .map(h -> new HoleriteAuditoriaDTO(
-                        h.getId(),
-                        h.getEmployee().getId(),
-                        h.getEmployee().getName(),
-                        h.getEmployee().getCodParceiro(),
-                        h.getCompetencia(),
-                        h.getTipo(),
-                        h.getOriginalFilename(),
-                        h.getCreatedAt(),
-                        h.getOpenedAt(),
-                        h.getConfirmedAt(),
-                        h.getCanceledAt(),
-                        h.getCanceledBy() != null ? h.getCanceledBy().getLogin() : null,
-                        h.getCancelReason(),
-                        h.getReplacedAt(),
-                        userRepository.findByEmployee_Id(h.getEmployee().getId()).isPresent()))
+                .map(h -> toAuditoria(h, userRepository.findByEmployee_Id(h.getEmployee().getId()).isPresent()))
                 .toList();
+    }
+
+    /**
+     * Todos os holerites de uma pessoa, para a ficha do funcionário: a
+     * competência mais recente primeiro, cancelados incluídos — o RH precisa
+     * ver o que foi enviado errado e substituído, não só o que vale hoje.
+     */
+    public List<HoleriteAuditoriaDTO> listarParaRh(UUID employeeId) {
+        Employee employee = employeeRepository.findById(employeeId).orElseThrow(EmployeeNotFoundException::new);
+        boolean temUsuario = userRepository.findByEmployee_Id(employeeId).isPresent();
+        return repository.findByEmployeeOrderByCompetenciaDesc(employee).stream()
+                .map(h -> toAuditoria(h, temUsuario))
+                .toList();
+    }
+
+    private HoleriteAuditoriaDTO toAuditoria(HoleriteDocumento h, boolean temUsuario) {
+        return new HoleriteAuditoriaDTO(
+                h.getId(),
+                h.getEmployee().getId(),
+                h.getEmployee().getName(),
+                h.getEmployee().getCodParceiro(),
+                h.getCompetencia(),
+                h.getTipo(),
+                h.getOriginalFilename(),
+                h.getCreatedAt(),
+                h.getOpenedAt(),
+                h.getConfirmedAt(),
+                h.getCanceledAt(),
+                h.getCanceledBy() != null ? h.getCanceledBy().getLogin() : null,
+                h.getCancelReason(),
+                h.getReplacedAt(),
+                temUsuario);
     }
 }

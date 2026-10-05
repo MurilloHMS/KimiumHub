@@ -103,4 +103,24 @@ class HoleriteTypesControllerTest {
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(payslipTypes);
     }
+
+    // ─── Holerites de um funcionário (a ficha) ──────────────────────────────
+
+    @Test
+    @DisplayName("o portal do funcionário não lista os holerites de outra pessoa")
+    @WithMockUser(authorities = {"documentos/holerites:CONSULTAR", "documentos/holerites:BAIXAR"})
+    void employeePortalCannotListOthers() throws Exception {
+        mockMvc.perform(get("/api/holerite/employee/" + java.util.UUID.randomUUID())).andExpect(status().isForbidden());
+        verifyNoInteractions(holeriteService);
+    }
+
+    @Test
+    @DisplayName("o RH com a tela de holerites lista os de um funcionário")
+    @WithMockUser(authorities = {"rh/holerit:CONSULTAR"})
+    void hrListsOneEmployee() throws Exception {
+        java.util.UUID id = java.util.UUID.randomUUID();
+        when(holeriteService.listarParaRh(id)).thenReturn(List.of());
+        mockMvc.perform(get("/api/holerite/employee/" + id)).andExpect(status().isOk());
+        verify(holeriteService).listarParaRh(id);
+    }
 }
