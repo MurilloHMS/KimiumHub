@@ -128,6 +128,14 @@ public class HoleriteController {
         return ResponseEntity.ok(service.auditoria(LocalDate.parse(competencia + "-01"), tipo.strip().toUpperCase()));
     }
 
+    @GetMapping("/employee/{employeeId}")
+    @PreAuthorize("hasAuthority('rh/holerit:CONSULTAR')")
+    @Operation(summary = "Holerites de um funcionário",
+               description = "Para a ficha do funcionário: todas as competências, cancelados incluídos")
+    public ResponseEntity<List<HoleriteAuditoriaDTO>> doFuncionario(@PathVariable UUID employeeId) {
+        return ResponseEntity.ok(service.listarParaRh(employeeId));
+    }
+
     /**
      * Os tipos de holerite. O funcionário também lê: a tela dele mostra o nome
      * ("Férias coletivas"), e não o código.
