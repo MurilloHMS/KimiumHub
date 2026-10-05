@@ -4,7 +4,6 @@ import com.proautokimium.api.domain.enums.humanResources.RequestStatus;
 import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
 import com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException;
 import com.proautokimium.api.domain.valueObjects.humanResources.RequestField;
-import org.apache.coyote.Request;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -12,9 +11,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatException;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
 
 /**
  * A solicitação do RH: nasce rascunho, e só é enviada com pelo menos um campo.
@@ -81,5 +78,43 @@ class DocumentRequestTest {
 
         assertThrows(InvalidStatusTransitionException.class,
                 () -> request.send(AGORA));
+    }
+
+    // 5. encerrar deve fechar a solicitacao
+    @Test
+    @DisplayName("deve fechar uma solicitacao")
+    void shouldCloseRequest(){
+        DocumentRequest request = DocumentRequest.draft("Envie seu RG", "rita", AGORA);
+        request.getForm().add(RG);
+        request.send(AGORA.plusHours(1));
+        request.close(AGORA.plusHours(1));
+
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.CLOSED);
+        assertThat(request.getClosedAt()).isEqualTo(AGORA.plusHours(1));
+    }
+
+    // 6. deve recusar encerrar um rascunho
+    @Test
+    @DisplayName("deve recusar fechar um rascunho")
+    void closeDraftReject(){
+        DocumentRequest request = DocumentRequest.draft("Envie seu RG", "rita", AGORA);
+
+        assertThrows(InvalidStatusTransitionException.class,
+                () -> request.close(AGORA));
+
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.DRAFT);
+    }
+
+    // 7. deve recusar fechar duas vezes
+    @Test
+    @DisplayName("deve recusar fechar duas vezes")
+    void shouldRejectClosedTwice(){
+        DocumentRequest request = DocumentRequest.draft("Envie seu RG", "rita", AGORA);
+        request.getForm().add(RG);
+        request.send(AGORA.plusHours(1));
+        request.close(AGORA.plusHours(1));
+
+        assertThrows(InvalidStatusTransitionException.class,
+                () -> request.close(AGORA));
     }
 }

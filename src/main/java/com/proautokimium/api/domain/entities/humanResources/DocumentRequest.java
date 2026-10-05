@@ -79,4 +79,10 @@ public class DocumentRequest extends com.proautokimium.api.domain.abstractions.E
         this.status = RequestStatus.OPEN;
         this.sentAt = now;
     }
+
+    public void close(LocalDateTime now){
+        if(status != RequestStatus.OPEN) throw new InvalidStatusTransitionException("Só uma solicitação aberta pode ser encerrada");
+        this.closedAt = now;
+        this.status = RequestStatus.CLOSED;
+    }
 }

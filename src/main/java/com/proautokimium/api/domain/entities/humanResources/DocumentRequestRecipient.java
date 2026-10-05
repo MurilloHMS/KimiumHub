@@ -93,4 +93,6 @@ public class DocumentRequestRecipient extends com.proautokimium.api.domain.abstr
         this.returnReason = reason;
         this.status = RecipientStatus.RETURNED;
     }
+
+
 }
