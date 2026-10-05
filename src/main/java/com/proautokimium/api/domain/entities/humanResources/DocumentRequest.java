@@ -1,12 +1,13 @@
 package com.proautokimium.api.domain.entities.humanResources;
 
 import com.proautokimium.api.domain.enums.humanResources.RequestStatus;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException;
 import com.proautokimium.api.domain.valueObjects.humanResources.RequestField;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -55,4 +56,27 @@ public class DocumentRequest extends com.proautokimium.api.domain.abstractions.E
 
     @Column(name = "closed_at")
     private LocalDateTime closedAt;
+
+    // Constructor
+    private DocumentRequest(String title, String createdBy, LocalDateTime now){
+        this.title = title.strip();
+        this.createdBy = createdBy;
+        this.createdAt = now;
+        this.status = RequestStatus.DRAFT;
+    }
+
+    // Methods
+    public static DocumentRequest draft(String title, String createdBy, LocalDateTime now){
+        if(title == null || title.isBlank()) throw new InvalidRequestDataException("Dê um título para a solicitação.");
+        return new DocumentRequest(title, createdBy, now);
+    }
+
+    public void send(LocalDateTime now){
+        if(status != RequestStatus.DRAFT) throw new InvalidStatusTransitionException("Só um rascunho pode ser enviado.");
+
+        if(form.isEmpty()) throw new InvalidRequestDataException("Adicione pelo menos um campo antes de enviar.");
+
+        this.status = RequestStatus.OPEN;
+        this.sentAt = now;
+    }
 }
