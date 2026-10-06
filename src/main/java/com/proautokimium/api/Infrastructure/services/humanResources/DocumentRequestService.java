@@ -26,10 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class DocumentRequestService {
@@ -64,19 +61,22 @@ public class DocumentRequestService {
     }
 
     @Transactional
-    public DocumentRequest send(UUID id, List<UUID> employeeIds){
+    public DocumentRequest send(UUID id, boolean all, Set<UUID> companyIds,
+                                Set<UUID> departmentIds, Set<UUID> employeeIds){
 
         LocalDateTime now = LocalDateTime.now(clock);
 
         DocumentRequest request = documentRequestRepository.findById(id)
                 .orElseThrow(DocumentRequestNotFoundException::new);
 
+        // Antes do send: com público vazio, a solicitação continua rascunho e o RH corrige.
+        List<Employee> audience = resolveAudience(all, companyIds, departmentIds, employeeIds);
+        if(audience.isEmpty())
+            throw new InvalidRequestDataException("Ninguém do público escolhido tem acesso ao sistema.");
+
         request.send(now);
 
-        for(UUID employeeID : employeeIds) {
-            Employee employee = employeeRepository.findById(employeeID)
-                    .orElseThrow(EmployeeNotFoundException::new);
-
+        for(Employee employee : audience) {
             DocumentRequestRecipient recipient = DocumentRequestRecipient.create(request, employee, now);
             documentRequestRecipientRepository.save(recipient);
         }
@@ -198,5 +198,30 @@ public class DocumentRequestService {
                 .orElse(null);
         if(viaLink != null) return viaLink;
         return employeeRepository.findByUsername(login).orElse(null);
+    }
+
+    /**
+     * Quem recebe: uma FOTOGRAFIA do público na hora do envio. Contratado depois
+     * não recebe; o RH acrescenta a pessoa à mão.
+     *
+     * Elegível é quem os Eventos já convidam: ativo e com login ativo. Sem login,
+     * a pessoa não teria como responder.
+     *
+     * O setor vem pela EQUIPE: `Employee.department` é o enum antigo.
+     */
+    private List<Employee> resolveAudience(boolean all, Set<UUID> companyIds, Set<UUID> departmentsIds, Set<UUID> employeeIds){
+        List<Employee> eligible = employeeRepository.findInvitable();
+        if(all)
+            return eligible;
+
+        if(companyIds.isEmpty() && departmentsIds.isEmpty() && employeeIds.isEmpty())
+            throw new InvalidRequestDataException("Escolha pelo menos uma empresa, um setor ou uma pessoa.");
+
+        return eligible.stream()
+                .filter(e -> (e.getCompany() != null && companyIds.contains(e.getCompany().getId()))
+                        || (e.getTeam() != null && e.getTeam().getDepartment() != null
+                            && departmentsIds.contains(e.getTeam().getDepartment().getId()))
+                        || employeeIds.contains(e.getId()))
+                .toList();
     }
 }

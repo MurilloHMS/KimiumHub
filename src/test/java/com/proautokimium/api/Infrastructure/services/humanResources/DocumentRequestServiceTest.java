@@ -7,6 +7,9 @@ import com.proautokimium.api.Infrastructure.repositories.humanResources.Employee
 import com.proautokimium.api.Infrastructure.repositories.humanResources.EmployeeDocumentTypeRepository;
 import com.proautokimium.api.domain.entities.humanResources.EmployeeDocument;
 import com.proautokimium.api.domain.entities.humanResources.EmployeeDocumentType;
+import com.proautokimium.api.domain.entities.humanResources.Company;
+import com.proautokimium.api.domain.entities.humanResources.Department;
+import com.proautokimium.api.domain.entities.humanResources.Team;
 import org.mockito.ArgumentCaptor;
 import com.proautokimium.api.Infrastructure.services.storage.EmployeeDocumentStorageService;
 import com.proautokimium.api.domain.entities.humanResources.DocumentRequestFile;
@@ -37,6 +40,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -92,13 +96,13 @@ class DocumentRequestServiceTest {
 
         // when(...).thenReturn(...): "quando chamarem isto, devolva aquilo".
         when(requestRepository.findById(requestId)).thenReturn(Optional.of(request));
-        when(employeeRepository.findById(anaId)).thenReturn(Optional.of(new Employee()));
-        when(employeeRepository.findById(brunoId)).thenReturn(Optional.of(new Employee()));
+        // findInvitable: quem pode receber (ativo e com login). "Todos" = esta lista inteira.
+        when(employeeRepository.findInvitable()).thenReturn(List.of(funcionario(anaId), funcionario(brunoId)));
         // O save devolve o próprio objeto que recebeu, como o banco faria.
         when(requestRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
 
         // AGE
-        DocumentRequest result = service.send(requestId, List.of(anaId, brunoId));
+        DocumentRequest result = service.send(requestId, true, Set.of(), Set.of(), Set.of());
 
         // CONFERE
         assertThat(result.getStatus()).isEqualTo(RequestStatus.OPEN);
@@ -133,26 +137,7 @@ class DocumentRequestServiceTest {
         when(requestRepository.findById(requestId)).thenReturn(Optional.empty());
 
         assertThrows(DocumentRequestNotFoundException.class,
-                () -> service.send(requestId, List.of(UUID.randomUUID())));
-
-        verify(recipientRepository, never()).save(any());
-        verify(requestRepository, never()).save(any());
-    }
-
-    /**
-     * O 7º funcionário de 10 não existe: o serviço para ali. Os destinatários
-     * gravados antes são desfeitos pelo @Transactional no banco de verdade;
-     * aqui, o que se confere é que o serviço não continua nem salva a solicitação.
-     */
-    @Test
-    @DisplayName("funcionário que não existe dá erro, e a solicitação não é salva")
-    void sendUnknownEmployee() {
-        UUID requestId = UUID.randomUUID();
-        UUID anaId = UUID.randomUUID();
-        when(requestRepository.findById(requestId)).thenReturn(Optional.of(rascunhoComCampo()));
-        when(employeeRepository.findById(anaId)).thenReturn(Optional.empty());
-
-        assertThrows(EmployeeNotFoundException.class, () -> service.send(requestId, List.of(anaId)));
+                () -> service.send(requestId, true, Set.of(), Set.of(), Set.of()));
 
         verify(recipientRepository, never()).save(any());
         verify(requestRepository, never()).save(any());
@@ -165,11 +150,11 @@ class DocumentRequestServiceTest {
         DocumentRequest jaEnviada = rascunhoComCampo();
         jaEnviada.send(AGORA);
         when(requestRepository.findById(requestId)).thenReturn(Optional.of(jaEnviada));
+        when(employeeRepository.findInvitable()).thenReturn(List.of(funcionario(UUID.randomUUID())));
 
         assertThrows(InvalidStatusTransitionException.class,
-                () -> service.send(requestId, List.of(UUID.randomUUID())));
+                () -> service.send(requestId, true, Set.of(), Set.of(), Set.of()));
 
-        verify(employeeRepository, never()).findById(any());
         verify(recipientRepository, never()).save(any());
     }
 
@@ -482,5 +467,102 @@ class DocumentRequestServiceTest {
 
         verifyNoInteractions(employeeDocumentRepository);
         verifyNoInteractions(fileRepository);
+    }
+
+    // ── público: quem recebe ───────────────────────────────────────────────
+    // O id das entidades é um campo público da classe base; o teste preenche à mão.
+
+    private static Employee funcionario(UUID id) {
+        Employee e = new Employee();
+        e.id = id;
+        return e;
+    }
+
+    /** Envia a solicitação para o público dado e devolve os funcionários que viraram destinatário. */
+    private List<Employee> enviarPara(List<Employee> elegiveis, Set<UUID> empresas, Set<UUID> setores, Set<UUID> pessoas) {
+        UUID requestId = UUID.randomUUID();
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(rascunhoComCampo()));
+        when(employeeRepository.findInvitable()).thenReturn(elegiveis);
+        when(requestRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        service.send(requestId, false, empresas, setores, pessoas);
+
+        ArgumentCaptor<DocumentRequestRecipient> criados = ArgumentCaptor.forClass(DocumentRequestRecipient.class);
+        verify(recipientRepository, org.mockito.Mockito.atLeast(0)).save(criados.capture());
+        return criados.getAllValues().stream().map(DocumentRequestRecipient::getEmployee).toList();
+    }
+
+    @Test
+    @DisplayName("por empresa: entra quem é da empresa; quem não tem empresa fica de fora")
+    void audienceByCompany() {
+        Company kimium = new Company();
+        kimium.id = UUID.randomUUID();
+        Employee ana = funcionario(UUID.randomUUID());
+        ana.setCompany(kimium);
+        Employee semEmpresa = funcionario(UUID.randomUUID());
+
+        List<Employee> recebem = enviarPara(List.of(ana, semEmpresa), Set.of(kimium.id), Set.of(), Set.of());
+
+        assertThat(recebem).containsExactly(ana);
+    }
+
+    @Test
+    @DisplayName("por setor: vale o setor da EQUIPE; quem não tem equipe fica de fora")
+    void audienceByDepartmentThroughTeam() {
+        Department financeiro = new Department();
+        financeiro.id = UUID.randomUUID();
+        Employee bruno = funcionario(UUID.randomUUID());
+        bruno.setTeam(new Team("Contas a pagar", financeiro));
+        Employee semEquipe = funcionario(UUID.randomUUID());
+
+        List<Employee> recebem = enviarPara(List.of(bruno, semEquipe), Set.of(), Set.of(financeiro.id), Set.of());
+
+        assertThat(recebem).containsExactly(bruno);
+    }
+
+    @Test
+    @DisplayName("pelo nome, e quem entra por duas portas recebe uma vez só")
+    void audienceByNameNoDuplicates() {
+        Company kimium = new Company();
+        kimium.id = UUID.randomUUID();
+        Employee ana = funcionario(UUID.randomUUID());
+        ana.setCompany(kimium);
+        Employee carla = funcionario(UUID.randomUUID());
+        Employee outro = funcionario(UUID.randomUUID());
+
+        List<Employee> recebem = enviarPara(List.of(ana, carla, outro),
+                Set.of(kimium.id), Set.of(), Set.of(ana.id, carla.id));
+
+        assertThat(recebem).containsExactlyInAnyOrder(ana, carla);
+    }
+
+    @Test
+    @DisplayName("\"escolher\" sem marcar nada é recusado, e a solicitação continua rascunho")
+    void audienceNothingChosenRefused() {
+        UUID requestId = UUID.randomUUID();
+        DocumentRequest rascunho = rascunhoComCampo();
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(rascunho));
+
+        assertThrows(InvalidRequestDataException.class,
+                () -> service.send(requestId, false, Set.of(), Set.of(), Set.of()));
+
+        assertThat(rascunho.getStatus()).isEqualTo(RequestStatus.DRAFT);
+        verify(recipientRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("público que não resulta em ninguém: recusado, e a solicitação continua rascunho")
+    void audienceEmptyResultRefused() {
+        UUID requestId = UUID.randomUUID();
+        DocumentRequest rascunho = rascunhoComCampo();
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(rascunho));
+        when(employeeRepository.findInvitable()).thenReturn(List.of(funcionario(UUID.randomUUID())));
+
+        assertThrows(InvalidRequestDataException.class,
+                () -> service.send(requestId, false, Set.of(UUID.randomUUID()), Set.of(), Set.of()));
+
+        assertThat(rascunho.getStatus()).isEqualTo(RequestStatus.DRAFT);
+        verify(recipientRepository, never()).save(any());
+        verify(requestRepository, never()).save(any());
     }
 }
