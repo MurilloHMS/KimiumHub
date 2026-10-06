@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
+import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestRecipientRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestRepository;
 import com.proautokimium.api.domain.entities.Employee;
@@ -51,6 +52,7 @@ class DocumentRequestServiceTest {
     @Mock DocumentRequestRepository requestRepository;
     @Mock DocumentRequestRecipientRepository recipientRepository;
     @Mock EmployeeRepository employeeRepository;
+    @Mock UserRepository userRepository;
 
     DocumentRequestService service;
 
@@ -58,7 +60,7 @@ class DocumentRequestServiceTest {
     void setUp() {
         // Um relógio parado em AGORA: o serviço sempre vê a mesma hora.
         Clock clock = Clock.fixed(AGORA.atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
-        service = new DocumentRequestService(requestRepository, recipientRepository, clock, employeeRepository);
+        service = new DocumentRequestService(requestRepository, recipientRepository, clock, employeeRepository, userRepository);
     }
 
     @Test
@@ -210,6 +212,57 @@ class DocumentRequestServiceTest {
 
         assertThrows(InvalidRequestDataException.class,
                 () -> service.giveBack(recipientId, "patricia", "   "));
+
+        verify(recipientRepository, never()).save(any());
+    }
+
+    // ── responder ──────────────────────────────────────────────────────────
+    // O login "ana" não tem vínculo em users (o mock devolve vazio sozinho),
+    // então o serviço cai no findByUsername, que o teste controla.
+
+    @Test
+    @DisplayName("o dono responde: grava as respostas, a hora e muda para enviado")
+    void submitByOwnerSavesAnswers() {
+        Employee ana = new Employee();
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(rascunhoComCampo(), ana, AGORA);
+        UUID recipientId = UUID.randomUUID();
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
+        when(employeeRepository.findByUsername("ana")).thenReturn(Optional.of(ana));
+        when(recipientRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        DocumentRequestRecipient saved = service.submit(recipientId, "ana", Map.of("rg", "123"));
+
+        assertThat(saved.getStatus()).isEqualTo(RecipientStatus.SUBMITTED);
+        assertThat(saved.getAnswers()).containsEntry("rg", "123");
+        assertThat(saved.getSubmittedAt()).isEqualTo(AGORA);
+        verify(recipientRepository, times(1)).save(recipient);
+    }
+
+    @Test
+    @DisplayName("outro funcionário tenta responder: 404, como se não existisse, e nada é salvo")
+    void submitByAnotherEmployeeRefused() {
+        Employee joao = new Employee();
+        Employee ana = new Employee();
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(rascunhoComCampo(), joao, AGORA);
+        UUID recipientId = UUID.randomUUID();
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
+        when(employeeRepository.findByUsername("ana")).thenReturn(Optional.of(ana));
+
+        assertThrows(DocumentRequestRecipientNotFoundException.class,
+                () -> service.submit(recipientId, "ana", Map.of("rg", "123")));
+
+        assertThat(recipient.getStatus()).isEqualTo(RecipientStatus.PENDING);
+        verify(recipientRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("responder uma resposta que não existe dá 404")
+    void submitUnknownRecipient() {
+        UUID recipientId = UUID.randomUUID();
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.empty());
+
+        assertThrows(DocumentRequestRecipientNotFoundException.class,
+                () -> service.submit(recipientId, "ana", Map.of()));
 
         verify(recipientRepository, never()).save(any());
     }
