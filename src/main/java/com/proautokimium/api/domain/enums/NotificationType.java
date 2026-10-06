@@ -18,6 +18,8 @@ public enum NotificationType {
     EVENTO,
     /** O resumo diário da programação de máquinas: atrasadas e saídas próximas. */
     PROGRAMACAO,
+    /** Solicitação do RH: chegou uma para responder, ou o RH aprovou ou devolveu a resposta. */
+    SOLICITACAO,
     /** Notificação genérica do sistema. */
     GERAL
 }

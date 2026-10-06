@@ -1,5 +1,9 @@
 package com.proautokimium.api.Infrastructure.services.home;
 
+import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.RecipientDTO;
+import com.proautokimium.api.Infrastructure.services.humanResources.DocumentRequestService;
+import com.proautokimium.api.domain.enums.humanResources.RecipientStatus;
+import com.proautokimium.api.domain.enums.humanResources.RequestStatus;
 import com.proautokimium.api.Application.DTOs.home.HomeSummaryDTO;
 import com.proautokimium.api.Application.DTOs.home.PendingItemDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.ReimbursementResponseDTO;
@@ -54,19 +58,22 @@ public class HomeSummaryService {
     private final EmployeeRepository employeeRepository;
     private final EventAttendanceService eventAttendanceService;
     private final MedicalCertificateService medicalCertificateService;
+    private final DocumentRequestService documentRequestService;
 
     public HomeSummaryService(HoleriteService holeriteService,
                               VacationRequestService vacationRequestService,
                               ReimbursementService reimbursementService,
                               EmployeeRepository employeeRepository,
                               EventAttendanceService eventAttendanceService,
-                              MedicalCertificateService medicalCertificateService) {
+                              MedicalCertificateService medicalCertificateService,
+                              DocumentRequestService documentRequestService) {
         this.holeriteService = holeriteService;
         this.vacationRequestService = vacationRequestService;
         this.reimbursementService = reimbursementService;
         this.employeeRepository = employeeRepository;
         this.eventAttendanceService = eventAttendanceService;
         this.medicalCertificateService = medicalCertificateService;
+        this.documentRequestService = documentRequestService;
     }
 
     /**
@@ -93,6 +100,8 @@ public class HomeSummaryService {
             mine.addAll(reembolsosAguardando(login));
 
             mine.addAll(atestados(login));
+
+            mine.addAll(solicitacoes(login));
 
         } catch (EmployeeNotFoundException e) {
             log.debug("Login {} não tem funcionário vinculado — home sem pendências pessoais", login);
@@ -238,7 +247,36 @@ public class HomeSummaryService {
                     ultimoEnvio(c)));
         }
 
+        for (RecipientDTO r : documentRequestService.listAwaitingReview()) {
+            itens.add(new PendingItemDTO(
+                    PendingType.CONFERENCIA_SOLICITACAO,
+                    r.employeeName() != null ? r.employeeName() : "Funcionário",
+                    "Respondeu: " + r.requestTitle(),
+                    r.submittedAt(),
+                    r.id()));
+        }
+
         itens.sort(maisAntigaPrimeiro());
+        return itens;
+    }
+
+    /**
+     * Solicitação aberta ainda sem resposta, e a devolvida para corrigir. A de
+     * solicitação encerrada some: não há mais o que responder.
+     */
+    private List<PendingItemDTO> solicitacoes(String login) {
+        List<PendingItemDTO> itens = new ArrayList<>();
+        for (RecipientDTO r : documentRequestService.listMine(login)) {
+            if (r.requestStatus() != RequestStatus.OPEN) continue;
+            String prazo = r.requestDueDate() != null ? " até " + r.requestDueDate().format(DIA_MES) : "";
+            if (r.status() == RecipientStatus.PENDING) {
+                itens.add(new PendingItemDTO(PendingType.SOLICITACAO_PENDENTE, r.requestTitle(),
+                        "Responda" + prazo, r.addedAt(), r.id()));
+            } else if (r.status() == RecipientStatus.RETURNED) {
+                itens.add(new PendingItemDTO(PendingType.SOLICITACAO_DEVOLVIDA, r.requestTitle(),
+                        "Devolvida: " + r.returnReason(), r.reviewedAt(), r.id()));
+            }
+        }
         return itens;
     }
 

@@ -20,5 +20,11 @@ public enum PendingType {
     /** Atestado esperando a conferência do RH. */
     CONFERENCIA_ATESTADO,
     /** Convite de evento aberto e ainda sem resposta; {@code refId} é o evento. */
-    EVENT_RSVP
+    EVENT_RSVP,
+    /** Solicitação do RH para responder; {@code refId} é a resposta (destinatário). */
+    SOLICITACAO_PENDENTE,
+    /** Resposta devolvida pelo RH, para corrigir; {@code refId} é a resposta. */
+    SOLICITACAO_DEVOLVIDA,
+    /** Resposta de solicitação esperando a conferência do RH; {@code refId} é a resposta. */
+    CONFERENCIA_SOLICITACAO
 }

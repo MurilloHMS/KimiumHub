@@ -25,8 +25,9 @@ public class EmployeeDocumentTypeController {
         this.service = service;
     }
 
+    // As Solicitações também leem: o campo de arquivo escolhe o tipo que ele vira na aprovação.
     @GetMapping
-    @PreAuthorize("hasAuthority('rh/employee-documents:CONSULTAR')")
+    @PreAuthorize("hasAnyAuthority('rh/employee-documents:CONSULTAR', 'rh/document-requests:CONSULTAR')")
     @Operation(summary = "Lista os tipos", description = "Ativos e inativos, por nome")
     public ResponseEntity<List<EmployeeDocumentTypeDTO>> list() {
         return ResponseEntity.ok(service.list());

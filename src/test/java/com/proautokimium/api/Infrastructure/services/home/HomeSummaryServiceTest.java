@@ -51,6 +51,7 @@ class HomeSummaryServiceTest {
     @Mock private EventAttendanceService eventAttendanceService;
     @Mock private com.proautokimium.api.Infrastructure.services.humanResources.MedicalCertificateService medicalCertificateService;
 
+    @Mock private com.proautokimium.api.Infrastructure.services.humanResources.DocumentRequestService documentRequestService;
     @InjectMocks private HomeSummaryService service;
 
     // ─── Fábricas ────────────────────────────────────────────────────────────
@@ -291,5 +292,62 @@ class HomeSummaryServiceTest {
         clearInvocations(medicalCertificateService);
         service.getSummary(LOGIN, false);
         verify(medicalCertificateService, never()).listAll(any());
+    }
+
+    // ─── Solicitações do RH ──────────────────────────────────────────────────
+
+    private static com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.RecipientDTO resposta(
+            com.proautokimium.api.domain.enums.humanResources.RequestStatus requestStatus,
+            com.proautokimium.api.domain.enums.humanResources.RecipientStatus status, String motivo) {
+        return new com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.RecipientDTO(
+                UUID.randomUUID(), UUID.randomUUID(), "Envie seu RG", null, LocalDate.of(2026, 10, 20),
+                requestStatus, List.of(), null, UUID.randomUUID(), "Ana Souza", status, java.util.Map.of(),
+                LocalDateTime.of(2026, 10, 1, 9, 0), LocalDateTime.of(2026, 10, 2, 9, 0),
+                null, LocalDateTime.of(2026, 10, 3, 9, 0), motivo, List.of());
+    }
+
+    @Test
+    @DisplayName("solicitação aberta: a pendente e a devolvida entram; a enviada e a de solicitação encerrada não")
+    void solicitacoesDoFuncionario() {
+        semDadosPessoais();
+        var OPEN = com.proautokimium.api.domain.enums.humanResources.RequestStatus.OPEN;
+        var CLOSED = com.proautokimium.api.domain.enums.humanResources.RequestStatus.CLOSED;
+        when(documentRequestService.listMine(LOGIN)).thenReturn(List.of(
+                resposta(OPEN, com.proautokimium.api.domain.enums.humanResources.RecipientStatus.PENDING, null),
+                resposta(OPEN, com.proautokimium.api.domain.enums.humanResources.RecipientStatus.RETURNED, "Foto cortada"),
+                resposta(OPEN, com.proautokimium.api.domain.enums.humanResources.RecipientStatus.SUBMITTED, null),
+                resposta(CLOSED, com.proautokimium.api.domain.enums.humanResources.RecipientStatus.PENDING, null)));
+
+        HomeSummaryDTO home = service.getSummary(LOGIN, false);
+
+        assertThat(home.mine()).extracting(i -> i.type())
+                .containsExactlyInAnyOrder(PendingType.SOLICITACAO_PENDENTE, PendingType.SOLICITACAO_DEVOLVIDA);
+        assertThat(home.mine()).filteredOn(i -> i.type() == PendingType.SOLICITACAO_PENDENTE)
+                .singleElement().satisfies(i -> assertThat(i.detail()).isEqualTo("Responda até 20/10"));
+        assertThat(home.mine()).filteredOn(i -> i.type() == PendingType.SOLICITACAO_DEVOLVIDA)
+                .singleElement().satisfies(i -> assertThat(i.detail()).isEqualTo("Devolvida: Foto cortada"));
+        assertThat(home.mine()).allSatisfy(i -> assertThat(i.refId()).isNotNull());
+    }
+
+    @Test
+    @DisplayName("conferência de solicitação só para o RH, com o nome de quem respondeu")
+    void conferenciaDeSolicitacaoSoParaRh() {
+        semDadosPessoais();
+        when(vacationRequestService.listAll(VacationRequestStatus.PENDING)).thenReturn(List.of());
+        when(reimbursementService.listAll(ReimbursementStatus.PENDING)).thenReturn(List.of());
+        when(documentRequestService.listAwaitingReview()).thenReturn(List.of(resposta(
+                com.proautokimium.api.domain.enums.humanResources.RequestStatus.OPEN,
+                com.proautokimium.api.domain.enums.humanResources.RecipientStatus.SUBMITTED, null)));
+
+        HomeSummaryDTO rh = service.getSummary(LOGIN, true);
+        assertThat(rh.approvals()).singleElement().satisfies(i -> {
+            assertThat(i.type()).isEqualTo(PendingType.CONFERENCIA_SOLICITACAO);
+            assertThat(i.title()).isEqualTo("Ana Souza");
+            assertThat(i.detail()).isEqualTo("Respondeu: Envie seu RG");
+        });
+
+        clearInvocations(documentRequestService);
+        service.getSummary(LOGIN, false);
+        verify(documentRequestService, never()).listAwaitingReview();
     }
 }
