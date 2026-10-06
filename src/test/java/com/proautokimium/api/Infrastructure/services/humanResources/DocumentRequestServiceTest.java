@@ -6,9 +6,12 @@ import com.proautokimium.api.Infrastructure.repositories.humanResources.Document
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.humanResources.DocumentRequest;
 import com.proautokimium.api.domain.entities.humanResources.DocumentRequestRecipient;
+import com.proautokimium.api.domain.enums.humanResources.RecipientStatus;
 import com.proautokimium.api.domain.enums.humanResources.RequestStatus;
 import com.proautokimium.api.domain.valueObjects.humanResources.RequestField;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.DocumentRequestNotFoundException;
+import com.proautokimium.api.Infrastructure.exceptions.humanResources.DocumentRequestRecipientNotFoundException;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
 import com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +25,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -147,6 +151,66 @@ class DocumentRequestServiceTest {
                 () -> service.send(requestId, List.of(UUID.randomUUID())));
 
         verify(employeeRepository, never()).findById(any());
+        verify(recipientRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("grava quem aprovou e quando")
+    void approveRecordsReviewer(){
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(rascunhoComCampo(), new Employee(), AGORA);
+        recipient.submit(Map.of("tamanho", "M"), AGORA);
+
+        UUID recipientId = UUID.randomUUID();
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
+
+        when(recipientRepository.save(any())).thenAnswer(call -> call.getArgument(0));
+
+        DocumentRequestRecipient result = service.approve(recipientId, "patricia");
+
+        assertThat(result.getStatus()).isEqualTo(RecipientStatus.APPROVED);
+        assertThat(result.getReviewedBy()).isEqualTo("patricia");
+        assertThat(result.getReviewedAt()).isEqualTo(AGORA);
+    }
+
+    @Test
+    @DisplayName("aprovar uma resposta que não existe dá 404, e nada é gravado")
+    void approveUnknownRecipient() {
+        UUID recipientId = UUID.randomUUID();
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.empty());
+
+        assertThrows(DocumentRequestRecipientNotFoundException.class,
+                () -> service.approve(recipientId, "patricia"));
+
+        verify(recipientRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("devolver grava o motivo e deixa RETURNED")
+    void giveBackRecordsReason() {
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(rascunhoComCampo(), new Employee(), AGORA);
+        recipient.submit(Map.of("tamanho", "M"), AGORA);
+        UUID recipientId = UUID.randomUUID();
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
+        when(recipientRepository.save(any())).thenAnswer(call -> call.getArgument(0));
+
+        DocumentRequestRecipient result = service.giveBack(recipientId, "patricia", "Faltou a calça");
+
+        assertThat(result.getStatus()).isEqualTo(RecipientStatus.RETURNED);
+        assertThat(result.getReturnReason()).isEqualTo("Faltou a calça");
+        assertThat(result.getReviewedBy()).isEqualTo("patricia");
+    }
+
+    @Test
+    @DisplayName("devolver sem motivo é recusado pela regra da entidade, e nada é gravado")
+    void giveBackWithoutReasonRefused() {
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(rascunhoComCampo(), new Employee(), AGORA);
+        recipient.submit(Map.of("tamanho", "M"), AGORA);
+        UUID recipientId = UUID.randomUUID();
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
+
+        assertThrows(InvalidRequestDataException.class,
+                () -> service.giveBack(recipientId, "patricia", "   "));
+
         verify(recipientRepository, never()).save(any());
     }
 }

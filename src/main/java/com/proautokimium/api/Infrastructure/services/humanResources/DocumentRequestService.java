@@ -1,6 +1,7 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.DocumentRequestNotFoundException;
+import com.proautokimium.api.Infrastructure.exceptions.humanResources.DocumentRequestRecipientNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestFileRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestRecipientRepository;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -56,5 +58,23 @@ public class DocumentRequestService {
             documentRequestRecipientRepository.save(recipient);
         }
         return documentRequestRepository.save(request);
+    }
+
+    @Transactional
+    public DocumentRequestRecipient approve(UUID recipientId, String reviewerLogin){
+        DocumentRequestRecipient recipient = documentRequestRecipientRepository.findById(recipientId)
+                .orElseThrow(DocumentRequestRecipientNotFoundException::new);
+
+        recipient.approve(reviewerLogin, LocalDateTime.now(clock));
+        return documentRequestRecipientRepository.save(recipient);
+    }
+
+    @Transactional
+    public DocumentRequestRecipient giveBack(UUID recipientId, String reviewerLogin, String reason){
+        DocumentRequestRecipient recipient = documentRequestRecipientRepository.findById(recipientId)
+                .orElseThrow(DocumentRequestRecipientNotFoundException::new);
+
+        recipient.giveBack(reviewerLogin, reason, LocalDateTime.now(clock));
+        return documentRequestRecipientRepository.save(recipient);
     }
 }
