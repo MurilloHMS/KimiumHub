@@ -103,6 +103,46 @@ public class DocumentRequestController {
         return ResponseEntity.ok(service.getRequest(id));
     }
 
+    @PostMapping("/{id}/duplicate")
+    @PreAuthorize("hasAuthority('rh/document-requests:INCLUIR')")
+    @Operation(summary = "Duplica", description = "Rascunho novo com o mesmo título, instruções e campos")
+    public ResponseEntity<DocumentRequestDTO> duplicate(@PathVariable UUID id, Authentication auth) {
+        UUID copy = service.duplicate(id, auth.getName()).getId();
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.getRequest(copy));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('rh/document-requests:EXCLUIR')")
+    @Operation(summary = "Exclui o rascunho", description = "Depois do envio, só encerrando")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) throws IOException {
+        service.deleteDraft(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/{id}/template", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('rh/document-requests:ALTERAR')")
+    @Operation(summary = "Anexa o modelo", description = "O arquivo que o funcionário baixa e devolve preenchido; só no rascunho")
+    public ResponseEntity<DocumentRequestDTO> uploadTemplate(@PathVariable UUID id,
+                                                             @RequestParam("file") MultipartFile file) throws IOException {
+        service.uploadTemplate(id, file);
+        return ResponseEntity.ok(service.getRequest(id));
+    }
+
+    /** Acrescenta gente a uma solicitação aberta: o contratado depois do envio. */
+    @PostMapping("/{id}/recipients")
+    @PreAuthorize("hasAuthority('rh/document-requests:ENVIAR')")
+    public ResponseEntity<DocumentRequestDTO> addRecipients(@PathVariable UUID id, @RequestBody SendDocumentRequestDTO body) {
+        service.addRecipients(id, body.all(), orEmpty(body.companyIds()), orEmpty(body.departmentIds()), orEmpty(body.employeeIds()));
+        return ResponseEntity.ok(service.getRequest(id));
+    }
+
+    /** O botão "Lembrar pendentes". Devolve quantas pessoas foram lembradas. */
+    @PostMapping("/{id}/remind")
+    @PreAuthorize("hasAuthority('rh/document-requests:ENVIAR')")
+    public ResponseEntity<java.util.Map<String, Integer>> remind(@PathVariable UUID id) {
+        return ResponseEntity.ok(java.util.Map.of("reminded", service.remindPending(id)));
+    }
+
     /** As opções do seletor de público: as mesmas dos Eventos, com quem pode receber. */
     @GetMapping("/audience-options")
     @PreAuthorize("hasAuthority('rh/document-requests:CONSULTAR')")
@@ -182,7 +222,18 @@ public class DocumentRequestController {
     public ResponseEntity<byte[]> download(@PathVariable UUID fileId, Authentication auth) throws IOException {
         // equals, e não contains: "vê de todos" é ter a tela do RH, exatamente.
         boolean isReviewer = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(HR_DOWNLOAD));
-        DocumentRequestService.FileContent content = service.readFile(fileId, auth.getName(), isReviewer);
+        return file(service.readFile(fileId, auth.getName(), isReviewer));
+    }
+
+    /** O modelo: o RH baixa de qualquer solicitação; o funcionário, só da que recebeu. */
+    @GetMapping("/{id}/template")
+    @PreAuthorize("hasAnyAuthority('rh/document-requests:BAIXAR', 'documentos/rh/requests:BAIXAR')")
+    public ResponseEntity<byte[]> downloadTemplate(@PathVariable UUID id, Authentication auth) throws IOException {
+        boolean isReviewer = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(HR_DOWNLOAD));
+        return file(service.readTemplate(id, auth.getName(), isReviewer));
+    }
+
+    private static ResponseEntity<byte[]> file(DocumentRequestService.FileContent content) {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline()
                         .filename(content.filename(), StandardCharsets.UTF_8).build().toString())

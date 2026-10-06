@@ -54,6 +54,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -868,5 +869,157 @@ class DocumentRequestServiceTest {
         java.nio.file.Files.delete(arquivo);
         assertThrows(com.proautokimium.api.Infrastructure.exceptions.humanResources.DocumentRequestFileNotFoundException.class,
                 () -> service.readFile(fileId, "rita", true));
+    }
+
+    // ── extras da v1: acrescentar, lembrar, duplicar, excluir, modelo ───────
+
+    @Test
+    @DisplayName("acrescentar gente: quem já recebeu fica de fora, e só os novos são avisados")
+    void addRecipientsSkipsWhoAlreadyHas() {
+        UUID requestId = UUID.randomUUID();
+        DocumentRequest aberta = abertaComCampo();
+        Employee ana = funcionario(UUID.randomUUID());
+        Employee novato = funcionario(UUID.randomUUID());
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(aberta));
+        when(recipientRepository.findByDocumentRequestOrderByAddedAtDesc(aberta))
+                .thenReturn(List.of(DocumentRequestRecipient.create(aberta, ana, AGORA)));
+        when(employeeRepository.findInvitable()).thenReturn(List.of(ana, novato));
+        when(userRepository.findActiveByEmployeeIds(List.of(novato.id))).thenReturn(List.of(usuario("novato")));
+
+        int added = service.addRecipients(requestId, true, Set.of(), Set.of(), Set.of());
+
+        assertThat(added).isEqualTo(1);
+        ArgumentCaptor<DocumentRequestRecipient> criado = ArgumentCaptor.forClass(DocumentRequestRecipient.class);
+        verify(recipientRepository).save(criado.capture());
+        assertThat(criado.getValue().getEmployee()).isSameAs(novato);
+        verify(notificationService).notify(eq("novato"), eq(NotificationType.SOLICITACAO), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("acrescentar quando todos já receberam: recusado com o motivo; e rascunho não recebe gente")
+    void addRecipientsRefusals() {
+        UUID requestId = UUID.randomUUID();
+        DocumentRequest aberta = abertaComCampo();
+        Employee ana = funcionario(UUID.randomUUID());
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(aberta));
+        when(recipientRepository.findByDocumentRequestOrderByAddedAtDesc(aberta))
+                .thenReturn(List.of(DocumentRequestRecipient.create(aberta, ana, AGORA)));
+        when(employeeRepository.findInvitable()).thenReturn(List.of(ana));
+
+        assertThrows(InvalidRequestDataException.class,
+                () -> service.addRecipients(requestId, true, Set.of(), Set.of(), Set.of()));
+
+        UUID draftId = UUID.randomUUID();
+        when(requestRepository.findById(draftId)).thenReturn(Optional.of(rascunhoComCampo()));
+        assertThrows(InvalidStatusTransitionException.class,
+                () -> service.addRecipients(draftId, true, Set.of(), Set.of(), Set.of()));
+        verify(recipientRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("lembrar: avisa a pendente e a devolvida; quem já enviou ou foi aprovado não")
+    void remindPendingAndReturned() {
+        UUID requestId = UUID.randomUUID();
+        DocumentRequest aberta = abertaComCampo();
+        Employee pendente = funcionario(UUID.randomUUID());
+        Employee devolvida = funcionario(UUID.randomUUID());
+        Employee enviou = funcionario(UUID.randomUUID());
+        DocumentRequestRecipient rDevolvida = DocumentRequestRecipient.create(aberta, devolvida, AGORA);
+        rDevolvida.submit(Map.of(), AGORA);
+        rDevolvida.giveBack("rita", "Foto cortada", AGORA);
+        DocumentRequestRecipient rEnviou = DocumentRequestRecipient.create(aberta, enviou, AGORA);
+        rEnviou.submit(Map.of(), AGORA);
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(aberta));
+        when(recipientRepository.findByDocumentRequestOrderByAddedAtDesc(aberta)).thenReturn(List.of(
+                DocumentRequestRecipient.create(aberta, pendente, AGORA), rDevolvida, rEnviou));
+        when(userRepository.findActiveByEmployeeIds(anyList())).thenReturn(List.of(usuario("a"), usuario("b")));
+
+        int reminded = service.remindPending(requestId);
+
+        assertThat(reminded).isEqualTo(2);
+        ArgumentCaptor<List<UUID>> ids = ArgumentCaptor.forClass(List.class);
+        verify(userRepository).findActiveByEmployeeIds(ids.capture());
+        assertThat(ids.getValue()).containsExactlyInAnyOrder(pendente.id, devolvida.id);
+    }
+
+    @Test
+    @DisplayName("duplicar cria rascunho com o mesmo formulário, sem prazo e sem modelo")
+    void duplicateCopiesForm() {
+        UUID requestId = UUID.randomUUID();
+        DocumentRequest original = DocumentRequest.draft("Uniforme", "rita", AGORA);
+        original.updateDraft("Uniforme", "Escolha o tamanho", java.time.LocalDate.of(2026, 10, 20),
+                List.of(new RequestField("camisa", "Camisa", null, "CHOICE", true, List.of("P", "M"), null)));
+        original.attachTemplate("modelo.pdf", "solicitacoes-modelos/abc-modelo.pdf");
+        original.send(AGORA);
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(original));
+        when(requestRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        DocumentRequest copy = service.duplicate(requestId, "patricia");
+
+        assertThat(copy.getStatus()).isEqualTo(RequestStatus.DRAFT);
+        assertThat(copy.getTitle()).isEqualTo("Cópia de Uniforme");
+        assertThat(copy.getCreatedBy()).isEqualTo("patricia");
+        assertThat(copy.getInstructions()).isEqualTo("Escolha o tamanho");
+        assertThat(copy.getForm()).isEqualTo(original.getForm()).isNotSameAs(original.getForm());
+        assertThat(copy.getDueDate()).isNull();
+        assertThat(copy.getTemplatePath()).isNull();
+    }
+
+    @Test
+    @DisplayName("excluir: só rascunho, e o modelo sai do disco junto")
+    void deleteDraftOnly() throws Exception {
+        UUID draftId = UUID.randomUUID();
+        DocumentRequest rascunho = rascunhoComCampo();
+        rascunho.attachTemplate("modelo.pdf", "solicitacoes-modelos/abc-modelo.pdf");
+        when(requestRepository.findById(draftId)).thenReturn(Optional.of(rascunho));
+
+        service.deleteDraft(draftId);
+
+        verify(requestRepository).delete(rascunho);
+        verify(storage).delete("solicitacoes-modelos/abc-modelo.pdf");
+
+        UUID openId = UUID.randomUUID();
+        when(requestRepository.findById(openId)).thenReturn(Optional.of(abertaComCampo()));
+        assertThrows(InvalidStatusTransitionException.class, () -> service.deleteDraft(openId));
+    }
+
+    @Test
+    @DisplayName("trocar o modelo apaga o anterior do disco; depois do envio, recusado antes do disco")
+    void uploadTemplateReplacesPrevious() throws Exception {
+        UUID draftId = UUID.randomUUID();
+        DocumentRequest rascunho = rascunhoComCampo();
+        rascunho.attachTemplate("velho.pdf", "solicitacoes-modelos/velho.pdf");
+        when(requestRepository.findById(draftId)).thenReturn(Optional.of(rascunho));
+        when(storage.save(any(), eq("solicitacoes-modelos"), eq("rg.pdf"))).thenReturn("solicitacoes-modelos/novo-rg.pdf");
+
+        service.uploadTemplate(draftId, rgPdf());
+
+        assertThat(rascunho.getTemplatePath()).isEqualTo("solicitacoes-modelos/novo-rg.pdf");
+        verify(storage).delete("solicitacoes-modelos/velho.pdf");
+
+        UUID openId = UUID.randomUUID();
+        when(requestRepository.findById(openId)).thenReturn(Optional.of(abertaComCampo()));
+        clearInvocations(storage);
+        assertThrows(InvalidStatusTransitionException.class, () -> service.uploadTemplate(openId, rgPdf()));
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    @DisplayName("baixar o modelo de uma solicitação que a pessoa não recebeu: 404")
+    void readTemplateOnlyForRecipients() {
+        UUID requestId = UUID.randomUUID();
+        // COM modelo: sem ele o 404 viria da falta do arquivo, e o teste não provaria a regra do "recebeu".
+        DocumentRequest aberta = rascunhoComCampo();
+        aberta.attachTemplate("contrato.pdf", "solicitacoes-modelos/contrato.pdf");
+        aberta.send(AGORA);
+        aberta.id = requestId;
+        Employee ana = funcionario(UUID.randomUUID());
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(aberta));
+        when(employeeRepository.findByUsername("ana")).thenReturn(Optional.of(ana));
+        when(recipientRepository.findByEmployeeOrderByAddedAtDesc(ana)).thenReturn(List.of());
+
+        assertThrows(com.proautokimium.api.Infrastructure.exceptions.humanResources.DocumentRequestFileNotFoundException.class,
+                () -> service.readTemplate(requestId, "ana", false));
+        verifyNoInteractions(storage);
     }
 }

@@ -54,6 +54,8 @@ public class DocumentRequestService {
     /** Quem confere é quem pode ALTERAR na tela do RH, a mesma regra do @PreAuthorize do aprovar. */
     private static final String REVIEW_SCREEN = "rh/document-requests";
     private static final String REVIEW_PERMISSION = "ALTERAR";
+    /** A pasta dos arquivos-modelo, dentro do armazenamento de documentos. */
+    private static final String TEMPLATE_FOLDER = "solicitacoes-modelos";
 
     private final DocumentRequestRepository documentRequestRepository;
     private final DocumentRequestRecipientRepository documentRequestRecipientRepository;
@@ -104,6 +106,118 @@ public class DocumentRequestService {
     }
 
     @Transactional
+    public DocumentRequest duplicate(UUID id, String login){
+        DocumentRequest source = documentRequestRepository.findById(id)
+                .orElseThrow(DocumentRequestNotFoundException::new);
+        return documentRequestRepository.save(source.duplicate(login, LocalDateTime.now(clock)));
+    }
+
+    /** Só rascunho se exclui: depois do envio há respostas e arquivos de gente que já respondeu. */
+    @Transactional
+    public void deleteDraft(UUID id) throws IOException {
+        DocumentRequest request = documentRequestRepository.findById(id)
+                .orElseThrow(DocumentRequestNotFoundException::new);
+        if(!request.isDraft()) throw new InvalidStatusTransitionException("Só um rascunho pode ser excluído; encerre a solicitação.");
+        String template = request.getTemplatePath();
+        documentRequestRepository.delete(request);
+        if(template != null) storage.delete(template);
+    }
+
+    /** O arquivo-modelo, numa pasta própria do armazenamento de documentos. */
+    @Transactional
+    public DocumentRequest uploadTemplate(UUID id, MultipartFile file) throws IOException {
+        DocumentRequest request = documentRequestRepository.findById(id)
+                .orElseThrow(DocumentRequestNotFoundException::new);
+        if(!request.isDraft()) throw new InvalidStatusTransitionException("O modelo só muda no rascunho.");
+        EmployeeDocumentService.acceptedContentType(file);
+
+        String path = storage.save(file.getBytes(), TEMPLATE_FOLDER, file.getOriginalFilename());
+        String previous;
+        try {
+            previous = request.attachTemplate(file.getOriginalFilename(), path);
+            documentRequestRepository.save(request);
+        } catch (RuntimeException refused) {
+            try {
+                storage.delete(path);
+            } catch (IOException deleteFailure) {
+                refused.addSuppressed(deleteFailure);
+            }
+            throw refused;
+        }
+        if(previous != null){
+            try { storage.delete(previous); }
+            catch (IOException e) { log.warn("Modelo antigo ficou no disco: {}", previous, e); }
+        }
+        return request;
+    }
+
+    /**
+     * O modelo: o RH baixa de qualquer solicitação; o funcionário, só da que
+     * recebeu. Para os outros, 404.
+     */
+    @Transactional(readOnly = true)
+    public FileContent readTemplate(UUID requestId, String login, boolean isReviewer) throws IOException {
+        DocumentRequest request = documentRequestRepository.findById(requestId)
+                .orElseThrow(DocumentRequestFileNotFoundException::new);
+        if(!isReviewer){
+            Employee caller = resolveEmployee(login);
+            boolean received = caller != null && documentRequestRecipientRepository.findByEmployeeOrderByAddedAtDesc(caller)
+                    .stream().anyMatch(r -> r.getDocumentRequest().getId().equals(requestId));
+            if(!received) throw new DocumentRequestFileNotFoundException();
+        }
+        if(request.getTemplatePath() == null) throw new DocumentRequestFileNotFoundException();
+        java.nio.file.Path path = storage.resolve(request.getTemplatePath());
+        if(!Files.exists(path)) throw new DocumentRequestFileNotFoundException();
+        return new FileContent(request.getTemplateFilename(),
+                EmployeeDocumentService.contentTypeOf(request.getTemplateFilename()), Files.readAllBytes(path));
+    }
+
+    /**
+     * Acrescenta gente a uma solicitação ABERTA: o contratado depois do envio.
+     * Quem já recebeu fica de fora em silêncio (o banco recusaria pelo UNIQUE);
+     * se não sobrar ninguém, a recusa diz por quê.
+     */
+    @Transactional
+    public int addRecipients(UUID id, boolean all, Set<UUID> companyIds, Set<UUID> departmentIds, Set<UUID> employeeIds){
+        DocumentRequest request = documentRequestRepository.findById(id)
+                .orElseThrow(DocumentRequestNotFoundException::new);
+        if(request.getStatus() != RequestStatus.OPEN)
+            throw new InvalidStatusTransitionException("Só se acrescenta gente a uma solicitação aberta.");
+
+        Set<UUID> already = documentRequestRecipientRepository.findByDocumentRequestOrderByAddedAtDesc(request).stream()
+                .map(r -> r.getEmployee().getId()).collect(Collectors.toSet());
+        List<Employee> added = resolveAudience(all, companyIds, departmentIds, employeeIds).stream()
+                .filter(e -> !already.contains(e.getId()))
+                .toList();
+        if(added.isEmpty())
+            throw new InvalidRequestDataException("Todos do público escolhido já receberam esta solicitação.");
+
+        LocalDateTime now = LocalDateTime.now(clock);
+        for(Employee employee : added){
+            documentRequestRecipientRepository.save(DocumentRequestRecipient.create(request, employee, now));
+        }
+        notifyEmployees(added, "Nova solicitação do RH", request.getTitle());
+        return added.size();
+    }
+
+    /** O botão "Lembrar pendentes": quem ainda não respondeu, e quem teve a resposta devolvida. */
+    @Transactional(readOnly = true)
+    public int remindPending(UUID id){
+        DocumentRequest request = documentRequestRepository.findById(id)
+                .orElseThrow(DocumentRequestNotFoundException::new);
+        if(request.getStatus() != RequestStatus.OPEN)
+            throw new InvalidStatusTransitionException("Só se lembra quem tem uma solicitação aberta.");
+
+        List<Employee> pending = documentRequestRecipientRepository.findByDocumentRequestOrderByAddedAtDesc(request).stream()
+                .filter(r -> r.getStatus() == RecipientStatus.PENDING || r.getStatus() == RecipientStatus.RETURNED)
+                .map(DocumentRequestRecipient::getEmployee)
+                .toList();
+        notifyEmployees(pending, "Lembrete do RH", request.getTitle()
+                + (request.getDueDate() != null ? " · até " + request.getDueDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM")) : ""));
+        return pending.size();
+    }
+
+    @Transactional
     public DocumentRequest send(UUID id, boolean all, Set<UUID> companyIds,
                                 Set<UUID> departmentIds, Set<UUID> employeeIds){
 
@@ -124,12 +238,7 @@ public class DocumentRequestService {
             documentRequestRecipientRepository.save(recipient);
         }
 
-        // Uma consulta para todos os logins, não uma por pessoa.
-        List<UUID> ids = audience.stream().map(Employee::getId).toList();
-        for (User user : userRepository.findActiveByEmployeeIds(ids)) {
-            safely(() -> notificationService.notify(user.getLogin(), NotificationType.SOLICITACAO,
-                    "Nova solicitação do RH", request.getTitle(), EMPLOYEE_LINK));
-        }
+        notifyEmployees(audience, "Nova solicitação do RH", request.getTitle());
         return documentRequestRepository.save(request);
     }
 
@@ -369,7 +478,7 @@ public class DocumentRequestService {
         long approved = byStatus.getOrDefault(RecipientStatus.APPROVED, 0L);
         long returned = byStatus.getOrDefault(RecipientStatus.RETURNED, 0L);
         return new DocumentRequestDTO(r.getId(), r.getTitle(), r.getInstructions(), r.getDueDate(), r.getStatus(),
-                r.getForm(), r.getCreatedBy(), r.getCreatedAt(), r.getSentAt(), r.getClosedAt(),
+                r.getForm(), r.getTemplateFilename(), r.getCreatedBy(), r.getCreatedAt(), r.getSentAt(), r.getClosedAt(),
                 new DocumentRequestDTO.Counts(pending + submitted + approved + returned, pending, submitted, approved, returned));
     }
 
@@ -384,11 +493,21 @@ public class DocumentRequestService {
         return recipients.stream().map(r -> {
             DocumentRequest request = r.getDocumentRequest();
             return new RecipientDTO(r.getId(), request.getId(), request.getTitle(), request.getInstructions(),
-                    request.getDueDate(), request.getStatus(), request.getForm(),
+                    request.getDueDate(), request.getStatus(), request.getForm(), request.getTemplateFilename(),
                     r.getEmployee().getId(), r.getEmployee().getName(), r.getStatus(), r.getAnswers(),
                     r.getAddedAt(), r.getSubmittedAt(), r.getReviewedBy(), r.getReviewedAt(), r.getReturnReason(),
                     files.getOrDefault(r.getId(), List.of()));
         }).toList();
+    }
+
+    /** Uma consulta para todos os logins, não uma por pessoa. */
+    private void notifyEmployees(List<Employee> employees, String title, String message){
+        if(employees.isEmpty()) return;
+        List<UUID> ids = employees.stream().map(Employee::getId).toList();
+        for (User user : userRepository.findActiveByEmployeeIds(ids)) {
+            safely(() -> notificationService.notify(user.getLogin(), NotificationType.SOLICITACAO,
+                    title, message, EMPLOYEE_LINK));
+        }
     }
 
     private void notifyOwner(DocumentRequestRecipient recipient, String title, String message){

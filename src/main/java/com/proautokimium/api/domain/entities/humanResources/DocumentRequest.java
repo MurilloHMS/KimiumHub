@@ -105,6 +105,38 @@ public class DocumentRequest extends com.proautokimium.api.domain.abstractions.E
         this.form = new ArrayList<>(fields);
     }
 
+    /**
+     * O arquivo-modelo (o contrato para preencher, a política para assinar), só
+     * no rascunho: depois do envio, todos precisam ter recebido o mesmo arquivo.
+     * Devolve o caminho do anterior, para o serviço apagar do disco.
+     */
+    public String attachTemplate(String filename, String path){
+        if(status != RequestStatus.DRAFT) throw new InvalidStatusTransitionException("O modelo só muda no rascunho.");
+        if(filename == null || filename.isBlank() || path == null || path.isBlank())
+            throw new InvalidRequestDataException("Envie o arquivo do modelo.");
+        String previous = this.templatePath;
+        this.templateFilename = filename;
+        this.templatePath = path;
+        return previous;
+    }
+
+    /**
+     * Um rascunho novo com o mesmo título, instruções e campos: a solicitação do
+     * ano que vem. Prazo e modelo não vêm junto: o prazo é outro, e o modelo é
+     * um arquivo que só pode ter um dono.
+     */
+    public DocumentRequest duplicate(String createdBy, LocalDateTime now){
+        String copyTitle = ("Cópia de " + title);
+        DocumentRequest copy = new DocumentRequest(copyTitle.length() > 120 ? copyTitle.substring(0, 120) : copyTitle, createdBy, now);
+        copy.instructions = this.instructions;
+        copy.form = new ArrayList<>(this.form);
+        return copy;
+    }
+
+    public boolean isDraft(){
+        return status == RequestStatus.DRAFT;
+    }
+
     public void send(LocalDateTime now){
         if(status != RequestStatus.DRAFT) throw new InvalidStatusTransitionException("Só um rascunho pode ser enviado.");
 

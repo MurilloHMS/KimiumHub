@@ -19,6 +19,8 @@ public record DocumentRequestDTO(
         LocalDate dueDate,
         RequestStatus status,
         List<RequestField> form,
+        /** O nome do arquivo-modelo, ou null; o conteúdo vem por GET /{id}/template. */
+        String templateFilename,
         String createdBy,
         LocalDateTime createdAt,
         LocalDateTime sentAt,

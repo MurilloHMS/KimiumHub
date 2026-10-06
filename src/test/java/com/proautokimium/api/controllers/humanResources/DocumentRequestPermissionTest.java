@@ -136,4 +136,20 @@ class DocumentRequestPermissionTest {
         mockMvc.perform(get(BASE + "/files/" + UUID.randomUUID())).andExpect(status().isForbidden());
         verifyNoInteractions(service);
     }
+
+    @Test
+    @DisplayName("excluir pede EXCLUIR; lembrar e acrescentar gente pedem ENVIAR; o modelo, ALTERAR")
+    @WithMockUser(authorities = {"rh/document-requests:CONSULTAR", "rh/document-requests:INCLUIR"})
+    void extrasPedemAPermissaoCerta() throws Exception {
+        UUID id = UUID.randomUUID();
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete(BASE + "/" + id).with(csrf()))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post(BASE + "/" + id + "/remind").with(csrf())).andExpect(status().isForbidden());
+        mockMvc.perform(post(BASE + "/" + id + "/recipients").with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"all\":true}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(multipart(BASE + "/" + id + "/template").file("file", "%PDF".getBytes()).with(csrf()))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(service);
+    }
 }

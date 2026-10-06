@@ -23,6 +23,8 @@ public record RecipientDTO(
         LocalDate requestDueDate,
         RequestStatus requestStatus,
         List<RequestField> form,
+        /** O modelo para baixar e preencher, ou null. */
+        String requestTemplateFilename,
         UUID employeeId,
         String employeeName,
         RecipientStatus status,
