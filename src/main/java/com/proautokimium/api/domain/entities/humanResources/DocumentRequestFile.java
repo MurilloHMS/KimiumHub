@@ -64,4 +64,11 @@ public class DocumentRequestFile extends com.proautokimium.api.domain.abstractio
         if(replacedAt != null) throw new InvalidStatusTransitionException("Este arquivo já foi substituído");
         this.replacedAt = now;
     }
+
+    public void linkTo(EmployeeDocument document){
+        if(document == null) throw new InvalidRequestDataException("Necessário informar um documento válido");
+        if(employeeDocument != null) throw new InvalidStatusTransitionException("Esse arquivo já foi vinculado a um documento");
+
+        this.employeeDocument = document;
+    }
 }

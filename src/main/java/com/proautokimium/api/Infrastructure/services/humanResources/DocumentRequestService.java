@@ -7,12 +7,16 @@ import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestFileRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestRecipientRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestRepository;
+import com.proautokimium.api.Infrastructure.repositories.humanResources.EmployeeDocumentRepository;
+import com.proautokimium.api.Infrastructure.repositories.humanResources.EmployeeDocumentTypeRepository;
 import com.proautokimium.api.Infrastructure.services.storage.EmployeeDocumentStorageService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.entities.humanResources.DocumentRequest;
 import com.proautokimium.api.domain.entities.humanResources.DocumentRequestFile;
 import com.proautokimium.api.domain.entities.humanResources.DocumentRequestRecipient;
+import com.proautokimium.api.domain.entities.humanResources.EmployeeDocument;
+import com.proautokimium.api.domain.valueObjects.humanResources.RequestField;
 import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import org.springframework.stereotype.Service;
@@ -37,8 +41,11 @@ public class DocumentRequestService {
     private final UserRepository userRepository;
     private final DocumentRequestFileRepository documentRequestFileRepository;
     private final EmployeeDocumentStorageService storage;
+    private final EmployeeDocumentRepository employeeDocumentRepository;
+    private final EmployeeDocumentTypeRepository employeeDocumentTypeRepository;
 
-    public DocumentRequestService(DocumentRequestRepository documentRequestRepository, DocumentRequestRecipientRepository documentRequestRecipientRepository, Clock clock, EmployeeRepository employeeRepository, UserRepository userRepository, DocumentRequestFileRepository documentRequestFileRepository, EmployeeDocumentStorageService storage) {
+    public DocumentRequestService(DocumentRequestRepository documentRequestRepository, DocumentRequestRecipientRepository documentRequestRecipientRepository, Clock clock, EmployeeRepository employeeRepository, UserRepository userRepository, DocumentRequestFileRepository documentRequestFileRepository, EmployeeDocumentStorageService storage,
+                                  EmployeeDocumentRepository employeeDocumentRepository, EmployeeDocumentTypeRepository employeeDocumentTypeRepository) {
         this.documentRequestRepository = documentRequestRepository;
         this.documentRequestRecipientRepository = documentRequestRecipientRepository;
         this.clock = clock;
@@ -46,6 +53,8 @@ public class DocumentRequestService {
         this.userRepository = userRepository;
         this.documentRequestFileRepository = documentRequestFileRepository;
         this.storage = storage;
+        this.employeeDocumentRepository = employeeDocumentRepository;
+        this.employeeDocumentTypeRepository = employeeDocumentTypeRepository;
     }
 
     @Transactional
@@ -79,7 +88,35 @@ public class DocumentRequestService {
         DocumentRequestRecipient recipient = documentRequestRecipientRepository.findById(recipientId)
                 .orElseThrow(DocumentRequestRecipientNotFoundException::new);
 
-        recipient.approve(reviewerLogin, LocalDateTime.now(clock));
+        // A mesma hora na aprovação e nos documentos que ela cria.
+        LocalDateTime now = LocalDateTime.now(clock);
+        recipient.approve(reviewerLogin, now);
+
+        // Cada arquivo atual cujo campo tem tipo de documento vira um documento do
+        // funcionário, apontando para o MESMO arquivo no disco: não há cópia.
+        List<RequestField> form = recipient.getDocumentRequest().getForm();
+        for (DocumentRequestFile file : documentRequestFileRepository.findByDocumentRequestRecipientAndReplacedAtIsNull(recipient)) {
+            RequestField field = form.stream()
+                    .filter(f -> file.getFieldKey().equals(f.key()))
+                    .findFirst()
+                    .orElse(null);
+            if (field == null || field.documentTypeId() == null) continue;
+
+            EmployeeDocument document = new EmployeeDocument();
+            document.setEmployee(recipient.getEmployee());
+            // Sem FK no formulário: tipo apagado depois do envio vira documento sem tipo, não recusa.
+            document.setType(employeeDocumentTypeRepository.findById(field.documentTypeId()).orElse(null));
+            document.setTitle(field.label());
+            document.setOriginalFilename(file.getOriginalFilename());
+            document.setStoragePath(file.getStoragePath());
+            document.setContentType(EmployeeDocumentService.contentTypeOf(file.getOriginalFilename()));
+            document.setUploadedAt(now);
+            document.setUploadedBy(reviewerLogin);
+
+            file.linkTo(employeeDocumentRepository.save(document));
+            documentRequestFileRepository.save(file);
+        }
+
         return documentRequestRecipientRepository.save(recipient);
     }
 

@@ -80,4 +80,35 @@ class DocumentRequestFileTest {
 
         assertThat(file.getReplacedAt()).isEqualTo(AGORA);
     }
+
+    @Test
+    @DisplayName("vincular guarda o documento do funcionário criado na aprovação")
+    void linkToStoresDocument() {
+        DocumentRequestFile file = rg();
+        EmployeeDocument document = new EmployeeDocument();
+
+        file.linkTo(document);
+
+        assertThat(file.getEmployeeDocument()).isSameAs(document);
+    }
+
+    @Test
+    @DisplayName("vincular sem documento é recusado")
+    void linkToNullRefused() {
+        DocumentRequestFile file = rg();
+
+        assertThrows(InvalidRequestDataException.class, () -> file.linkTo(null));
+        assertThat(file.getEmployeeDocument()).isNull();
+    }
+
+    @Test
+    @DisplayName("vincular duas vezes é recusado, e o primeiro vínculo fica")
+    void linkToTwiceRefused() {
+        DocumentRequestFile file = rg();
+        EmployeeDocument first = new EmployeeDocument();
+        file.linkTo(first);
+
+        assertThrows(InvalidStatusTransitionException.class, () -> file.linkTo(new EmployeeDocument()));
+        assertThat(file.getEmployeeDocument()).isSameAs(first);
+    }
 }

@@ -221,15 +221,20 @@ public class EmployeeDocumentService {
         if (file.getSize() > MAX_FILE_BYTES) {
             throw new InvalidRequestDataException("O arquivo passa de 10 MB.");
         }
-        String name = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
-        String extension = name.contains(".")
-                ? name.substring(name.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT)
-                : "";
-        String contentType = ACCEPTED.get(extension);
+        String contentType = contentTypeOf(file.getOriginalFilename());
         if (contentType == null) {
             throw new InvalidRequestDataException("Envie um PDF, JPG ou PNG.");
         }
         return contentType;
+    }
+
+    /** O tipo pela extensão do nome, ou null se não for PDF, JPG ou PNG. */
+    static String contentTypeOf(String filename) {
+        String name = filename == null ? "" : filename;
+        String extension = name.contains(".")
+                ? name.substring(name.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT)
+                : "";
+        return ACCEPTED.get(extension);
     }
 
     private void notifyEmployee(Employee employee, String title) {

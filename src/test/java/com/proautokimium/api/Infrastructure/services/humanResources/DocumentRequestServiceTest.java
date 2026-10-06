@@ -3,6 +3,11 @@ package com.proautokimium.api.Infrastructure.services.humanResources;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestFileRepository;
+import com.proautokimium.api.Infrastructure.repositories.humanResources.EmployeeDocumentRepository;
+import com.proautokimium.api.Infrastructure.repositories.humanResources.EmployeeDocumentTypeRepository;
+import com.proautokimium.api.domain.entities.humanResources.EmployeeDocument;
+import com.proautokimium.api.domain.entities.humanResources.EmployeeDocumentType;
+import org.mockito.ArgumentCaptor;
 import com.proautokimium.api.Infrastructure.services.storage.EmployeeDocumentStorageService;
 import com.proautokimium.api.domain.entities.humanResources.DocumentRequestFile;
 import org.springframework.mock.web.MockMultipartFile;
@@ -62,6 +67,8 @@ class DocumentRequestServiceTest {
     @Mock UserRepository userRepository;
     @Mock DocumentRequestFileRepository fileRepository;
     @Mock EmployeeDocumentStorageService storage;
+    @Mock EmployeeDocumentRepository employeeDocumentRepository;
+    @Mock EmployeeDocumentTypeRepository employeeDocumentTypeRepository;
 
     DocumentRequestService service;
 
@@ -69,7 +76,8 @@ class DocumentRequestServiceTest {
     void setUp() {
         // Um relógio parado em AGORA: o serviço sempre vê a mesma hora.
         Clock clock = Clock.fixed(AGORA.atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
-        service = new DocumentRequestService(requestRepository, recipientRepository, clock, employeeRepository, userRepository, fileRepository, storage);
+        service = new DocumentRequestService(requestRepository, recipientRepository, clock, employeeRepository, userRepository, fileRepository, storage,
+                employeeDocumentRepository, employeeDocumentTypeRepository);
     }
 
     @Test
@@ -382,5 +390,97 @@ class DocumentRequestServiceTest {
                 () -> service.upload(recipientId, "ana", "rg", rgPdf()));
 
         verify(storage).delete("0042/abc-rg.pdf");
+    }
+
+    // ── aprovar cria o documento do funcionário ────────────────────────────
+
+    private static final UUID TIPO_RG = UUID.randomUUID();
+
+    /** Uma resposta ENVIADA, de uma solicitação com o campo "rg" (com tipo) e "cracha" (sem tipo). */
+    private DocumentRequestRecipient respostaEnviada(Employee dono, UUID recipientId) {
+        DocumentRequest request = DocumentRequest.draft("Documentos de admissão", "rita", AGORA);
+        request.getForm().add(new RequestField("rg", "Foto do RG", null, "FILE", true, List.of(), TIPO_RG));
+        request.getForm().add(new RequestField("cracha", "Foto para o crachá", null, "FILE", true, List.of(), null));
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(request, dono, AGORA);
+        recipient.submit(Map.of(), AGORA);
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
+        return recipient;
+    }
+
+    @Test
+    @DisplayName("aprovar: o arquivo de campo com tipo vira documento do funcionário, com o MESMO caminho")
+    void approveCreatesEmployeeDocument() {
+        Employee ana = new Employee();
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = respostaEnviada(ana, recipientId);
+        DocumentRequestFile rg = DocumentRequestFile.create(recipient, "rg", "rg.pdf", "0042/abc-rg.pdf", AGORA);
+        EmployeeDocumentType tipoRg = EmployeeDocumentType.create("RG", AGORA);
+        when(fileRepository.findByDocumentRequestRecipientAndReplacedAtIsNull(recipient)).thenReturn(List.of(rg));
+        when(employeeDocumentTypeRepository.findById(TIPO_RG)).thenReturn(Optional.of(tipoRg));
+        when(employeeDocumentRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        when(recipientRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        service.approve(recipientId, "patricia");
+
+        // ArgumentCaptor: "pegue o objeto que o serviço passou para o save", para olhar dentro.
+        ArgumentCaptor<EmployeeDocument> salvo = ArgumentCaptor.forClass(EmployeeDocument.class);
+        verify(employeeDocumentRepository).save(salvo.capture());
+        EmployeeDocument document = salvo.getValue();
+        assertThat(document.getEmployee()).isSameAs(ana);
+        assertThat(document.getType()).isSameAs(tipoRg);
+        assertThat(document.getTitle()).isEqualTo("Foto do RG");
+        assertThat(document.getStoragePath()).isEqualTo("0042/abc-rg.pdf");
+        assertThat(document.getContentType()).isEqualTo("application/pdf");
+        assertThat(document.getUploadedAt()).isEqualTo(AGORA);
+        assertThat(document.getUploadedBy()).isEqualTo("patricia");
+        assertThat(rg.getEmployeeDocument()).isSameAs(document);
+        verify(fileRepository).save(rg);
+    }
+
+    @Test
+    @DisplayName("aprovar: campo sem tipo de documento (o crachá) não vira documento")
+    void approveSkipsFieldWithoutType() {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = respostaEnviada(new Employee(), recipientId);
+        DocumentRequestFile cracha = DocumentRequestFile.create(recipient, "cracha", "eu.jpg", "0042/abc-eu.jpg", AGORA);
+        when(fileRepository.findByDocumentRequestRecipientAndReplacedAtIsNull(recipient)).thenReturn(List.of(cracha));
+        when(recipientRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        service.approve(recipientId, "patricia");
+
+        verifyNoInteractions(employeeDocumentRepository);
+        assertThat(cracha.getEmployeeDocument()).isNull();
+    }
+
+    @Test
+    @DisplayName("aprovar: tipo apagado depois do envio vira documento sem tipo, sem recusar a aprovação")
+    void approveWithDeletedTypeStillCreatesDocument() {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = respostaEnviada(new Employee(), recipientId);
+        DocumentRequestFile rg = DocumentRequestFile.create(recipient, "rg", "rg.png", "0042/abc-rg.png", AGORA);
+        when(fileRepository.findByDocumentRequestRecipientAndReplacedAtIsNull(recipient)).thenReturn(List.of(rg));
+        when(employeeDocumentTypeRepository.findById(TIPO_RG)).thenReturn(Optional.empty());
+        when(employeeDocumentRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        when(recipientRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        DocumentRequestRecipient result = service.approve(recipientId, "patricia");
+
+        assertThat(result.getStatus()).isEqualTo(RecipientStatus.APPROVED);
+        assertThat(rg.getEmployeeDocument()).isNotNull();
+        assertThat(rg.getEmployeeDocument().getType()).isNull();
+        assertThat(rg.getEmployeeDocument().getContentType()).isEqualTo("image/png");
+    }
+
+    @Test
+    @DisplayName("aprovar o que não foi enviado: recusado antes de criar qualquer documento")
+    void approveNotSubmittedCreatesNothing() {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient pendente = DocumentRequestRecipient.create(rascunhoComCampo(), new Employee(), AGORA);
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(pendente));
+
+        assertThrows(InvalidStatusTransitionException.class, () -> service.approve(recipientId, "patricia"));
+
+        verifyNoInteractions(employeeDocumentRepository);
+        verifyNoInteractions(fileRepository);
     }
 }
