@@ -11,6 +11,9 @@ import com.proautokimium.api.domain.entities.humanResources.Company;
 import com.proautokimium.api.domain.entities.humanResources.Department;
 import com.proautokimium.api.domain.entities.humanResources.Team;
 import org.mockito.ArgumentCaptor;
+import com.proautokimium.api.Infrastructure.services.notification.NotificationService;
+import com.proautokimium.api.domain.entities.auth.User;
+import com.proautokimium.api.domain.enums.NotificationType;
 import com.proautokimium.api.Infrastructure.services.storage.EmployeeDocumentStorageService;
 import com.proautokimium.api.domain.entities.humanResources.DocumentRequestFile;
 import org.springframework.mock.web.MockMultipartFile;
@@ -47,6 +50,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
@@ -73,6 +77,7 @@ class DocumentRequestServiceTest {
     @Mock EmployeeDocumentStorageService storage;
     @Mock EmployeeDocumentRepository employeeDocumentRepository;
     @Mock EmployeeDocumentTypeRepository employeeDocumentTypeRepository;
+    @Mock NotificationService notificationService;
 
     DocumentRequestService service;
 
@@ -81,7 +86,7 @@ class DocumentRequestServiceTest {
         // Um relógio parado em AGORA: o serviço sempre vê a mesma hora.
         Clock clock = Clock.fixed(AGORA.atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
         service = new DocumentRequestService(requestRepository, recipientRepository, clock, employeeRepository, userRepository, fileRepository, storage,
-                employeeDocumentRepository, employeeDocumentTypeRepository);
+                employeeDocumentRepository, employeeDocumentTypeRepository, notificationService);
     }
 
     @Test
@@ -564,5 +569,92 @@ class DocumentRequestServiceTest {
         assertThat(rascunho.getStatus()).isEqualTo(RequestStatus.DRAFT);
         verify(recipientRepository, never()).save(any());
         verify(requestRepository, never()).save(any());
+    }
+
+    // ── avisos (o sino) ────────────────────────────────────────────────────
+
+    private static User usuario(String login) {
+        User user = new User();
+        user.setLogin(login);
+        return user;
+    }
+
+    @Test
+    @DisplayName("enviar avisa cada destinatário, com o título da solicitação e o link da tela dele")
+    void sendNotifiesEachRecipient() {
+        UUID requestId = UUID.randomUUID();
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(rascunhoComCampo()));
+        when(employeeRepository.findInvitable()).thenReturn(List.of(funcionario(UUID.randomUUID()), funcionario(UUID.randomUUID())));
+        when(userRepository.findActiveByEmployeeIds(anyList())).thenReturn(List.of(usuario("ana"), usuario("bruno")));
+        when(requestRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        service.send(requestId, true, Set.of(), Set.of(), Set.of());
+
+        verify(notificationService).notify("ana", NotificationType.SOLICITACAO,
+                "Nova solicitação do RH", "Envie seu RG", "/documentos/rh/requests");
+        verify(notificationService).notify("bruno", NotificationType.SOLICITACAO,
+                "Nova solicitação do RH", "Envie seu RG", "/documentos/rh/requests");
+    }
+
+    @Test
+    @DisplayName("o sino falhar não desfaz o envio: a solicitação abre e é salva")
+    void sendSurvivesNotificationFailure() {
+        UUID requestId = UUID.randomUUID();
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(rascunhoComCampo()));
+        when(employeeRepository.findInvitable()).thenReturn(List.of(funcionario(UUID.randomUUID())));
+        when(userRepository.findActiveByEmployeeIds(anyList())).thenReturn(List.of(usuario("ana")));
+        when(notificationService.notify(any(), any(), any(), any(), any())).thenThrow(new IllegalStateException("push fora"));
+        when(requestRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        DocumentRequest result = service.send(requestId, true, Set.of(), Set.of(), Set.of());
+
+        assertThat(result.getStatus()).isEqualTo(RequestStatus.OPEN);
+        verify(requestRepository).save(result);
+    }
+
+    @Test
+    @DisplayName("aprovar avisa o dono da resposta")
+    void approveNotifiesOwner() {
+        UUID recipientId = UUID.randomUUID();
+        Employee ana = funcionario(UUID.randomUUID());
+        respostaEnviada(ana, recipientId);
+        when(userRepository.findByEmployee_Id(ana.id)).thenReturn(Optional.of(usuario("ana")));
+        when(recipientRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        service.approve(recipientId, "patricia");
+
+        verify(notificationService).notify("ana", NotificationType.SOLICITACAO,
+                "Sua resposta foi aprovada", "Documentos de admissão", "/documentos/rh/requests");
+    }
+
+    @Test
+    @DisplayName("devolver avisa o dono, com o motivo na mensagem")
+    void giveBackNotifiesOwnerWithReason() {
+        UUID recipientId = UUID.randomUUID();
+        Employee ana = funcionario(UUID.randomUUID());
+        respostaEnviada(ana, recipientId);
+        when(userRepository.findByEmployee_Id(ana.id)).thenReturn(Optional.of(usuario("ana")));
+        when(recipientRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        service.giveBack(recipientId, "patricia", "Foto do RG está cortada");
+
+        verify(notificationService).notify("ana", NotificationType.SOLICITACAO,
+                "Sua resposta foi devolvida", "Documentos de admissão: Foto do RG está cortada",
+                "/documentos/rh/requests");
+    }
+
+    @Test
+    @DisplayName("devolver sem motivo é recusado, e ninguém é avisado")
+    void giveBackRefusedNotifiesNobody() {
+        UUID recipientId = UUID.randomUUID();
+        Employee ana = funcionario(UUID.randomUUID());
+        respostaEnviada(ana, recipientId);
+        // A Ana TEM login: sem isto, nenhum aviso sairia nem no código errado, e o teste não provaria nada.
+        // lenient: no código certo esta busca nem acontece, e o Mockito reclamaria do "preparo sem uso".
+        org.mockito.Mockito.lenient().when(userRepository.findByEmployee_Id(ana.id)).thenReturn(Optional.of(usuario("ana")));
+
+        assertThrows(InvalidRequestDataException.class, () -> service.giveBack(recipientId, "patricia", " "));
+
+        verifyNoInteractions(notificationService);
     }
 }

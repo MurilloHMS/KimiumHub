@@ -9,7 +9,11 @@ import com.proautokimium.api.Infrastructure.repositories.humanResources.Document
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.EmployeeDocumentRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.EmployeeDocumentTypeRepository;
+import com.proautokimium.api.Infrastructure.services.notification.NotificationService;
 import com.proautokimium.api.Infrastructure.services.storage.EmployeeDocumentStorageService;
+import com.proautokimium.api.domain.enums.NotificationType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.entities.humanResources.DocumentRequest;
@@ -31,6 +35,11 @@ import java.util.*;
 @Service
 public class DocumentRequestService {
 
+    private static final Logger log = LoggerFactory.getLogger(DocumentRequestService.class);
+
+    /** Onde o funcionário vê e responde as solicitações dele. */
+    private static final String EMPLOYEE_LINK = "/documentos/rh/requests";
+
     private final DocumentRequestRepository documentRequestRepository;
     private final DocumentRequestRecipientRepository documentRequestRecipientRepository;
     private final Clock clock;
@@ -40,9 +49,11 @@ public class DocumentRequestService {
     private final EmployeeDocumentStorageService storage;
     private final EmployeeDocumentRepository employeeDocumentRepository;
     private final EmployeeDocumentTypeRepository employeeDocumentTypeRepository;
+    private final NotificationService notificationService;
 
     public DocumentRequestService(DocumentRequestRepository documentRequestRepository, DocumentRequestRecipientRepository documentRequestRecipientRepository, Clock clock, EmployeeRepository employeeRepository, UserRepository userRepository, DocumentRequestFileRepository documentRequestFileRepository, EmployeeDocumentStorageService storage,
-                                  EmployeeDocumentRepository employeeDocumentRepository, EmployeeDocumentTypeRepository employeeDocumentTypeRepository) {
+                                  EmployeeDocumentRepository employeeDocumentRepository, EmployeeDocumentTypeRepository employeeDocumentTypeRepository,
+                                  NotificationService notificationService) {
         this.documentRequestRepository = documentRequestRepository;
         this.documentRequestRecipientRepository = documentRequestRecipientRepository;
         this.clock = clock;
@@ -52,6 +63,7 @@ public class DocumentRequestService {
         this.storage = storage;
         this.employeeDocumentRepository = employeeDocumentRepository;
         this.employeeDocumentTypeRepository = employeeDocumentTypeRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -79,6 +91,13 @@ public class DocumentRequestService {
         for(Employee employee : audience) {
             DocumentRequestRecipient recipient = DocumentRequestRecipient.create(request, employee, now);
             documentRequestRecipientRepository.save(recipient);
+        }
+
+        // Uma consulta para todos os logins, não uma por pessoa.
+        List<UUID> ids = audience.stream().map(Employee::getId).toList();
+        for (User user : userRepository.findActiveByEmployeeIds(ids)) {
+            safely(() -> notificationService.notify(user.getLogin(), NotificationType.SOLICITACAO,
+                    "Nova solicitação do RH", request.getTitle(), EMPLOYEE_LINK));
         }
         return documentRequestRepository.save(request);
     }
@@ -117,6 +136,7 @@ public class DocumentRequestService {
             documentRequestFileRepository.save(file);
         }
 
+        notifyOwner(recipient, "Sua resposta foi aprovada", recipient.getDocumentRequest().getTitle());
         return documentRequestRecipientRepository.save(recipient);
     }
 
@@ -126,6 +146,8 @@ public class DocumentRequestService {
                 .orElseThrow(DocumentRequestRecipientNotFoundException::new);
 
         recipient.giveBack(reviewerLogin, reason, LocalDateTime.now(clock));
+        notifyOwner(recipient, "Sua resposta foi devolvida",
+                recipient.getDocumentRequest().getTitle() + ": " + recipient.getReturnReason());
         return documentRequestRecipientRepository.save(recipient);
     }
 
@@ -187,6 +209,21 @@ public class DocumentRequestService {
     }
 
     // Methods
+
+    private void notifyOwner(DocumentRequestRecipient recipient, String title, String message){
+        userRepository.findByEmployee_Id(recipient.getEmployee().getId()).ifPresent(user ->
+                safely(() -> notificationService.notify(user.getLogin(), NotificationType.SOLICITACAO,
+                        title, message, EMPLOYEE_LINK)));
+    }
+
+    /** O aviso é melhor esforço: a solicitação foi gravada, e isso não se desfaz porque o sino falhou. */
+    private void safely(Runnable send){
+        try {
+            send.run();
+        } catch (RuntimeException e) {
+            log.warn("Falha ao avisar sobre solicitação do RH", e);
+        }
+    }
     private static boolean isOwner(DocumentRequestRecipient recipient, Employee caller){
         Employee owner = recipient.getEmployee();
         return owner == caller || (caller.getId() != null && caller.getId().equals(owner.getId()));
