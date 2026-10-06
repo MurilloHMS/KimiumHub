@@ -7,8 +7,10 @@ import com.proautokimium.api.domain.valueObjects.humanResources.RequestField;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -116,5 +118,66 @@ class DocumentRequestTest {
 
         assertThrows(InvalidStatusTransitionException.class,
                 () -> request.close(AGORA));
+    }
+
+    // ── editar o rascunho ──────────────────────────────────────────────────
+
+    private static RequestField texto(String key, String label) {
+        return new RequestField(key, label, null, "SHORT_TEXT", true, List.of(), null);
+    }
+
+    @Test
+    @DisplayName("editar o rascunho troca título, instruções, prazo e campos")
+    void updateDraftReplacesEverything() {
+        DocumentRequest request = DocumentRequest.draft("Envie seu RG", "rita", AGORA);
+        RequestField rg = new RequestField("rg", "Foto do RG", null, "FILE", true, List.of(), UUID.randomUUID());
+        RequestField camisa = new RequestField("camisa", "Camisa", null, "CHOICE", true, List.of("P", "M", "G"), null);
+
+        request.updateDraft("  Admissão  ", "  Foto nítida  ", LocalDate.of(2026, 10, 20), List.of(rg, camisa));
+
+        assertThat(request.getTitle()).isEqualTo("Admissão");
+        assertThat(request.getInstructions()).isEqualTo("Foto nítida");
+        assertThat(request.getDueDate()).isEqualTo(LocalDate.of(2026, 10, 20));
+        assertThat(request.getForm()).containsExactly(rg, camisa);
+    }
+
+    @Test
+    @DisplayName("depois de enviada, a solicitação não muda: as respostas usam as chaves dos campos")
+    void updateAfterSendRefused() {
+        DocumentRequest request = DocumentRequest.draft("Envie seu RG", "rita", AGORA);
+        request.updateDraft("Envie seu RG", null, null, List.of(texto("rg", "RG")));
+        request.send(AGORA);
+
+        assertThrows(InvalidStatusTransitionException.class,
+                () -> request.updateDraft("Outro", null, null, List.of(texto("cpf", "CPF"))));
+        assertThat(request.getForm()).extracting(RequestField::key).containsExactly("rg");
+    }
+
+    @Test
+    @DisplayName("campos inválidos são recusados, e o rascunho fica como estava")
+    void updateRefusesInvalidFields() {
+        DocumentRequest request = DocumentRequest.draft("Envie seu RG", "rita", AGORA);
+        request.updateDraft("Envie seu RG", null, null, List.of(texto("rg", "RG")));
+
+        // título vazio
+        assertThrows(InvalidRequestDataException.class, () -> request.updateDraft(" ", null, null, List.of()));
+        // chave repetida
+        assertThrows(InvalidRequestDataException.class,
+                () -> request.updateDraft("T", null, null, List.of(texto("a", "A"), texto("a", "B"))));
+        // sem nome
+        assertThrows(InvalidRequestDataException.class,
+                () -> request.updateDraft("T", null, null, List.of(texto("a", " "))));
+        // tipo desconhecido
+        assertThrows(InvalidRequestDataException.class, () -> request.updateDraft("T", null, null,
+                List.of(new RequestField("a", "A", null, "FOTO", true, List.of(), null))));
+        // escolha sem opções
+        assertThrows(InvalidRequestDataException.class, () -> request.updateDraft("T", null, null,
+                List.of(new RequestField("a", "A", null, "CHOICE", true, List.of(), null))));
+        // tipo de documento em campo que não é arquivo
+        assertThrows(InvalidRequestDataException.class, () -> request.updateDraft("T", null, null,
+                List.of(new RequestField("a", "A", null, "SHORT_TEXT", true, List.of(), UUID.randomUUID()))));
+
+        assertThat(request.getTitle()).isEqualTo("Envie seu RG");
+        assertThat(request.getForm()).extracting(RequestField::key).containsExactly("rg");
     }
 }

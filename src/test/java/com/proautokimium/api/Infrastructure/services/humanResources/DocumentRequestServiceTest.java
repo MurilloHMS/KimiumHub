@@ -116,6 +116,13 @@ class DocumentRequestServiceTest {
         verify(recipientRepository, times(2)).save(any(DocumentRequestRecipient.class));
     }
 
+    /** Uma solicitação já enviada: é só nela que alguém responde. Destinatário nunca existe num rascunho. */
+    private DocumentRequest abertaComCampo() {
+        DocumentRequest request = rascunhoComCampo();
+        request.send(AGORA);
+        return request;
+    }
+
     /** Uma solicitação pronta para enviar: rascunho com um campo. */
     private DocumentRequest rascunhoComCampo() {
         DocumentRequest request = DocumentRequest.draft("Envie seu RG", "rita", AGORA);
@@ -166,7 +173,7 @@ class DocumentRequestServiceTest {
     @Test
     @DisplayName("grava quem aprovou e quando")
     void approveRecordsReviewer(){
-        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(rascunhoComCampo(), new Employee(), AGORA);
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(abertaComCampo(), new Employee(), AGORA);
         recipient.submit(Map.of("tamanho", "M"), AGORA);
 
         UUID recipientId = UUID.randomUUID();
@@ -196,7 +203,7 @@ class DocumentRequestServiceTest {
     @Test
     @DisplayName("devolver grava o motivo e deixa RETURNED")
     void giveBackRecordsReason() {
-        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(rascunhoComCampo(), new Employee(), AGORA);
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(abertaComCampo(), new Employee(), AGORA);
         recipient.submit(Map.of("tamanho", "M"), AGORA);
         UUID recipientId = UUID.randomUUID();
         when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
@@ -212,7 +219,7 @@ class DocumentRequestServiceTest {
     @Test
     @DisplayName("devolver sem motivo é recusado pela regra da entidade, e nada é gravado")
     void giveBackWithoutReasonRefused() {
-        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(rascunhoComCampo(), new Employee(), AGORA);
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(abertaComCampo(), new Employee(), AGORA);
         recipient.submit(Map.of("tamanho", "M"), AGORA);
         UUID recipientId = UUID.randomUUID();
         when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
@@ -231,16 +238,20 @@ class DocumentRequestServiceTest {
     @DisplayName("o dono responde: grava as respostas, a hora e muda para enviado")
     void submitByOwnerSavesAnswers() {
         Employee ana = new Employee();
-        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(rascunhoComCampo(), ana, AGORA);
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(abertaComCampo(), ana, AGORA);
         UUID recipientId = UUID.randomUUID();
         when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
         when(employeeRepository.findByUsername("ana")).thenReturn(Optional.of(ana));
         when(recipientRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
 
+        // O RG (arquivo obrigatório) já subiu; a resposta de texto do campo "rg" é ignorada: campo de arquivo não leva texto.
+        when(fileRepository.findByDocumentRequestRecipientAndReplacedAtIsNull(recipient))
+                .thenReturn(List.of(DocumentRequestFile.create(recipient, "rg", "rg.pdf", "0042/rg.pdf", AGORA)));
+
         DocumentRequestRecipient saved = service.submit(recipientId, "ana", Map.of("rg", "123"));
 
         assertThat(saved.getStatus()).isEqualTo(RecipientStatus.SUBMITTED);
-        assertThat(saved.getAnswers()).containsEntry("rg", "123");
+        assertThat(saved.getAnswers()).doesNotContainKey("rg");
         assertThat(saved.getSubmittedAt()).isEqualTo(AGORA);
         verify(recipientRepository, times(1)).save(recipient);
     }
@@ -250,7 +261,7 @@ class DocumentRequestServiceTest {
     void submitByAnotherEmployeeRefused() {
         Employee joao = new Employee();
         Employee ana = new Employee();
-        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(rascunhoComCampo(), joao, AGORA);
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(abertaComCampo(), joao, AGORA);
         UUID recipientId = UUID.randomUUID();
         when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
         when(employeeRepository.findByUsername("ana")).thenReturn(Optional.of(ana));
@@ -285,7 +296,7 @@ class DocumentRequestServiceTest {
 
     /** A resposta da Ana, já encontrada pelo repositório. */
     private DocumentRequestRecipient respostaDaAna(Employee ana, UUID recipientId) {
-        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(rascunhoComCampo(), ana, AGORA);
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(abertaComCampo(), ana, AGORA);
         when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
         when(employeeRepository.findByUsername("ana")).thenReturn(Optional.of(ana));
         return recipient;
@@ -356,7 +367,7 @@ class DocumentRequestServiceTest {
     @DisplayName("outro funcionário tenta anexar: 404, e o disco nem é tocado")
     void uploadByAnotherEmployeeRefused() {
         UUID recipientId = UUID.randomUUID();
-        DocumentRequestRecipient doJoao = DocumentRequestRecipient.create(rascunhoComCampo(), new Employee(), AGORA);
+        DocumentRequestRecipient doJoao = DocumentRequestRecipient.create(abertaComCampo(), new Employee(), AGORA);
         when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(doJoao));
         when(employeeRepository.findByUsername("ana")).thenReturn(Optional.of(new Employee()));
 
@@ -465,7 +476,7 @@ class DocumentRequestServiceTest {
     @DisplayName("aprovar o que não foi enviado: recusado antes de criar qualquer documento")
     void approveNotSubmittedCreatesNothing() {
         UUID recipientId = UUID.randomUUID();
-        DocumentRequestRecipient pendente = DocumentRequestRecipient.create(rascunhoComCampo(), new Employee(), AGORA);
+        DocumentRequestRecipient pendente = DocumentRequestRecipient.create(abertaComCampo(), new Employee(), AGORA);
         when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(pendente));
 
         assertThrows(InvalidStatusTransitionException.class, () -> service.approve(recipientId, "patricia"));
@@ -656,5 +667,206 @@ class DocumentRequestServiceTest {
         assertThrows(InvalidRequestDataException.class, () -> service.giveBack(recipientId, "patricia", " "));
 
         verifyNoInteractions(notificationService);
+    }
+
+    // ── passo 6: responder com regras, avisar o RH, leituras e download ─────
+
+    /** Resposta da Ana numa solicitação ABERTA com um texto obrigatório e um arquivo opcional. */
+    private DocumentRequestRecipient respostaComTexto(Employee ana, UUID recipientId) {
+        DocumentRequest request = DocumentRequest.draft("Uniforme", "rita", AGORA);
+        request.updateDraft("Uniforme", null, null, List.of(
+                new RequestField("camisa", "Tamanho da camisa", null, "CHOICE", true, List.of("P", "M", "G"), null),
+                new RequestField("foto", "Foto", null, "FILE", false, List.of(), null)));
+        request.send(AGORA);
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(request, ana, AGORA);
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
+        when(employeeRepository.findByUsername("ana")).thenReturn(Optional.of(ana));
+        return recipient;
+    }
+
+    @Test
+    @DisplayName("responder sem um campo obrigatório é recusado, e nada é salvo")
+    void submitMissingRequiredRefused() {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = respostaComTexto(new Employee(), recipientId);
+
+        InvalidRequestDataException e = assertThrows(InvalidRequestDataException.class,
+                () -> service.submit(recipientId, "ana", Map.of("camisa", "  ")));
+
+        assertThat(e.getMessage()).contains("Tamanho da camisa");
+        assertThat(recipient.getStatus()).isEqualTo(RecipientStatus.PENDING);
+        verify(recipientRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("arquivo obrigatório que não subiu: recusado com o nome do campo")
+    void submitMissingRequiredFileRefused() {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(abertaComCampo(), new Employee(), AGORA);
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
+        when(employeeRepository.findByUsername("ana")).thenReturn(Optional.of(recipient.getEmployee()));
+        when(fileRepository.findByDocumentRequestRecipientAndReplacedAtIsNull(recipient)).thenReturn(List.of());
+
+        InvalidRequestDataException e = assertThrows(InvalidRequestDataException.class,
+                () -> service.submit(recipientId, "ana", Map.of()));
+
+        assertThat(e.getMessage()).contains("Foto do RG");
+        verify(recipientRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("responder guarda só os campos do formulário: chave inventada é descartada")
+    void submitDropsUnknownKeys() {
+        UUID recipientId = UUID.randomUUID();
+        respostaComTexto(new Employee(), recipientId);
+        when(recipientRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        DocumentRequestRecipient saved = service.submit(recipientId, "ana", Map.of("camisa", "M", "salario", "999"));
+
+        assertThat(saved.getAnswers()).containsExactlyEntriesOf(Map.of("camisa", "M"));
+    }
+
+    @Test
+    @DisplayName("responder avisa quem confere no RH, menos quem respondeu")
+    void submitNotifiesReviewersButNotSelf() {
+        UUID recipientId = UUID.randomUUID();
+        Employee ana = new Employee();
+        ana.setName("Ana");
+        respostaComTexto(ana, recipientId);
+        when(recipientRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+        when(userRepository.findActiveLoginsAllowed("rh/document-requests", "ALTERAR")).thenReturn(List.of("rita", "ana"));
+
+        service.submit(recipientId, "ana", Map.of("camisa", "M"));
+
+        verify(notificationService).notify("rita", NotificationType.SOLICITACAO, "Ana respondeu", "Uniforme", "/rh/pendencias");
+        verify(notificationService, never()).notify(eq("ana"), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("solicitação encerrada não aceita resposta nem arquivo")
+    void closedRequestRefusesAnswers() {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = respostaComTexto(new Employee(), recipientId);
+        recipient.getDocumentRequest().close(AGORA);
+
+        assertThrows(InvalidStatusTransitionException.class,
+                () -> service.submit(recipientId, "ana", Map.of("camisa", "M")));
+        assertThrows(InvalidStatusTransitionException.class,
+                () -> service.upload(recipientId, "ana", "foto", rgPdf()));
+        verifyNoInteractions(storage);
+        verify(recipientRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("resposta já enviada não aceita arquivo novo: trocaria o que o RH está conferindo")
+    void uploadAfterSubmitRefused() {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = respostaComTexto(new Employee(), recipientId);
+        recipient.submit(Map.of("camisa", "M"), AGORA);
+
+        assertThrows(InvalidStatusTransitionException.class,
+                () -> service.upload(recipientId, "ana", "foto", rgPdf()));
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    @DisplayName("editar e encerrar passam pela regra da entidade e salvam")
+    void updateDraftAndClose() {
+        UUID requestId = UUID.randomUUID();
+        DocumentRequest request = rascunhoComCampo();
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        when(requestRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        service.updateDraft(requestId, "Admissão", null, null,
+                List.of(new RequestField("cpf", "CPF", null, "SHORT_TEXT", true, List.of(), null)));
+        assertThat(request.getTitle()).isEqualTo("Admissão");
+
+        assertThrows(InvalidStatusTransitionException.class, () -> service.close(requestId));
+        request.send(AGORA);
+        service.close(requestId);
+        assertThat(request.getStatus()).isEqualTo(RequestStatus.CLOSED);
+        assertThat(request.getClosedAt()).isEqualTo(AGORA);
+    }
+
+    @Test
+    @DisplayName("a lista do RH traz os contadores de cada solicitação, de uma consulta agrupada")
+    void listRequestsWithCounts() {
+        DocumentRequest aberta = abertaComCampo();
+        aberta.id = UUID.randomUUID();
+        DocumentRequest rascunho = rascunhoComCampo();
+        rascunho.id = UUID.randomUUID();
+        when(requestRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(aberta, rascunho));
+        when(recipientRepository.countByRequestAndStatus()).thenReturn(List.of(
+                contagem(aberta.id, RecipientStatus.PENDING, 3),
+                contagem(aberta.id, RecipientStatus.SUBMITTED, 2),
+                contagem(aberta.id, RecipientStatus.APPROVED, 1)));
+
+        var lista = service.listRequests();
+
+        assertThat(lista.get(0).counts()).isEqualTo(new com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.DocumentRequestDTO.Counts(6, 3, 2, 1, 0));
+        assertThat(lista.get(1).counts().total()).isZero();
+    }
+
+    private static DocumentRequestRecipientRepository.StatusCount contagem(UUID requestId, RecipientStatus status, long total) {
+        return new DocumentRequestRecipientRepository.StatusCount() {
+            public UUID getRequestId() { return requestId; }
+            public RecipientStatus getStatus() { return status; }
+            public long getTotal() { return total; }
+        };
+    }
+
+    @Test
+    @DisplayName("\"minhas solicitações\" vêm do login, com os arquivos atuais de cada resposta")
+    void listMineFromLogin() {
+        Employee ana = funcionario(UUID.randomUUID());
+        ana.setName("Ana");
+        DocumentRequestRecipient minha = DocumentRequestRecipient.create(abertaComCampo(), ana, AGORA);
+        minha.id = UUID.randomUUID();
+        DocumentRequestFile rg = DocumentRequestFile.create(minha, "rg", "rg.pdf", "0042/rg.pdf", AGORA);
+        when(employeeRepository.findByUsername("ana")).thenReturn(Optional.of(ana));
+        when(recipientRepository.findByEmployeeOrderByAddedAtDesc(ana)).thenReturn(List.of(minha));
+        when(fileRepository.findByDocumentRequestRecipientInAndReplacedAtIsNull(List.of(minha))).thenReturn(List.of(rg));
+
+        var lista = service.listMine("ana");
+
+        assertThat(lista).hasSize(1);
+        assertThat(lista.get(0).employeeName()).isEqualTo("Ana");
+        assertThat(lista.get(0).requestTitle()).isEqualTo("Envie seu RG");
+        assertThat(lista.get(0).files()).extracting(f -> f.fieldKey()).containsExactly("rg");
+    }
+
+    @Test
+    @DisplayName("baixar arquivo de outra pessoa: 404 para quem não é dono nem confere")
+    void readFileOfAnotherEmployeeRefused() {
+        UUID fileId = UUID.randomUUID();
+        DocumentRequestRecipient doJoao = DocumentRequestRecipient.create(abertaComCampo(), funcionario(UUID.randomUUID()), AGORA);
+        when(fileRepository.findById(fileId)).thenReturn(Optional.of(
+                DocumentRequestFile.create(doJoao, "rg", "rg.pdf", "0042/rg.pdf", AGORA)));
+        when(employeeRepository.findByUsername("ana")).thenReturn(Optional.of(funcionario(UUID.randomUUID())));
+
+        assertThrows(com.proautokimium.api.Infrastructure.exceptions.humanResources.DocumentRequestFileNotFoundException.class,
+                () -> service.readFile(fileId, "ana", false));
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    @DisplayName("quem confere baixa qualquer arquivo; registro sem arquivo no disco vira 404, não 500")
+    void readFileAsReviewer(@org.junit.jupiter.api.io.TempDir java.nio.file.Path pasta) throws Exception {
+        UUID fileId = UUID.randomUUID();
+        DocumentRequestRecipient doJoao = DocumentRequestRecipient.create(abertaComCampo(), funcionario(UUID.randomUUID()), AGORA);
+        when(fileRepository.findById(fileId)).thenReturn(Optional.of(
+                DocumentRequestFile.create(doJoao, "rg", "rg.pdf", "0042/rg.pdf", AGORA)));
+        java.nio.file.Path arquivo = java.nio.file.Files.write(pasta.resolve("rg.pdf"), PDF);
+        when(storage.resolve("0042/rg.pdf")).thenReturn(arquivo);
+
+        var content = service.readFile(fileId, "rita", true);
+
+        assertThat(content.bytes()).isEqualTo(PDF);
+        assertThat(content.contentType()).isEqualTo("application/pdf");
+        verify(employeeRepository, never()).findByUsername(any());
+
+        java.nio.file.Files.delete(arquivo);
+        assertThrows(com.proautokimium.api.Infrastructure.exceptions.humanResources.DocumentRequestFileNotFoundException.class,
+                () -> service.readFile(fileId, "rita", true));
     }
 }
