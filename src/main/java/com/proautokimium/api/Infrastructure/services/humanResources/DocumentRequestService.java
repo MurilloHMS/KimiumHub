@@ -4,16 +4,22 @@ import com.proautokimium.api.Infrastructure.exceptions.humanResources.DocumentRe
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.DocumentRequestRecipientNotFoundException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
+import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestFileRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestRecipientRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestRepository;
+import com.proautokimium.api.Infrastructure.services.storage.EmployeeDocumentStorageService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.entities.humanResources.DocumentRequest;
+import com.proautokimium.api.domain.entities.humanResources.DocumentRequestFile;
 import com.proautokimium.api.domain.entities.humanResources.DocumentRequestRecipient;
+import com.proautokimium.api.domain.exceptions.humanResources.InvalidRequestDataException;
 import com.proautokimium.api.domain.exceptions.partners.EmployeeNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,13 +35,17 @@ public class DocumentRequestService {
     private final Clock clock;
     private final EmployeeRepository employeeRepository;
     private final UserRepository userRepository;
+    private final DocumentRequestFileRepository documentRequestFileRepository;
+    private final EmployeeDocumentStorageService storage;
 
-    public DocumentRequestService(DocumentRequestRepository documentRequestRepository, DocumentRequestRecipientRepository documentRequestRecipientRepository, Clock clock, EmployeeRepository employeeRepository, UserRepository userRepository) {
+    public DocumentRequestService(DocumentRequestRepository documentRequestRepository, DocumentRequestRecipientRepository documentRequestRecipientRepository, Clock clock, EmployeeRepository employeeRepository, UserRepository userRepository, DocumentRequestFileRepository documentRequestFileRepository, EmployeeDocumentStorageService storage) {
         this.documentRequestRepository = documentRequestRepository;
         this.documentRequestRecipientRepository = documentRequestRecipientRepository;
         this.clock = clock;
         this.employeeRepository = employeeRepository;
         this.userRepository = userRepository;
+        this.documentRequestFileRepository = documentRequestFileRepository;
+        this.storage = storage;
     }
 
     @Transactional
@@ -95,6 +105,48 @@ public class DocumentRequestService {
 
         recipient.submit(answers, LocalDateTime.now(clock));
         return documentRequestRecipientRepository.save(recipient);
+    }
+
+    @Transactional
+    public DocumentRequestFile upload(UUID recipientId, String login, String fieldKey, MultipartFile file) throws IOException {
+        DocumentRequestRecipient recipient = documentRequestRecipientRepository.findById(recipientId)
+                .orElseThrow(DocumentRequestRecipientNotFoundException::new);
+
+        Employee caller = resolveEmployee(login);
+        if(caller == null) throw new EmployeeNotFoundException();
+
+        if(!isOwner(recipient, caller)) throw new DocumentRequestRecipientNotFoundException();
+
+        boolean isFile = recipient.getDocumentRequest().getForm().stream()
+                .anyMatch(f -> f.key().equals(fieldKey) && "FILE".equals(f.type()));
+
+        if(!isFile) throw new InvalidRequestDataException("Este campo não pede arquivo");
+
+        // todo: Separar e criar validador proprio
+        EmployeeDocumentService.acceptedContentType(file);
+
+        Optional<DocumentRequestFile> current = documentRequestFileRepository.findByDocumentRequestRecipientAndFieldKeyAndReplacedAtIsNull(recipient, fieldKey);
+        LocalDateTime now = LocalDateTime.now(clock);
+        current.ifPresent(old -> {
+            old.replace(now);
+            documentRequestFileRepository.saveAndFlush(old);
+        });
+
+        String storagePath = storage.save(file.getBytes(), caller.getCodParceiro(), file.getOriginalFilename());
+
+        // O disco não participa da transação: recusado no banco, o arquivo é apagado à mão.
+        try{
+            DocumentRequestFile created = DocumentRequestFile.create(recipient,fieldKey, file.getOriginalFilename(), storagePath, now);
+            return documentRequestFileRepository.save(created);
+        } catch (RuntimeException refused) {
+            try {
+                storage.delete(storagePath);
+            } catch (IOException deleteFailure) {
+                // A pessoa precisa ver o motivo da recusa, não o erro do disco.
+                refused.addSuppressed(deleteFailure);
+            }
+            throw refused;
+        }
     }
 
     // Methods

@@ -2,6 +2,10 @@ package com.proautokimium.api.Infrastructure.services.humanResources;
 
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
+import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestFileRepository;
+import com.proautokimium.api.Infrastructure.services.storage.EmployeeDocumentStorageService;
+import com.proautokimium.api.domain.entities.humanResources.DocumentRequestFile;
+import org.springframework.mock.web.MockMultipartFile;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestRecipientRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.DocumentRequestRepository;
 import com.proautokimium.api.domain.entities.Employee;
@@ -32,6 +36,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -53,6 +60,8 @@ class DocumentRequestServiceTest {
     @Mock DocumentRequestRecipientRepository recipientRepository;
     @Mock EmployeeRepository employeeRepository;
     @Mock UserRepository userRepository;
+    @Mock DocumentRequestFileRepository fileRepository;
+    @Mock EmployeeDocumentStorageService storage;
 
     DocumentRequestService service;
 
@@ -60,7 +69,7 @@ class DocumentRequestServiceTest {
     void setUp() {
         // Um relógio parado em AGORA: o serviço sempre vê a mesma hora.
         Clock clock = Clock.fixed(AGORA.atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
-        service = new DocumentRequestService(requestRepository, recipientRepository, clock, employeeRepository, userRepository);
+        service = new DocumentRequestService(requestRepository, recipientRepository, clock, employeeRepository, userRepository, fileRepository, storage);
     }
 
     @Test
@@ -265,5 +274,113 @@ class DocumentRequestServiceTest {
                 () -> service.submit(recipientId, "ana", Map.of()));
 
         verify(recipientRepository, never()).save(any());
+    }
+
+    // ── anexar arquivo ─────────────────────────────────────────────────────
+    // O disco é falso (mock): o teste confere o que o serviço PEDIU a ele.
+
+    private static final byte[] PDF = "conteudo".getBytes();
+
+    private MockMultipartFile rgPdf() {
+        return new MockMultipartFile("file", "rg.pdf", "application/pdf", PDF);
+    }
+
+    /** A resposta da Ana, já encontrada pelo repositório. */
+    private DocumentRequestRecipient respostaDaAna(Employee ana, UUID recipientId) {
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(rascunhoComCampo(), ana, AGORA);
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
+        when(employeeRepository.findByUsername("ana")).thenReturn(Optional.of(ana));
+        return recipient;
+    }
+
+    @Test
+    @DisplayName("primeiro envio: grava no disco e no banco, sem substituir nada")
+    void uploadFirstFile() throws Exception {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = respostaDaAna(new Employee(), recipientId);
+        when(fileRepository.findByDocumentRequestRecipientAndFieldKeyAndReplacedAtIsNull(recipient, "rg"))
+                .thenReturn(Optional.empty());
+        when(storage.save(any(), any(), eq("rg.pdf"))).thenReturn("0042/abc-rg.pdf");
+        when(fileRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        DocumentRequestFile saved = service.upload(recipientId, "ana", "rg", rgPdf());
+
+        assertThat(saved.getStoragePath()).isEqualTo("0042/abc-rg.pdf");
+        assertThat(saved.getFieldKey()).isEqualTo("rg");
+        assertThat(saved.getUploadedAt()).isEqualTo(AGORA);
+        verify(fileRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    @DisplayName("reenvio: o arquivo atual ganha a data de substituição, gravada antes do novo")
+    void uploadReplacesCurrent() throws Exception {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = respostaDaAna(new Employee(), recipientId);
+        DocumentRequestFile old = DocumentRequestFile.create(recipient, "rg", "rg-borrado.jpg", "0042/old.jpg", AGORA.minusDays(1));
+        when(fileRepository.findByDocumentRequestRecipientAndFieldKeyAndReplacedAtIsNull(recipient, "rg"))
+                .thenReturn(Optional.of(old));
+        when(storage.save(any(), any(), anyString())).thenReturn("0042/abc-rg.pdf");
+        when(fileRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        service.upload(recipientId, "ana", "rg", rgPdf());
+
+        assertThat(old.getReplacedAt()).isEqualTo(AGORA);
+        verify(fileRepository).saveAndFlush(old);
+    }
+
+    @Test
+    @DisplayName("campo que o formulário não pede como arquivo: 400, e o disco nem é tocado")
+    void uploadUnknownFieldRefused() {
+        UUID recipientId = UUID.randomUUID();
+        respostaDaAna(new Employee(), recipientId);
+
+        assertThrows(InvalidRequestDataException.class,
+                () -> service.upload(recipientId, "ana", "qualquercoisa", rgPdf()));
+
+        verifyNoInteractions(storage);
+        verifyNoInteractions(fileRepository);
+    }
+
+    @Test
+    @DisplayName("arquivo fora de PDF, JPG ou PNG: 400 antes do disco")
+    void uploadWrongTypeRefused() {
+        UUID recipientId = UUID.randomUUID();
+        respostaDaAna(new Employee(), recipientId);
+        MockMultipartFile exe = new MockMultipartFile("file", "virus.exe", "application/octet-stream", PDF);
+
+        assertThrows(InvalidRequestDataException.class,
+                () -> service.upload(recipientId, "ana", "rg", exe));
+
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    @DisplayName("outro funcionário tenta anexar: 404, e o disco nem é tocado")
+    void uploadByAnotherEmployeeRefused() {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient doJoao = DocumentRequestRecipient.create(rascunhoComCampo(), new Employee(), AGORA);
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(doJoao));
+        when(employeeRepository.findByUsername("ana")).thenReturn(Optional.of(new Employee()));
+
+        assertThrows(DocumentRequestRecipientNotFoundException.class,
+                () -> service.upload(recipientId, "ana", "rg", rgPdf()));
+
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    @DisplayName("o banco recusa: o arquivo gravado é apagado do disco, e a recusa sobe")
+    void uploadRefusedByDatabaseDeletesFile() throws Exception {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = respostaDaAna(new Employee(), recipientId);
+        when(fileRepository.findByDocumentRequestRecipientAndFieldKeyAndReplacedAtIsNull(recipient, "rg"))
+                .thenReturn(Optional.empty());
+        when(storage.save(any(), any(), anyString())).thenReturn("0042/abc-rg.pdf");
+        when(fileRepository.save(any())).thenThrow(new IllegalStateException("banco fora"));
+
+        assertThrows(IllegalStateException.class,
+                () -> service.upload(recipientId, "ana", "rg", rgPdf()));
+
+        verify(storage).delete("0042/abc-rg.pdf");
     }
 }

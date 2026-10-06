@@ -214,7 +214,7 @@ public class EmployeeDocumentService {
     }
 
     /** Arquivo presente, até 10 MB, e PDF, JPG ou PNG pela extensão. */
-    private String acceptedContentType(MultipartFile file) {
+    static String acceptedContentType(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new InvalidRequestDataException("Envie o arquivo do documento.");
         }
