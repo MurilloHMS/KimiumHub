@@ -63,8 +63,9 @@ public class NewsletterController {
     @PreAuthorize("hasAuthority('communication/newsletter:ENVIAR')")
     @PostMapping("send")
     @Operation(summary = "Envia Newsletter", description = "Envio Individual da Newsletter")
-    public ResponseEntity<Object> sendNewsletter(@RequestBody Newsletter newsletter) throws MessagingException, UnsupportedEncodingException {
-        newsletterService.sendMailWithInline(newsletter);
+    public ResponseEntity<Object> sendNewsletter(@RequestBody Newsletter newsletter) {
+        // Vai para a fila: sai no próximo minuto, com tentativas e o motivo de falha registrados.
+        newsletterService.enqueue(newsletter);
 
         return ResponseEntity.ok().build();
     }

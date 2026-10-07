@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.sales;
 
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
 import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
@@ -56,7 +57,7 @@ class ChecklistNotifierEmailTest {
 
     private String emailEnviado() {
         ArgumentCaptor<String> corpo = ArgumentCaptor.forClass(String.class);
-        verify(fila).sendEmail(eq("rita@proautokimium.com.br"), anyString(), anyString(), corpo.capture());
+        verify(fila).enqueue(eq(EmailOrigin.CHECKLIST), eq("rita@proautokimium.com.br"), anyString(), corpo.capture());
         return corpo.getValue();
     }
 

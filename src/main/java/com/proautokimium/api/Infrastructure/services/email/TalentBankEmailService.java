@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.email;
 
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import com.proautokimium.api.Infrastructure.services.processoSeletivo.TalentBankAccessTokenService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,6 @@ import java.util.Optional;
 @Service
 public class TalentBankEmailService {
 
-    private static final String FROM = "noreply@envios.proautokimium.com.br";
     private static final String ACCESS_TEMPLATE = "html/talent-bank-access";
     private static final String EXPIRING_TEMPLATE = "html/talent-bank-expiring";
     private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -60,7 +60,7 @@ public class TalentBankEmailService {
         vars.put("actionUrl", linkPara(token));
         String html = renderer.render(ACCESS_TEMPLATE, vars);
 
-        emailQueueService.sendEmail(destinatario, FROM,
+        emailQueueService.enqueue(EmailOrigin.TALENT_BANK, destinatario,
                 "Seus dados no Banco de Talentos da Proauto Kimium", html);
     }
 
@@ -86,7 +86,7 @@ public class TalentBankEmailService {
         vars.put("actionUrl", token.map(this::linkPara).orElse(websiteBaseUrl + ROTA_DO_SITE));
         String html = renderer.render(EXPIRING_TEMPLATE, vars);
 
-        emailQueueService.sendEmail(destinatario, FROM,
+        emailQueueService.enqueue(EmailOrigin.TALENT_BANK, destinatario,
                 "Seus dados no Banco de Talentos vencem em " + expiraEm.format(DATA_BR), html);
     }
 

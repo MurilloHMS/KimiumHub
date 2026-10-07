@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.email;
 
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -43,8 +44,7 @@ class TalentBankEmailServiceTest {
 
     private String corpoEnviado(String assuntoEsperado) {
         ArgumentCaptor<String> corpo = ArgumentCaptor.forClass(String.class);
-        verify(fila).sendEmail(eq("maria@email.com"), eq("noreply@envios.proautokimium.com.br"),
-                eq(assuntoEsperado), corpo.capture());
+        verify(fila).enqueue(eq(EmailOrigin.TALENT_BANK), eq("maria@email.com"), eq(assuntoEsperado), corpo.capture());
         return corpo.getValue();
     }
 
@@ -60,8 +60,7 @@ class TalentBankEmailServiceTest {
         assertThat(html).as("so o primeiro nome").contains(">Olá, Maria<").doesNotContain("Souza");
         assertThat(html).contains("href=\"https://site.teste/meu-curriculo/tok123\"");
         assertThat(html).contains("O link expira em 24 horas");
-        verify(fila, never()).sendNow(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
-                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+        verify(fila, never()).sendNow(eq(EmailOrigin.TALENT_BANK), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
     }
 
     /**
@@ -87,8 +86,7 @@ class TalentBankEmailServiceTest {
         service.enviarAvisoDeExpiracao("maria@email.com", null, LocalDateTime.of(2028, 9, 11, 9, 0), Optional.empty());
 
         ArgumentCaptor<String> corpo = ArgumentCaptor.forClass(String.class);
-        verify(fila, org.mockito.Mockito.times(2)).sendEmail(eq("maria@email.com"), eq("noreply@envios.proautokimium.com.br"),
-                org.mockito.ArgumentMatchers.anyString(), corpo.capture());
+        verify(fila, org.mockito.Mockito.times(2)).enqueue(eq(EmailOrigin.TALENT_BANK), eq("maria@email.com"), org.mockito.ArgumentMatchers.anyString(), corpo.capture());
         assertThat(corpo.getAllValues()).allSatisfy(html ->
                 assertThat(html).contains(">Olá</p>").doesNotContain("null"));
         assertThat(corpo.getAllValues().get(0)).contains("href=\"https://site.teste/meu-curriculo/tok123\"");

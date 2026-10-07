@@ -26,4 +26,16 @@ public class EmailEntity extends com.proautokimium.api.domain.abstractions.Entit
     @Embedded
     @AttributeOverride(name = "address", column = @Column(name = "email", length = 60, nullable = false))
     private Email email;
+
+    /** O nome que aparece para quem recebe ("RH Proauto Kimium"). */
+    @Column(name = "display_name", length = 120)
+    private String displayName;
+
+    /** Inativo não sai de nenhum serviço e não aparece para escolher. */
+    @Column(name = "active", nullable = false)
+    private boolean active = true;
+
+    /** O remetente de quem não tem rota. Só um é o padrão. */
+    @Column(name = "is_default", nullable = false)
+    private boolean isDefault;
 }

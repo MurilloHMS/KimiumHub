@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
 import com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.ReportEmailResultDTO;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.NoReportRecipientException;
@@ -7,7 +8,6 @@ import com.proautokimium.api.Infrastructure.exceptions.humanResources.ReportEmai
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.ReportTooLargeForEmailException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
-import com.proautokimium.api.Infrastructure.services.email.smtp.SmtpService;
 import com.proautokimium.api.domain.enums.humanResources.ReimbursementStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -67,7 +67,7 @@ class ReimbursementReportEmailServiceTest {
         Clock clock = Clock.fixed(LocalDateTime.of(2026, 9, 28, 14, 32)
                 .atZone(ZoneId.of("America/Sao_Paulo")).toInstant(), ZoneId.of("America/Sao_Paulo"));
         service = new ReimbursementReportEmailService(recipients, reportService, emailQueueService,
-                employeeRepository, new EmailRenderer(engine), clock, "no-reply@envios.proautokimium.com.br");
+                employeeRepository, new EmailRenderer(engine), clock);
         // Em produção o issuerName nunca é null (sem funcionário, devolve o login).
         // O mock sem resposta devolvia null, e o Map.of do e-mail recusa null.
         org.mockito.Mockito.lenient().when(reportService.issuerName(org.mockito.ArgumentMatchers.any())).thenReturn("Carla Mendes");
@@ -94,14 +94,14 @@ class ReimbursementReportEmailServiceTest {
         ReportEmailResultDTO result = service.sendToHr(FROM, TO, STATUS, null, "carla.rh");
 
         ArgumentCaptor<String> corpo = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<SmtpService.Attachment> anexo = ArgumentCaptor.forClass(SmtpService.Attachment.class);
-        verify(emailQueueService).sendNow(eq("rh@proautokimium.com.br"), eq("no-reply@envios.proautokimium.com.br"),
-                eq("Comprovante de reembolsos · 01/09/2026 a 30/09/2026"), corpo.capture(), anexo.capture());
-        verify(emailQueueService).sendNow(eq("diretoria@proautokimium.com.br"), anyString(), anyString(),
-                anyString(), any());
-        assertThat(anexo.getValue().fileName()).isEqualTo("comprovante-reembolsos_2026-09-01_2026-09-30.pdf");
-        assertThat(anexo.getValue().content()).isEqualTo(PDF);
-        assertThat(anexo.getValue().contentType()).isEqualTo("application/pdf");
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<java.util.List<EmailQueueService.OutgoingAttachment>> anexos = ArgumentCaptor.forClass(java.util.List.class);
+        verify(emailQueueService).sendNow(eq(EmailOrigin.REIMBURSEMENT_REPORT), eq("rh@proautokimium.com.br"), eq("Comprovante de reembolsos · 01/09/2026 a 30/09/2026"), corpo.capture(), anexos.capture());
+        verify(emailQueueService).sendNow(eq(EmailOrigin.REIMBURSEMENT_REPORT), eq("diretoria@proautokimium.com.br"), anyString(), anyString(), any());
+        assertThat(anexos.getValue()).hasSize(1);
+        assertThat(anexos.getValue().get(0).filename()).isEqualTo("comprovante-reembolsos_2026-09-01_2026-09-30.pdf");
+        assertThat(anexos.getValue().get(0).content()).isEqualTo(PDF);
+        assertThat(anexos.getValue().get(0).contentType()).isEqualTo("application/pdf");
         assertThat(corpo.getValue()).contains("de todos os funcionários", "01/09/2026 a 30/09/2026",
                 "Aprovado, Pago", "Carla Mendes", "28/09/2026 14:32");
         assertThat(result.sentTo()).containsExactly("rh@proautokimium.com.br", "diretoria@proautokimium.com.br");
@@ -115,7 +115,7 @@ class ReimbursementReportEmailServiceTest {
         when(recipients.emails()).thenReturn(List.of("quebrado@x.com", "rh@proautokimium.com.br"));
         when(reportService.generate(any(), any(), any(), any(), any())).thenReturn(PDF);
         doThrow(new RuntimeException("smtp")).when(emailQueueService)
-                .sendNow(eq("quebrado@x.com"), anyString(), anyString(), anyString(), any());
+                .sendNow(eq(EmailOrigin.REIMBURSEMENT_REPORT), eq("quebrado@x.com"), anyString(), anyString(), any());
 
         ReportEmailResultDTO result = service.sendToHr(FROM, TO, STATUS, null, "carla.rh");
 
@@ -129,7 +129,7 @@ class ReimbursementReportEmailServiceTest {
         when(recipients.emails()).thenReturn(List.of("rh@proautokimium.com.br"));
         when(reportService.generate(any(), any(), any(), any(), any())).thenReturn(PDF);
         doThrow(new RuntimeException("smtp")).when(emailQueueService)
-                .sendNow(anyString(), anyString(), anyString(), anyString(), any());
+                .sendNow(eq(EmailOrigin.REIMBURSEMENT_REPORT), anyString(), anyString(), anyString(), any());
 
         assertThrows(ReportEmailFailedException.class,
                 () -> service.sendToHr(FROM, TO, STATUS, null, "carla.rh"));
@@ -145,7 +145,7 @@ class ReimbursementReportEmailServiceTest {
         ReportTooLargeForEmailException e = assertThrows(ReportTooLargeForEmailException.class,
                 () -> service.sendToHr(FROM, TO, STATUS, null, "carla.rh"));
         assertThat(e.getMessage()).contains("16 MB", "limite de 15 MB");
-        verify(emailQueueService, never()).sendNow(anyString(), anyString(), anyString(), anyString(), any());
+        verify(emailQueueService, never()).sendNow(eq(EmailOrigin.REIMBURSEMENT_REPORT), anyString(), anyString(), anyString(), any());
     }
 
     @Test
@@ -157,6 +157,6 @@ class ReimbursementReportEmailServiceTest {
 
         service.sendToHr(FROM, TO, STATUS, null, "carla.rh");
 
-        verify(emailQueueService, times(1)).sendNow(anyString(), anyString(), anyString(), anyString(), any());
+        verify(emailQueueService, times(1)).sendNow(eq(EmailOrigin.REIMBURSEMENT_REPORT), anyString(), anyString(), anyString(), any());
     }
 }

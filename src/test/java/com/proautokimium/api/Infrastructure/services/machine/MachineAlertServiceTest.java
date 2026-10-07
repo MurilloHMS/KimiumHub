@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.machine;
 
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.prostock.MachineAlertConfigRepository;
@@ -110,10 +111,9 @@ class MachineAlertServiceTest {
         assertThat(service.runAlerts(false)).isEqualTo(5);
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(emails, times(2)).sendEmail(anyString(), anyString(),
-                eq("Programação: 3 atrasadas e 2 saídas próximas"), body.capture());
-        verify(emails).sendEmail(eq("carmen@proauto.com.br"), anyString(), anyString(), anyString());
-        verify(emails).sendEmail(eq("fabio@proauto.com.br"), anyString(), anyString(), anyString());
+        verify(emails, times(2)).enqueue(eq(EmailOrigin.MACHINE_ALERT), anyString(), eq("Programação: 3 atrasadas e 2 saídas próximas"), body.capture());
+        verify(emails).enqueue(eq(EmailOrigin.MACHINE_ALERT), eq("carmen@proauto.com.br"), anyString(), anyString());
+        verify(emails).enqueue(eq(EmailOrigin.MACHINE_ALERT), eq("fabio@proauto.com.br"), anyString(), anyString());
 
         String html = body.getValue();
         assertThat(html).contains("Atrasadas (3)", "Saídas próximas (2)", "9 dias de atraso", "1 dia de atraso", "amanhã", "em 3 dias");
@@ -147,7 +147,7 @@ class MachineAlertServiceTest {
 
         verify(notifications).notify("carmen.lima", NotificationType.PROGRAMACAO, "Resumo da programação",
                 "1 saída próxima", "/stock/programacao");
-        verify(emails, times(2)).sendEmail(anyString(), anyString(), eq("Programação: 1 saída próxima"), anyString());
+        verify(emails, times(2)).enqueue(eq(EmailOrigin.MACHINE_ALERT), anyString(), eq("Programação: 1 saída próxima"), anyString());
     }
 
     @Test
@@ -161,7 +161,7 @@ class MachineAlertServiceTest {
         assertThat(service.runAlerts(false)).isEqualTo(1);
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(emails, times(2)).sendEmail(anyString(), anyString(), anyString(), body.capture());
+        verify(emails, times(2)).enqueue(eq(EmailOrigin.MACHINE_ALERT), anyString(), anyString(), body.capture());
         assertThat(body.getValue()).contains("Padaria Sol").doesNotContain("Entregue Ltda", "Sem Data", "Daqui Dois Dias");
     }
 
@@ -173,7 +173,7 @@ class MachineAlertServiceTest {
 
         assertThat(service.runAlerts(false)).isZero();
 
-        verify(emails, never()).sendEmail(anyString(), anyString(), anyString(), anyString());
+        verify(emails, never()).enqueue(eq(EmailOrigin.MACHINE_ALERT), anyString(), anyString(), anyString());
         verify(notifications, never()).notify(anyString(), any(), anyString(), anyString(), anyString());
     }
 
@@ -201,7 +201,7 @@ class MachineAlertServiceTest {
         config.setSendAt(LocalTime.of(8, 0));
         config.setActive(false);
         assertThat(service.runAlerts(false)).isZero();
-        verify(emails, never()).sendEmail(anyString(), anyString(), anyString(), anyString());
+        verify(emails, never()).enqueue(eq(EmailOrigin.MACHINE_ALERT), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -212,7 +212,7 @@ class MachineAlertServiceTest {
 
         assertThat(service.runAlerts(false)).isEqualTo(1);
 
-        verify(emails, never()).sendEmail(anyString(), anyString(), anyString(), anyString());
+        verify(emails, never()).enqueue(eq(EmailOrigin.MACHINE_ALERT), anyString(), anyString(), anyString());
         verify(notifications).notify(eq("carmen.lima"), eq(NotificationType.PROGRAMACAO), anyString(), anyString(), anyString());
     }
 
@@ -222,8 +222,7 @@ class MachineAlertServiceTest {
         assertThat(service.sendSampleAlert()).isEqualTo(2);
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(emails, times(2)).sendEmail(anyString(), anyString(),
-                eq("[TESTE] Programação: 1 atrasada e 1 saída próxima"), body.capture());
+        verify(emails, times(2)).enqueue(eq(EmailOrigin.MACHINE_ALERT), anyString(), eq("[TESTE] Programação: 1 atrasada e 1 saída próxima"), body.capture());
         assertThat(body.getValue()).contains("Atrasadas (1)", "Saídas próximas (1)");
     }
 

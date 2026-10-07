@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
@@ -159,8 +160,7 @@ class EmployeeDocumentAlertServiceTest {
                 eq("/rh/employee-documents?status=EXPIRING&employeeId=" + ana.getId()));
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(emailQueueService).sendEmail(eq("diego@proautokimium.com.br"), anyString(),
-                eq("Vence em 30 dias: ASO periódico — Ana Souza"), body.capture());
+        verify(emailQueueService).enqueue(eq(EmailOrigin.DOCUMENT_ALERT), eq("diego@proautokimium.com.br"), eq("Vence em 30 dias: ASO periódico — Ana Souza"), body.capture());
         assertThat(body.getValue())
                 .contains("Ana Souza").contains("ASO periódico").contains("29/10/2026")
                 .contains("https://www.proautokimium.com.br/rh/employee-documents?status=EXPIRING");
@@ -243,7 +243,7 @@ class EmployeeDocumentAlertServiceTest {
 
         service.runAlerts();
 
-        verify(emailQueueService).sendEmail(anyString(), anyString(), startsWith("Vence hoje"), anyString());
+        verify(emailQueueService).enqueue(eq(EmailOrigin.DOCUMENT_ALERT), anyString(), startsWith("Vence hoje"), anyString());
         ArgumentCaptor<EmployeeDocumentAlertSent> saved = ArgumentCaptor.forClass(EmployeeDocumentAlertSent.class);
         verify(sentRepository).save(saved.capture());
         assertThat(saved.getValue().getDaysBefore()).isEqualTo(EmployeeDocumentAlertSent.ON_DUE_DATE);

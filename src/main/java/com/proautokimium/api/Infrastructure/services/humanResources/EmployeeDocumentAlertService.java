@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.EmployeeDocumentAlertSentRepository;
@@ -35,7 +36,6 @@ import java.util.Map;
 public class EmployeeDocumentAlertService {
 
     private static final String TEMPLATE = "html/employee-document-alert";
-    private static final String FROM = "noreply@envios.proautokimium.com.br";
     private static final DateTimeFormatter DATE_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final EmployeeDocumentRepository documentRepository;
@@ -137,7 +137,7 @@ public class EmployeeDocumentAlertService {
     private void sendEmail(Employee recipient, EmployeeDocument document, long daysLeft, String body) {
         if (recipient.getEmail() == null || recipient.getEmail().getAddress() == null) return;
         String subject = headline(daysLeft) + ": " + document.getTitle() + " — " + document.getEmployee().getName();
-        emailQueueService.sendEmail(recipient.getEmail().getAddress(), FROM, subject, body);
+        emailQueueService.enqueue(EmailOrigin.DOCUMENT_ALERT, recipient.getEmail().getAddress(), subject, body);
     }
 
     private static String headline(long daysLeft) {

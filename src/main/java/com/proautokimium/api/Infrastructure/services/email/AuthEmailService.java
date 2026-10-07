@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.email;
 
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
 import com.proautokimium.api.domain.entities.auth.User;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +17,6 @@ import java.util.Map;
 @Service
 public class AuthEmailService {
 
-    private static final String FROM = "noreply@envios.proautokimium.com.br";
     private static final String FIRST_ACCESS_TEMPLATE = "html/first-access-token";
     private static final String RESET_ACCESS_TEMPLATE = "html/reset-access-token";
     private static final String CLIENT_INVITE_TEMPLATE = "html/client-invite";
@@ -36,7 +36,7 @@ public class AuthEmailService {
 
     public void sendFirstAccessToken(String to, String token) {
         String html = codeEmail(FIRST_ACCESS_TEMPLATE, to, token, "/login/first-access");
-        emailQueueService.sendNow(to, FROM, "Seu código de primeiro acesso", html);
+        emailQueueService.sendNow(EmailOrigin.FIRST_ACCESS, to, "Seu código de primeiro acesso", html);
     }
 
     public void sendResetPasswordToken(User user, String token){
@@ -45,7 +45,7 @@ public class AuthEmailService {
                 : "/login/forgot-password";
 
         String html = codeEmail(RESET_ACCESS_TEMPLATE, user.getEmail(), token, deepUrl);
-        emailQueueService.sendNow(user.getEmail(), FROM, "Seu código de redefinição de senha", html);
+        emailQueueService.sendNow(EmailOrigin.PASSWORD_RESET, user.getEmail(), "Seu código de redefinição de senha", html);
     }
 
     private String buildDeepUrlWithToken(String email, String token, String url){
@@ -75,6 +75,6 @@ public class AuthEmailService {
                 "ttlHours", TokenAuthService.INVITE_TTL_HOURS,
                 "actionUrl", buildDeepUrlWithToken(to, token, "/cliente/primeiro-acesso")
         ));
-        emailQueueService.sendNow(to, FROM, "Seu acesso ao Portal Proauto Kimium", html);
+        emailQueueService.sendNow(EmailOrigin.CLIENT_INVITE, to, "Seu acesso ao Portal Proauto Kimium", html);
     }
 }

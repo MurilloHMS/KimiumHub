@@ -43,7 +43,7 @@ class SmtpServiceAttachmentTest {
         when(sender.createMimeMessage()).thenReturn(new MimeMessage(Session.getInstance(new Properties())));
         byte[] pdf = {'%', 'P', 'D', 'F', '-', '1'};
 
-        smtp.sendWithAttachment(email(), new SmtpService.Attachment("comprovante.pdf", pdf, "application/pdf"));
+        smtp.send(email(), java.util.List.of(new SmtpService.Attachment("comprovante.pdf", pdf, "application/pdf")));
 
         ArgumentCaptor<MimeMessage> enviada = ArgumentCaptor.forClass(MimeMessage.class);
         verify(sender).send(enviada.capture());
@@ -65,8 +65,8 @@ class SmtpServiceAttachmentTest {
         when(sender.createMimeMessage()).thenReturn(new MimeMessage(Session.getInstance(new Properties())));
         doThrow(new MailSendException("smtp fora")).when(sender).send(any(MimeMessage.class));
 
-        assertThrows(RuntimeException.class, () -> smtp.sendWithAttachment(email(),
-                new SmtpService.Attachment("c.pdf", new byte[]{1}, "application/pdf")));
+        assertThrows(RuntimeException.class, () -> smtp.send(email(),
+                java.util.List.of(new SmtpService.Attachment("c.pdf", new byte[]{1}, "application/pdf"))));
     }
 
     private static BodyPart anexoDe(Multipart multipart) throws Exception {

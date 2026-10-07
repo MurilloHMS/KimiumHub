@@ -30,9 +30,7 @@ class EmailFactoryTest {
         SpringTemplateEngine engine = new SpringTemplateEngine();
         engine.setTemplateResolver(resolver);
 
-        factory = new EmailFactory(new EmailRenderer(engine));
-        // O remetente vem do @Value; no teste, preenchido à mão.
-        ReflectionTestUtils.setField(factory, "from", "noreply@envios.proautokimium.com.br");
+        factory = new EmailFactory(new EmailRenderer(engine), java.time.Clock.systemDefaultZone());
     }
 
     @Test
@@ -43,7 +41,9 @@ class EmailFactoryTest {
         EmailQueue email = factory.candidaturaConfirmada("camila@email.com", "Camila", "Técnico de Manutenção", aviso);
 
         assertThat(email.getToEmail()).isEqualTo("camila@email.com");
-        assertThat(email.getFromEmail()).isEqualTo("noreply@envios.proautokimium.com.br");
+        // O remetente não é mais da fábrica: a fila resolve pela origem ao enfileirar.
+        assertThat(email.getOrigin()).isEqualTo(com.proautokimium.api.domain.enums.email.EmailOrigin.RECRUITMENT);
+        assertThat(email.getFromEmail()).isNull();
         assertThat(email.getSubject()).isEqualTo(EmailHrSubjects.APPLICATION_RECEIVED.getText());
         assertThat(email.getBody())
                 .contains("Proauto <span style=\"color:#57c1ab;\">Kimium</span>")   // o casco

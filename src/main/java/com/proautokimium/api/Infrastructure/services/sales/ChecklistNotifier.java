@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.sales;
 
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
 import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
@@ -33,7 +34,6 @@ import java.util.Map;
 public class ChecklistNotifier {
 
     private static final Logger log = LoggerFactory.getLogger(ChecklistNotifier.class);
-    private static final String FROM = "noreply@envios.proautokimium.com.br";
     static final String REVIEW_LINK = "/vendas/checklists";
     static final String SELLER_LINK = "/vendas/checklist";
 
@@ -79,7 +79,7 @@ public class ChecklistNotifier {
             safely(() -> notificationService.notify(reviewer.getLogin(), NotificationType.CHECKLIST, title,
                     message, REVIEW_LINK));
             if (reviewer.getEmail() != null && !reviewer.getEmail().isBlank()) {
-                safely(() -> emailQueueService.sendEmail(reviewer.getEmail(), FROM,
+                safely(() -> emailQueueService.enqueue(EmailOrigin.CHECKLIST, reviewer.getEmail(),
                         title + " — nº " + number(c), body(title, message)));
             }
         }
