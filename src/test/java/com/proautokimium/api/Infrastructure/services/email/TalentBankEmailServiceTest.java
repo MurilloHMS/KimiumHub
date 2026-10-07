@@ -57,7 +57,7 @@ class TalentBankEmailServiceTest {
         String html = corpoEnviado("Seus dados no Banco de Talentos vencem em 11/09/2028");
 
         assertThat(html).contains("11/09/2028");
-        assertThat(html).as("so o primeiro nome").contains(">, Maria<").doesNotContain("Souza");
+        assertThat(html).as("so o primeiro nome").contains(">Olá, Maria<").doesNotContain("Souza");
         assertThat(html).contains("href=\"https://site.teste/meu-curriculo/tok123\"");
         assertThat(html).contains("O link expira em 24 horas");
         verify(fila, never()).sendNow(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
