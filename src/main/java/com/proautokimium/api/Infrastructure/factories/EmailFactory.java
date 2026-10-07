@@ -3,20 +3,23 @@ package com.proautokimium.api.Infrastructure.factories;
 import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
 import com.proautokimium.api.domain.entities.email.EmailQueue;
 import com.proautokimium.api.domain.enums.email.EmailHrSubjects;
-import org.springframework.beans.factory.annotation.Value;
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @Component
 public class EmailFactory {
-    @Value("${mail.from}")
-    private String from;
 
     private final EmailRenderer renderer;
+    private final Clock clock;
 
-    public EmailFactory(EmailRenderer renderer){
+    // O remetente não é mais daqui: a fila resolve pela origem (RECRUITMENT) na hora de enfileirar.
+    public EmailFactory(EmailRenderer renderer, Clock clock){
         this.renderer = renderer;
+        this.clock = clock;
     }
 
     /**
@@ -36,21 +39,21 @@ public class EmailFactory {
      */
     public EmailQueue candidaturaConfirmada(String to, String nome, String vaga, String aviso){
         String html = renderer.render("html/candidatura-recebida", Map.of("nome", nome, "vaga", vaga, "aviso",aviso));
-        return new EmailQueue(to, from, EmailHrSubjects.APPLICATION_RECEIVED.getText(), html);
+        return EmailQueue.of(EmailOrigin.RECRUITMENT, to, EmailHrSubjects.APPLICATION_RECEIVED.getText(), html, LocalDateTime.now(clock));
     }
     
     public EmailQueue candidaturaAprovada(String to, String nome, String vaga){
         String html = renderer.render("html/candidatura-aprovada", Map.of("nome", nome, "vaga", vaga));
-        return new EmailQueue(to, from, EmailHrSubjects.WELCOME.getText(), html);
+        return EmailQueue.of(EmailOrigin.RECRUITMENT, to, EmailHrSubjects.WELCOME.getText(), html, LocalDateTime.now(clock));
     }
 
     public EmailQueue candidaturaReprovada(String to, String nome, String vaga){
         String html = renderer.render("html/candidatura-reprovada", Map.of("nome", nome, "vaga", vaga));
-        return new EmailQueue(to, from, EmailHrSubjects.REJECTED.getText(), html);
+        return EmailQueue.of(EmailOrigin.RECRUITMENT, to, EmailHrSubjects.REJECTED.getText(), html, LocalDateTime.now(clock));
     }
 
     public EmailQueue avancoEtapa(String to, String nome, String vaga){
         String html = renderer.render("html/candidatura-avancou", Map.of("nome", nome, "vaga", vaga));
-        return new EmailQueue(to, from, EmailHrSubjects.NEXT_STAGE.getText(), html);
+        return EmailQueue.of(EmailOrigin.RECRUITMENT, to, EmailHrSubjects.NEXT_STAGE.getText(), html, LocalDateTime.now(clock));
     }
 }

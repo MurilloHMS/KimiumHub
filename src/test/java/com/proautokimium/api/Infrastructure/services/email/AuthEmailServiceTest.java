@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.email;
 
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,11 +39,7 @@ class AuthEmailServiceTest {
         assertThat(ctx.getVariable("actionUrl"))
                 .isEqualTo("https://site.teste/login/first-access?token=ABC123&email=novo%40teste.com");
 
-        verify(emailQueueService).sendNow(
-                eq("novo@teste.com"),
-                eq("noreply@envios.proautokimium.com.br"),
-                eq("Seu código de primeiro acesso"),
-                eq("<html>renderizado</html>"));
+        verify(emailQueueService).sendNow(eq(EmailOrigin.FIRST_ACCESS), eq("novo@teste.com"), eq("Seu código de primeiro acesso"), eq("<html>renderizado</html>"));
     }
 
     @Test
@@ -51,7 +48,7 @@ class AuthEmailServiceTest {
         when(templateEngine.process(eq("html/first-access-token"), any(IContext.class)))
                 .thenReturn("<html>renderizado</html>");
         doThrow(new RuntimeException("SMTP fora do ar"))
-                .when(emailQueueService).sendNow(any(), any(), any(), any());
+                .when(emailQueueService).sendNow(eq(EmailOrigin.FIRST_ACCESS), any(), any(), any());
 
         org.assertj.core.api.Assertions.assertThatThrownBy(
                         () -> service.sendFirstAccessToken("novo@teste.com", "ABC123"))
@@ -72,7 +69,7 @@ class AuthEmailServiceTest {
         real.sendClientInvite("financeiro@cliente.com", "tok", "Transportes Rápido Sul");
 
         ArgumentCaptor<String> corpo = ArgumentCaptor.forClass(String.class);
-        verify(emailQueueService).sendNow(eq("financeiro@cliente.com"), any(), eq("Seu acesso ao Portal Proauto Kimium"), corpo.capture());
+        verify(emailQueueService).sendNow(eq(EmailOrigin.CLIENT_INVITE), eq("financeiro@cliente.com"), eq("Seu acesso ao Portal Proauto Kimium"), corpo.capture());
         assertThat(corpo.getValue()).contains("Transportes Rápido Sul")
                 .contains("O convite expira em " + TokenAuthService.INVITE_TTL_HOURS + " horas.")
                 .contains("https://site.teste/cliente/primeiro-acesso?token=tok")

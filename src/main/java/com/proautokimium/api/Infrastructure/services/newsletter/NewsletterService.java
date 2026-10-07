@@ -1,23 +1,17 @@
 package com.proautokimium.api.Infrastructure.services.newsletter;
 
 import com.proautokimium.api.Infrastructure.converters.NewsletterConverter;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import com.proautokimium.api.Application.DTOs.email.NewsletterResponseDTO;
 import com.proautokimium.api.Infrastructure.repositories.NewsletterRepository;
+import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
 import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
-import com.proautokimium.api.Infrastructure.repositories.SmtpEmailRepository;
-import com.proautokimium.api.domain.entities.EmailEntity;
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import com.proautokimium.api.domain.entities.Newsletter;
 import com.proautokimium.api.domain.enums.EmailStatus;
 
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,23 +20,20 @@ import java.util.Map;
 public class NewsletterService {
 
     private static final String TEMPLATE_NAME= "html/newsletter_v2";
-    private final JavaMailSender mailSender;
+    private final EmailQueueService emailQueue;
     private final EmailRenderer renderer;
     
     private final NewsletterRepository repository;
-    private final SmtpEmailRepository emailRepository;
     private final NewsletterConverter converter;
     
 
-    public NewsletterService(JavaMailSender mailSender,
+    public NewsletterService(EmailQueueService emailQueue,
                              EmailRenderer renderer,
                              NewsletterRepository repository,
-                             SmtpEmailRepository emailRepository,
                              NewsletterConverter converter) {
-        this.mailSender = mailSender;
+        this.emailQueue = emailQueue;
         this.renderer = renderer;
         this.repository = repository;
-        this.emailRepository = emailRepository;
         this.converter = converter;
     }
 
@@ -58,21 +49,13 @@ public class NewsletterService {
     			.map(converter::toDto).toList();
     }
 
-    public void sendMailWithInline(Newsletter newsletter) throws MessagingException, UnsupportedEncodingException{
-    	EmailEntity newsletterEmail = emailRepository.findByName("newsletter");
-    	
-        String mailFrom = newsletterEmail.getEmail().getAddress();
-        String mailFromName = "Proauto Kimium";
-
-        final MimeMessage mimeMessage = this.mailSender.createMimeMessage();
-        final MimeMessageHelper email;
-        email = new MimeMessageHelper(mimeMessage, true, "UTF-8");
-        
+    /**
+     * Põe a newsletter do cliente na fila de e-mail (origem NEWSLETTER): o
+     * remetente vem da configuração, e o envio, as tentativas e o motivo de
+     * falha passam a ser os da fila, visíveis na tela do desenvolvedor.
+     */
+    public void enqueue(Newsletter newsletter) {
         String capMonth = capitalizeMonth(newsletter.getMes());
-
-        email.setTo(newsletter.getEmailCliente());
-        email.setSubject(capMonth + " trouxe surpresas - Veja seus resultados!");
-        email.setFrom(new InternetAddress(mailFrom,mailFromName));
 
         // HashMap, e não Map.of: são 15 valores (o Map.of vai só até 10) e os
         // textos (mês, cliente, produto em destaque) podem vir null da planilha.
@@ -98,9 +81,8 @@ public class NewsletterService {
 
         // O logo é o do layout comum (texto). Sem addInline: imagem embutida que o
         // HTML não usa aparece como anexo em alguns programas de e-mail.
-        email.setText(renderer.render(TEMPLATE_NAME, vars), true);
-
-        mailSender.send(mimeMessage);
+        emailQueue.enqueue(EmailOrigin.NEWSLETTER, newsletter.getEmailCliente(),
+                capMonth + " trouxe surpresas - Veja seus resultados!", renderer.render(TEMPLATE_NAME, vars));
     }
     
     private String capitalizeMonth(String str) {

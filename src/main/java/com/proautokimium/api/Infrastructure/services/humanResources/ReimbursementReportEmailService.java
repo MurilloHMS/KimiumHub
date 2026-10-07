@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.ReportEmailResultDTO;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.NoReportRecipientException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.ReportEmailFailedException;
@@ -7,7 +8,6 @@ import com.proautokimium.api.Infrastructure.exceptions.humanResources.ReportTooL
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
 import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
-import com.proautokimium.api.Infrastructure.services.email.smtp.SmtpService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.enums.humanResources.ReimbursementStatus;
 import org.slf4j.Logger;
@@ -60,21 +60,18 @@ public class ReimbursementReportEmailService {
     private final EmployeeRepository employeeRepository;
     private final EmailRenderer renderer;
     private final Clock clock;
-    private final String from;
 
     public ReimbursementReportEmailService(HrReportRecipientService recipients,
                                            ReimbursementReportService reportService,
                                            EmailQueueService emailQueueService,
                                            EmployeeRepository employeeRepository, EmailRenderer renderer,
-                                           Clock clock,
-                                           @Value("${mail.from}") String from) {
+                                           Clock clock) {
         this.recipients = recipients;
         this.reportService = reportService;
         this.emailQueueService = emailQueueService;
         this.employeeRepository = employeeRepository;
         this.renderer = renderer;
         this.clock = clock;
-        this.from = from;
     }
 
     public ReportEmailResultDTO sendToHr(LocalDate periodStart, LocalDate periodEnd,
@@ -100,7 +97,8 @@ public class ReimbursementReportEmailService {
         String subject = "Comprovante de reembolsos · " + period
                 + (employeeName != null ? " · " + employeeName : "");
         String html = body(period, employeeName, statuses, login, fileName);
-        SmtpService.Attachment attachment = new SmtpService.Attachment(fileName, pdf, "application/pdf");
+        List<EmailQueueService.OutgoingAttachment> attachment =
+                List.of(new EmailQueueService.OutgoingAttachment(fileName, pdf, "application/pdf"));
 
         // Um e-mail por destinatário: um endereço quebrado não derruba os outros,
         // e ninguém vê para quem mais foi.
@@ -108,7 +106,7 @@ public class ReimbursementReportEmailService {
         List<String> failed = new ArrayList<>();
         for (String recipient : to) {
             try {
-                emailQueueService.sendNow(recipient, from, subject, html, attachment);
+                emailQueueService.sendNow(EmailOrigin.REIMBURSEMENT_REPORT, recipient, subject, html, attachment);
                 sent.add(recipient);
             } catch (RuntimeException e) {
                 log.warn("Comprovante de reembolsos não saiu para {}", recipient, e);

@@ -75,7 +75,9 @@ public class NewsletterOrchestratorService implements INewsletterOrchestrator {
 		LOGGER.info("Iniciando envios de emails");
 		for(Newsletter newsletter: newslettersToSend) {
 			try {
-				service.sendMailWithInline(newsletter);
+				// SENT aqui quer dizer "entregue à fila de e-mail": o envio de verdade, as
+				// tentativas e o motivo de uma falha ficam na fila (tela Fila de e-mails).
+				service.enqueue(newsletter);
 				newsletter.setStatus(EmailStatus.SENT);
                 success++;
 			}catch (Exception e) {

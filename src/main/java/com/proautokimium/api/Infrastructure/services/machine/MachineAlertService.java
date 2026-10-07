@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.machine;
 
+import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import com.proautokimium.api.Application.DTOs.machine.MachineAlertConfigDTO;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.prostock.MachineAlertConfigRepository;
@@ -35,7 +36,6 @@ public class MachineAlertService {
     @Value("${app.base-url}")
     String websiteBaseUrl;
 
-    private static final String FROM = "noreply@envios.proautokimium.com.br";
     private static final int LATE_MARKER = -1;
 
     private final MachineAlertConfigRepository configRepository;
@@ -138,7 +138,7 @@ public class MachineAlertService {
         Digest digest = digest(items);
         String subject = subject(digest);
         String body = buildDigestBody(digest);
-        emails.forEach(to -> emailQueueService.sendEmail(to, FROM, subject, body));
+        emails.forEach(to -> emailQueueService.enqueue(EmailOrigin.MACHINE_ALERT, to, subject, body));
 
         items.forEach(item -> sentRepository.save(new MachineAlertSent(item.register().getId(), today, item.marker())));
 
@@ -173,7 +173,7 @@ public class MachineAlertService {
         String body = buildDigestBody(digest);
         String subject = "[TESTE] " + subject(digest);
 
-        recipients.forEach(to -> emailQueueService.sendEmail(to, FROM, subject, body));
+        recipients.forEach(to -> emailQueueService.enqueue(EmailOrigin.MACHINE_ALERT, to, subject, body));
         return recipients.size();
     }
 
