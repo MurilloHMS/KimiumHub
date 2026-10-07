@@ -229,4 +229,46 @@ class EmailTemplatesRenderTest {
                 .contains("Lavanderia &lt;Central&gt;").doesNotContain("<Central>")
                 .contains(">Abrir no KimiumHub</a>");
     }
+
+    private static Map<String, Object> newsletter(int visitas, double horas) {
+        Map<String, Object> v = new HashMap<>();
+        v.put("mes", "Setembro");
+        v.put("nomeDoCliente", "Lavanderia Central");
+        v.put("produtoEmDestaque", "Detergente Alcalino KX");
+        v.put("quantidadeDeProdutos", 1234);
+        v.put("quantidadeDeLitros", 5320.0);
+        v.put("quantidadeDeVisitas", visitas);
+        v.put("valorDePecasTrocadas", 1850.5);
+        v.put("mediaDiasAtendimento", 3);
+        v.put("valorTotalDeHoras", horas);
+        v.put("valorTotalCobradoHoras", 12345.6);
+        v.put("horasNormais", 100.0);
+        v.put("valorHorasNormais", 9000.0);
+        v.put("horasMauUso", 28.5);
+        v.put("valorHorasMauUso", 3345.6);
+        v.put("faturamentoTotal", 48250.75);
+        return v;
+    }
+
+    @Test
+    @DisplayName("newsletter: dinheiro no formato do Brasil (1.234,56), nunca o americano")
+    void newsletterDinheiro() {
+        String html = render("html/newsletter_v2", newsletter(14, 128.5));
+
+        assertCasco(html, "Newsletter · Setembro");
+        assertThat(html).contains(">Lavanderia Central</p>").contains("Detergente Alcalino KX")
+                .contains(">R$ 48.250,75</td>").contains(">1.234</td>").contains(">5.320</td>")
+                .contains(">R$ 1.850,50</td>").contains(">128,50 h</td>").contains(">R$ 12.345,60</td>")
+                .contains(">28,50 h · R$ 3.345,60</td>")
+                .doesNotContain("48,250.75").doesNotContain("3345.6");
+    }
+
+    @Test
+    @DisplayName("newsletter: sem visitas e sem horas, as duas seções somem")
+    void newsletterSemManutencao() {
+        String html = render("html/newsletter_v2", newsletter(0, 0.0));
+
+        assertThat(html).doesNotContain("Manutenções").doesNotContain("Horas de manutenção")
+                .contains(">R$ 48.250,75</td>");
+    }
 }
