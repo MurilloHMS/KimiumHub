@@ -29,17 +29,19 @@ public class EmailQueueAdminController {
     public ResponseEntity<EmailPage> list(@RequestParam(required = false) String status,
                                           @RequestParam(required = false) EmailOrigin origin,
                                           @RequestParam(required = false) Integer days,
+                                          @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate since,
                                           @RequestParam(required = false) String q,
                                           @RequestParam(defaultValue = "0") int page,
                                           @RequestParam(defaultValue = "50") int size) {
-        return ResponseEntity.ok(service.list(status, origin, days, q, page, size));
+        return ResponseEntity.ok(service.list(status, origin, days, since, q, page, size));
     }
 
     @GetMapping("/summary")
     @PreAuthorize("hasAuthority('dev/email-queue:CONSULTAR')")
     @Operation(summary = "Indicadores do período")
-    public ResponseEntity<Summary> summary(@RequestParam(required = false) Integer days) {
-        return ResponseEntity.ok(service.summary(days));
+    public ResponseEntity<Summary> summary(@RequestParam(required = false) Integer days,
+                                           @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate since) {
+        return ResponseEntity.ok(service.summary(days, since));
     }
 
     @GetMapping("/{id}")

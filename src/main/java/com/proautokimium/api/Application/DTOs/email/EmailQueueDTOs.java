@@ -1,6 +1,7 @@
 package com.proautokimium.api.Application.DTOs.email;
 
 import com.proautokimium.api.domain.enums.EmailStatus;
+import com.proautokimium.api.domain.enums.email.EmailDeliveryState;
 import com.proautokimium.api.domain.enums.email.EmailFailureKind;
 import com.proautokimium.api.domain.enums.email.EmailOrigin;
 
@@ -18,7 +19,8 @@ public final class EmailQueueDTOs {
     public record EmailRow(UUID id, String to, String subject, EmailOrigin origin, String originLabel,
                            EmailStatus status, int attempts, LocalDateTime createdAt, LocalDateTime sentAt,
                            LocalDateTime lastAttemptAt, String lastError, EmailFailureKind failureKind,
-                           String failureLabel, boolean hasAttachments, boolean resendable) {}
+                           String failureLabel, boolean hasAttachments, boolean resendable,
+                           EmailDeliveryState deliveryState, LocalDateTime deliveredAt, LocalDateTime bouncedAt) {}
 
     public record EmailPage(long total, List<EmailRow> items) {}
 
@@ -27,7 +29,9 @@ public final class EmailQueueDTOs {
     public record EmailDetail(UUID id, String to, String subject, EmailOrigin origin, String originLabel,
                               EmailStatus status, int attempts, LocalDateTime createdAt, LocalDateTime sentAt,
                               LocalDateTime lastAttemptAt, String lastError, EmailFailureKind failureKind,
-                              String failureLabel, boolean hasAttachments, boolean resendable, String from, String fromName,
+                              String failureLabel, boolean hasAttachments, boolean resendable,
+                              EmailDeliveryState deliveryState, LocalDateTime deliveredAt, LocalDateTime bouncedAt,
+                              String bounceReason, String from, String fromName,
                               String replyTo, String body, boolean bodyHidden, List<AttachmentInfo> attachments) {}
 
     public record DayStat(LocalDate date, long sent, long failed, long retried) {}
@@ -38,7 +42,15 @@ public final class EmailQueueDTOs {
 
     public record Summary(int days, long failed, long queued, LocalDateTime oldestQueuedAt, long sent,
                           Double successRate, long retried, double avgAttempts, LocalDateTime lastActivityAt,
-                          List<DayStat> perDay, List<ReasonStat> reasons, List<OriginStat> origins) {}
+                          List<DayStat> perDay, List<ReasonStat> reasons, List<OriginStat> origins,
+                          Delivery delivery) {}
+
+    /**
+     * A entrega no período, só dos e-mails rastreados (os de antes da V122 não
+     * têm como). {@code rate} = entregues ÷ (enviados + falharam), como no
+     * mockup aprovado; nulo quando não há nenhum rastreado concluído.
+     */
+    public record Delivery(long tracked, long delivered, long bounced, long awaiting, Double rate) {}
 
     public record ResendRequest(List<UUID> ids) {}
 

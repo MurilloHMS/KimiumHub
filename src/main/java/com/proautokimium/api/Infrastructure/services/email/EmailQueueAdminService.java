@@ -29,7 +29,9 @@ import java.util.*;
 public class EmailQueueAdminService {
 
     static final List<EmailStatus> QUEUED = List.of(EmailStatus.PENDING, EmailStatus.SCHEDULED);
-    static final Set<Integer> ALLOWED_DAYS = Set.of(1, 7, 30);
+    static final Set<Integer> ALLOWED_DAYS = Set.of(1, 7, 30, 90);
+    /** "Desde uma data": no máximo um ano para trás, para o gráfico e as contagens não varrerem a tabela inteira. */
+    static final int MAX_DAYS = 366;
     static final int MAX_PAGE_SIZE = 200;
 
     private final EmailQueueRepository repository;
@@ -45,13 +47,22 @@ public class EmailQueueAdminService {
         return LocalDate.now(clock).minusDays(days - 1L).atStartOfDay();
     }
 
-    static int days(Integer days) {
+    /**
+     * Quantos dias o período tem, contando hoje. "Desde" (uma data) vence os
+     * atalhos; a data futura vira hoje, e a antiga demais para em {@link #MAX_DAYS}.
+     */
+    int days(Integer days, LocalDate sinceDate) {
+        if (sinceDate != null) {
+            LocalDate today = LocalDate.now(clock);
+            long n = sinceDate.isAfter(today) ? 1 : java.time.temporal.ChronoUnit.DAYS.between(sinceDate, today) + 1;
+            return (int) Math.min(n, MAX_DAYS);
+        }
         return days != null && ALLOWED_DAYS.contains(days) ? days : 7;
     }
 
     @Transactional(readOnly = true)
-    public EmailPage list(String status, EmailOrigin origin, Integer days, String q, int page, int size) {
-        LocalDateTime since = since(days(days));
+    public EmailPage list(String status, EmailOrigin origin, Integer days, LocalDate sinceDate, String q, int page, int size) {
+        LocalDateTime since = since(days(days, sinceDate));
         boolean failedOnly = "FAILED".equals(status);
         Specification<EmailQueue> spec = (root, query, cb) -> {
             List<Predicate> and = new ArrayList<>();
@@ -70,12 +81,12 @@ public class EmailQueueAdminService {
         Sort sort = failedOnly ? Sort.by("createdAt").ascending() : Sort.by("createdAt").descending();
         Page<EmailQueue> result = repository.findAll(spec,
                 PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE), sort));
-        return new EmailPage(result.getTotalElements(), result.getContent().stream().map(EmailQueueAdminService::row).toList());
+        return new EmailPage(result.getTotalElements(), result.getContent().stream().map(this::row).toList());
     }
 
     @Transactional(readOnly = true)
-    public Summary summary(Integer daysParam) {
-        int days = days(daysParam);
+    public Summary summary(Integer daysParam, LocalDate sinceDate) {
+        int days = days(daysParam, sinceDate);
         LocalDateTime since = since(days);
 
         Map<EmailStatus, Long> byStatus = new EnumMap<>(EmailStatus.class);
@@ -124,7 +135,17 @@ public class EmailQueueAdminService {
                 Math.round(repository.averageAttemptsSince(List.of(EmailStatus.SENT, EmailStatus.FAILED), since) * 100) / 100.0,
                 repository.lastActivityAt(),
                 perDay.entrySet().stream().map(e -> new DayStat(e.getKey(), e.getValue()[0], e.getValue()[1], e.getValue()[2])).toList(),
-                reasons, origins);
+                reasons, origins, delivery(since));
+    }
+
+    private Delivery delivery(LocalDateTime since) {
+        EmailQueueRepository.DeliveryCount c = repository.countDeliverySince(List.of(EmailStatus.SENT, EmailStatus.FAILED), since);
+        long tracked = c == null || c.getDone() == null ? 0 : c.getDone();
+        long delivered = c == null || c.getDelivered() == null ? 0 : c.getDelivered();
+        long bounced = c == null || c.getBounced() == null ? 0 : c.getBounced();
+        long sentTracked = repository.countAwaitingDeliverySince(EmailStatus.SENT, since);
+        Double rate = tracked == 0 ? null : Math.round(delivered * 1000.0 / tracked) / 10.0;
+        return new Delivery(tracked, delivered, bounced, sentTracked, rate);
     }
 
     @Transactional(readOnly = true)
@@ -134,7 +155,8 @@ public class EmailQueueAdminService {
         EmailFailureKind kind = EmailFailureKind.classify(e.getLastError());
         return new EmailDetail(e.getId(), e.getToEmail(), e.getSubject(), e.getOrigin(), label(e.getOrigin()),
                 e.getStatus(), e.getAttempts(), e.getCreatedAt(), e.getSentAt(), e.getLastAttemptAt(), e.getLastError(),
-                kind, kind == null ? null : kind.getLabel(), !e.getAttachments().isEmpty(), e.canBeResent(), e.getFromEmail(),
+                kind, kind == null ? null : kind.getLabel(), !e.getAttachments().isEmpty(), e.canBeResent(),
+                e.deliveryState(LocalDateTime.now(clock)), e.getDeliveredAt(), e.getBouncedAt(), e.getBounceReason(), e.getFromEmail(),
                 e.getFromName(), e.getReplyTo(), hidden ? null : e.getBody(), hidden,
                 e.getAttachments().stream().map(a -> new AttachmentInfo(a.getFilename(), a.getContentType(), a.getSizeBytes())).toList());
     }
@@ -168,10 +190,15 @@ public class EmailQueueAdminService {
         return origin == null ? "Sem origem" : origin.getLabel();
     }
 
-    static EmailRow row(EmailQueue e) {
+    EmailRow row(EmailQueue e) {
+        return row(e, LocalDateTime.now(clock));
+    }
+
+    static EmailRow row(EmailQueue e, LocalDateTime now) {
         EmailFailureKind kind = EmailFailureKind.classify(e.getLastError());
         return new EmailRow(e.getId(), e.getToEmail(), e.getSubject(), e.getOrigin(), label(e.getOrigin()), e.getStatus(),
                 e.getAttempts(), e.getCreatedAt(), e.getSentAt(), e.getLastAttemptAt(), e.getLastError(), kind,
-                kind == null ? null : kind.getLabel(), !e.getAttachments().isEmpty(), e.canBeResent());
+                kind == null ? null : kind.getLabel(), !e.getAttachments().isEmpty(), e.canBeResent(),
+                e.deliveryState(now), e.getDeliveredAt(), e.getBouncedAt());
     }
 }
