@@ -5,7 +5,10 @@ import com.proautokimium.api.Infrastructure.services.storage.EmployeeDocumentSto
 import com.proautokimium.api.domain.entities.email.EmailQueue;
 import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -35,14 +38,18 @@ public class EmailQueueService {
     private final EmailDispatcher dispatcher;
     private final EmployeeDocumentStorageService storage;
     private final Clock clock;
+    private final TransactionTemplate ownTransaction;
 
     public EmailQueueService(EmailQueueRepository repository, EmailSenderResolver senders, EmailDispatcher dispatcher,
-                             EmployeeDocumentStorageService storage, Clock clock) {
+                             EmployeeDocumentStorageService storage, Clock clock,
+                             PlatformTransactionManager transactionManager) {
         this.repository = repository;
         this.senders = senders;
         this.dispatcher = dispatcher;
         this.storage = storage;
         this.clock = clock;
+        this.ownTransaction = new TransactionTemplate(transactionManager);
+        this.ownTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     /** Um arquivo que vai junto: guardado no disco antes de o e-mail entrar na fila. */
@@ -87,7 +94,15 @@ public class EmailQueueService {
         sendNow(origin, to, subject, html, List.of());
     }
 
-    /** SENT no sucesso; FAILED com o motivo na falha, e a falha sobe. A linha é gravada sempre. */
+    /**
+     * SENT no sucesso; FAILED com o motivo na falha, e a falha sobe. A linha é gravada sempre.
+     *
+     * <p><b>Gravada numa transação própria.</b> Quem chama (redefinição de senha,
+     * primeiro acesso) está numa transação, e a falha que sobe a desfaz: sem
+     * {@code REQUIRES_NEW}, a linha FAILED ia junto e a tela da fila nunca via a
+     * falha. E no sucesso o registro fica mesmo que quem chamou volte depois,
+     * porque o e-mail já saiu.
+     */
     public void sendNow(EmailOrigin origin, String to, String subject, String html,
                         List<OutgoingAttachment> attachments) {
         EmailQueue email = prepare(origin, to, subject, html, attachments);
@@ -98,7 +113,7 @@ public class EmailQueueService {
             email.recordImmediateFailure(describe(e), LocalDateTime.now(clock));
             throw e;
         } finally {
-            repository.save(email);
+            ownTransaction.executeWithoutResult(status -> repository.save(email));
         }
     }
 

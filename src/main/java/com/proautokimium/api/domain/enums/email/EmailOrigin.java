@@ -32,4 +32,9 @@ public enum EmailOrigin {
         this.hint = hint;
         this.sensitive = sensitive;
     }
+
+    /** Tem rota em email_routes? O envio manual não: quem envia escolhe o remetente a cada vez. */
+    public boolean isRoutable() {
+        return this != MANUAL;
+    }
 }

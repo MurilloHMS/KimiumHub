@@ -36,7 +36,8 @@ class EmailQueueServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(AGORA.atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault());
-        service = new EmailQueueService(repository, senders, dispatcher, storage, clock);
+        service = new EmailQueueService(repository, senders, dispatcher, storage, clock,
+                mock(org.springframework.transaction.PlatformTransactionManager.class));
         when(senders.resolve(any())).thenReturn(new EmailSenderResolver.Sender("rh@envios.proautokimium.com.br", "RH Proauto", "rh@proautokimium.com.br"));
         when(repository.save(any())).thenAnswer(c -> c.getArgument(0));
     }

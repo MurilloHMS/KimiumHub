@@ -75,6 +75,19 @@ class EmailQueueTest {
         assertThat(e.getLastError()).isNull();
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = EmailOrigin.class, names = {"FIRST_ACCESS", "PASSWORD_RESET", "CLIENT_INVITE", "TALENT_BANK"})
+    @DisplayName("e-mail com código de acesso não se reenvia: o código já não vale, e a pessoa pede outro")
+    void sensivelNaoReenvia(EmailOrigin origem) {
+        EmailQueue e = EmailQueue.of(origem, "a@x.com", "Seu código", "<p>482913</p>", AGORA);
+        e.recordImmediateFailure("Connection refused", AGORA);
+
+        assertThat(e.canBeResent()).isFalse();
+        InvalidStatusTransitionException erro = assertThrows(InvalidStatusTransitionException.class, e::requeue);
+        assertThat(erro.getMessage()).contains("peça um novo");
+        assertThat(e.getStatus()).isEqualTo(EmailStatus.FAILED);
+    }
+
     @Test
     @DisplayName("erro muito longo é cortado: a pilha inteira não cabe e o motivo está no começo")
     void erroCortado() {

@@ -79,6 +79,23 @@ class EmailAdminServicesTest {
     }
 
     @Test
+    @DisplayName("reenviar em lote pula o e-mail com código de acesso, e a linha diz que ele não se reenvia")
+    void loteIgnoraSensivel() {
+        EmailQueue f = falhou();
+        EmailQueue codigo = EmailQueue.of(EmailOrigin.PASSWORD_RESET, "b@x.com", "Redefinição", "<p>1</p>", AGORA);
+        codigo.id = UUID.randomUUID();
+        codigo.recordImmediateFailure("Connection refused", AGORA);
+        when(queue.findAllById(any())).thenReturn(List.of(f, codigo));
+
+        ResendResult r = admin.resend(List.of(f.getId(), codigo.getId()));
+
+        assertThat(r.requeued()).isEqualTo(1);
+        assertThat(codigo.getStatus()).isEqualTo(EmailStatus.FAILED);
+        assertThat(EmailQueueAdminService.row(codigo).resendable()).isFalse();
+        assertThat(EmailQueueAdminService.row(falhou()).resendable()).isTrue();
+    }
+
+    @Test
     @DisplayName("ficha de e-mail de acesso: o corpo vem escondido")
     void corpoEscondido() {
         EmailQueue codigo = EmailQueue.of(EmailOrigin.FIRST_ACCESS, "a@x.com", "Seu código", "<p>482913</p>", AGORA);
@@ -108,7 +125,7 @@ class EmailAdminServicesTest {
             assertThat(r.kind()).isEqualTo(EmailFailureKind.MAILBOX_NOT_FOUND);
             assertThat(r.count()).isEqualTo(2);
         });
-        assertThat(s.successRate()).as("sem envios no período, nada a lamentar").isEqualTo(100.0);
+        assertThat(s.successRate()).as("sem envios no período não há taxa, e 100% esconderia a parada").isNull();
     }
 
     // ── remetentes ──
@@ -151,5 +168,16 @@ class EmailAdminServicesTest {
         when(queue.countForRoutes(any())).thenReturn(List.of());
         senderAdmin.updateRoute(EmailOrigin.CHECKLIST, new UpdateRoute(null, null), "dev");
         verify(routes).delete(atual);
+    }
+
+    @Test
+    @DisplayName("envio manual não tem rota: o remetente é escolhido a cada envio, e um seletor ali não faria nada")
+    void manualSemRota() {
+        assertThat(senderAdmin.listRoutes()).extracting(Route::origin)
+                .doesNotContain(EmailOrigin.MANUAL)
+                .contains(EmailOrigin.NEWSLETTER, EmailOrigin.FIRST_ACCESS);
+
+        assertThrows(InvalidRequestDataException.class,
+                () -> senderAdmin.updateRoute(EmailOrigin.MANUAL, new UpdateRoute(null, null), "dev"));
     }
 }

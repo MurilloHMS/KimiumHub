@@ -2,6 +2,8 @@ package com.proautokimium.api.Infrastructure.repositories.email;
 
 import com.proautokimium.api.domain.entities.email.EmailQueue;
 import com.proautokimium.api.domain.enums.EmailStatus;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -15,9 +17,27 @@ import java.util.UUID;
 public interface EmailQueueRepository extends JpaRepository<EmailQueue, UUID>, JpaSpecificationExecutor<EmailQueue> {
     List<EmailQueue> findTop15ByStatusOrderByCreatedAtAsc(EmailStatus emailStatus);
 
-    /** O lote do agendador, já com os anexos: o envio acontece fora de transação. */
+    int BATCH_SIZE = 15;
+
+    /**
+     * O lote do agendador, já com os anexos: o envio acontece fora de transação.
+     *
+     * <p><b>Em duas consultas, e não um {@code findTop15} com {@code @EntityGraph}.</b>
+     * Com o fetch da coleção, o Hibernate não consegue pôr o {@code LIMIT} no
+     * SQL: traz a fila inteira e corta na memória (aviso HHH90003004). Com 900
+     * newsletters esperando, eram 900 corpos de HTML lidos a cada minuto para
+     * usar 15. Aqui o {@code LIMIT} vai nos ids, e os anexos vêm só dos 15.
+     */
+    default List<EmailQueue> nextBatch(List<EmailStatus> statuses) {
+        List<UUID> ids = findBatchIds(statuses, PageRequest.of(0, BATCH_SIZE));
+        return ids.isEmpty() ? List.of() : findWithAttachmentsByIdInOrderByCreatedAtAsc(ids);
+    }
+
+    @Query("select e.id from EmailQueue e where e.status in :statuses order by e.createdAt asc")
+    List<UUID> findBatchIds(@Param("statuses") List<EmailStatus> statuses, Pageable page);
+
     @EntityGraph(attributePaths = "attachments")
-    List<EmailQueue> findTop15ByStatusInOrderByCreatedAtAsc(List<EmailStatus> statuses);
+    List<EmailQueue> findWithAttachmentsByIdInOrderByCreatedAtAsc(List<UUID> ids);
 
     // ── Para a tela do desenvolvedor: contagens, sem carregar o corpo dos e-mails ──
 

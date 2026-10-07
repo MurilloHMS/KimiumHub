@@ -109,12 +109,16 @@ public class EmailSenderAdminService {
         Map<EmailOrigin, Long> last30 = new EnumMap<>(EmailOrigin.class);
         queue.countForRoutes(LocalDate.now(clock).minusDays(29).atStartOfDay())
                 .forEach(c -> { if (c.getOrigin() != null) last30.merge(c.getOrigin(), c.getTotal(), Long::sum); });
-        return Arrays.stream(EmailOrigin.values()).map(o -> toDto(o, byOrigin.get(o), last30.getOrDefault(o, 0L))).toList();
+        return Arrays.stream(EmailOrigin.values()).filter(EmailOrigin::isRoutable)
+                .map(o -> toDto(o, byOrigin.get(o), last30.getOrDefault(o, 0L))).toList();
     }
 
     /** senderId nulo apaga a rota: a origem volta a usar o remetente padrão. */
     @Transactional
     public Route updateRoute(EmailOrigin origin, UpdateRoute body, String login) {
+        if (!origin.isRoutable()) {
+            throw new InvalidRequestDataException("O envio manual escolhe o remetente a cada envio: não tem rota.");
+        }
         EmailEntity sender = body.senderId() == null ? null : active(body.senderId());
         EmailEntity replyTo = body.replyToId() == null ? null : active(body.replyToId());
         Optional<EmailRoute> current = routes.findById(origin);

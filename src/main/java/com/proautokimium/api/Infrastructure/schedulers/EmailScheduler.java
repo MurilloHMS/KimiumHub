@@ -36,7 +36,7 @@ public class EmailScheduler {
 
     @Scheduled(cron = "0 * * * * *")
     public void processQueue() {
-        List<EmailQueue> emails = repository.findTop15ByStatusInOrderByCreatedAtAsc(
+        List<EmailQueue> emails = repository.nextBatch(
                 List.of(EmailStatus.PENDING, EmailStatus.SCHEDULED));
 
         for (EmailQueue email : emails) {

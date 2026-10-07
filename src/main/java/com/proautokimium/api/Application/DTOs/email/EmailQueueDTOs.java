@@ -18,7 +18,7 @@ public final class EmailQueueDTOs {
     public record EmailRow(UUID id, String to, String subject, EmailOrigin origin, String originLabel,
                            EmailStatus status, int attempts, LocalDateTime createdAt, LocalDateTime sentAt,
                            LocalDateTime lastAttemptAt, String lastError, EmailFailureKind failureKind,
-                           String failureLabel, boolean hasAttachments) {}
+                           String failureLabel, boolean hasAttachments, boolean resendable) {}
 
     public record EmailPage(long total, List<EmailRow> items) {}
 
@@ -27,7 +27,7 @@ public final class EmailQueueDTOs {
     public record EmailDetail(UUID id, String to, String subject, EmailOrigin origin, String originLabel,
                               EmailStatus status, int attempts, LocalDateTime createdAt, LocalDateTime sentAt,
                               LocalDateTime lastAttemptAt, String lastError, EmailFailureKind failureKind,
-                              String failureLabel, boolean hasAttachments, String from, String fromName,
+                              String failureLabel, boolean hasAttachments, boolean resendable, String from, String fromName,
                               String replyTo, String body, boolean bodyHidden, List<AttachmentInfo> attachments) {}
 
     public record DayStat(LocalDate date, long sent, long failed, long retried) {}
@@ -37,7 +37,7 @@ public final class EmailQueueDTOs {
     public record OriginStat(EmailOrigin origin, String label, long total, long failed) {}
 
     public record Summary(int days, long failed, long queued, LocalDateTime oldestQueuedAt, long sent,
-                          double successRate, long retried, double avgAttempts, LocalDateTime lastActivityAt,
+                          Double successRate, long retried, double avgAttempts, LocalDateTime lastActivityAt,
                           List<DayStat> perDay, List<ReasonStat> reasons, List<OriginStat> origins) {}
 
     public record ResendRequest(List<UUID> ids) {}

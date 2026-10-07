@@ -32,7 +32,7 @@ class EmailSchedulerTest {
         // A Entity base compara só o id: sem id, as duas linhas seriam "iguais" para o Mockito.
         falha.id = java.util.UUID.randomUUID();
         ok.id = java.util.UUID.randomUUID();
-        when(repo.findTop15ByStatusInOrderByCreatedAtAsc(any())).thenReturn(List.of(falha, ok));
+        when(repo.nextBatch(any())).thenReturn(List.of(falha, ok));
         doThrow(new MailSendException("falhou", new RuntimeException("552 Mailbox full"))).when(dispatcher).send(falha);
 
         new EmailScheduler(repo, dispatcher, Clock.fixed(agora.atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault()))

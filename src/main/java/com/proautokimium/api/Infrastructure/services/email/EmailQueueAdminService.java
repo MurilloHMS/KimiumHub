@@ -83,7 +83,8 @@ public class EmailQueueAdminService {
         long sent = byStatus.getOrDefault(EmailStatus.SENT, 0L);
         long failed = byStatus.getOrDefault(EmailStatus.FAILED, 0L);
         long done = sent + failed;
-        double successRate = done == 0 ? 100.0 : Math.round(sent * 1000.0 / done) / 10.0;
+        // Sem nenhum envio concluído não há taxa: "100%" num período parado esconderia a parada.
+        Double successRate = done == 0 ? null : Math.round(sent * 1000.0 / done) / 10.0;
 
         // Um dia por dia do período, com os zerados: o gráfico não pode pular dia.
         Map<LocalDate, long[]> perDay = new TreeMap<>();
@@ -133,7 +134,7 @@ public class EmailQueueAdminService {
         EmailFailureKind kind = EmailFailureKind.classify(e.getLastError());
         return new EmailDetail(e.getId(), e.getToEmail(), e.getSubject(), e.getOrigin(), label(e.getOrigin()),
                 e.getStatus(), e.getAttempts(), e.getCreatedAt(), e.getSentAt(), e.getLastAttemptAt(), e.getLastError(),
-                kind, kind == null ? null : kind.getLabel(), !e.getAttachments().isEmpty(), e.getFromEmail(),
+                kind, kind == null ? null : kind.getLabel(), !e.getAttachments().isEmpty(), e.canBeResent(), e.getFromEmail(),
                 e.getFromName(), e.getReplyTo(), hidden ? null : e.getBody(), hidden,
                 e.getAttachments().stream().map(a -> new AttachmentInfo(a.getFilename(), a.getContentType(), a.getSizeBytes())).toList());
     }
@@ -146,12 +147,12 @@ public class EmailQueueAdminService {
         return row(repository.save(e));
     }
 
-    /** Em lote: os que não falharam são ignorados, para um clique não reenviar o que já saiu. */
+    /** Em lote: o que não pode voltar (não falhou, ou leva código de acesso) é ignorado. */
     @Transactional
     public ResendResult resend(List<UUID> ids) {
         int requeued = 0;
         for (EmailQueue e : repository.findAllById(ids == null ? List.of() : ids)) {
-            if (e.getStatus() != EmailStatus.FAILED) continue;
+            if (!e.canBeResent()) continue;
             e.requeue();
             repository.save(e);
             requeued++;
@@ -171,6 +172,6 @@ public class EmailQueueAdminService {
         EmailFailureKind kind = EmailFailureKind.classify(e.getLastError());
         return new EmailRow(e.getId(), e.getToEmail(), e.getSubject(), e.getOrigin(), label(e.getOrigin()), e.getStatus(),
                 e.getAttempts(), e.getCreatedAt(), e.getSentAt(), e.getLastAttemptAt(), e.getLastError(), kind,
-                kind == null ? null : kind.getLabel(), !e.getAttachments().isEmpty());
+                kind == null ? null : kind.getLabel(), !e.getAttachments().isEmpty(), e.canBeResent());
     }
 }

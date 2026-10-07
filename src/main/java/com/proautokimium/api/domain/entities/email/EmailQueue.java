@@ -177,11 +177,25 @@ public class EmailQueue extends com.proautokimium.api.domain.abstractions.Entity
         this.status = EmailStatus.FAILED;
     }
 
+    /**
+     * Pode voltar para a fila? Só o que falhou, e nunca o que leva código ou
+     * link de acesso: o código da redefinição e do primeiro acesso expira em
+     * minutos (e, se o envio falhou na hora, nem chegou a ser gravado), e os
+     * links têm prazo. Reenviar entregaria um acesso morto; a pessoa pede outro.
+     */
+    public boolean canBeResent() {
+        return status == EmailStatus.FAILED && (origin == null || !origin.isSensitive());
+    }
+
     /** Reenviar: só o que falhou volta para a fila, com as tentativas zeradas. */
     public void requeue() {
         if (status != EmailStatus.FAILED) {
             throw new com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException(
                     "Só um e-mail que falhou pode ser reenviado.");
+        }
+        if (!canBeResent()) {
+            throw new com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTransitionException(
+                    "Este e-mail leva um código de acesso com prazo: em vez de reenviar, peça um novo.");
         }
         this.status = EmailStatus.PENDING;
         this.attempts = 0;
