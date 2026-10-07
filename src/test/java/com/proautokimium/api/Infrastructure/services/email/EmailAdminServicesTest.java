@@ -91,8 +91,8 @@ class EmailAdminServicesTest {
 
         assertThat(r.requeued()).isEqualTo(1);
         assertThat(codigo.getStatus()).isEqualTo(EmailStatus.FAILED);
-        assertThat(EmailQueueAdminService.row(codigo).resendable()).isFalse();
-        assertThat(EmailQueueAdminService.row(falhou()).resendable()).isTrue();
+        assertThat(EmailQueueAdminService.row(codigo, AGORA).resendable()).isFalse();
+        assertThat(EmailQueueAdminService.row(falhou(), AGORA).resendable()).isTrue();
     }
 
     @Test
@@ -116,7 +116,7 @@ class EmailAdminServicesTest {
         when(queue.countByOriginSince(any())).thenReturn(List.of());
         when(queue.errorsSince(any(), any())).thenReturn(List.of("550 5.1.1 User unknown", "timeout 5000", "550 no such user"));
 
-        Summary s = admin.summary(7);
+        Summary s = admin.summary(7, null);
 
         assertThat(s.perDay()).hasSize(7);
         assertThat(s.perDay().get(6).date()).isEqualTo(LocalDate.of(2026, 10, 7));
@@ -126,6 +126,41 @@ class EmailAdminServicesTest {
             assertThat(r.count()).isEqualTo(2);
         });
         assertThat(s.successRate()).as("sem envios no período não há taxa, e 100% esconderia a parada").isNull();
+        assertThat(s.delivery().rate()).as("nenhum rastreado: sem taxa de entrega").isNull();
+    }
+
+    @Test
+    @DisplayName("período: 90 dias vale; 'desde' uma data conta até hoje e para em um ano; valor estranho vira 7")
+    void periodo() {
+        assertThat(admin.days(90, null)).isEqualTo(90);
+        assertThat(admin.days(45, null)).isEqualTo(7);
+        assertThat(admin.days(null, LocalDate.of(2026, 9, 1))).as("1/9 a 7/10, com os dois dias").isEqualTo(37);
+        assertThat(admin.days(7, LocalDate.of(2026, 10, 7))).as("a data vence o atalho").isEqualTo(1);
+        assertThat(admin.days(null, LocalDate.of(2026, 12, 1))).as("data futura vira hoje").isEqualTo(1);
+        assertThat(admin.days(null, LocalDate.of(2020, 1, 1))).isEqualTo(EmailQueueAdminService.MAX_DAYS);
+    }
+
+    @Test
+    @DisplayName("taxa de entrega: entregues ÷ rastreados concluídos (enviados + falharam), como no mockup")
+    void taxaDeEntrega() {
+        when(queue.countByStatusSince(any())).thenReturn(List.of());
+        when(queue.countByDaySince(any())).thenReturn(List.of());
+        when(queue.countByOriginSince(any())).thenReturn(List.of());
+        when(queue.errorsSince(any(), any())).thenReturn(List.of());
+        when(queue.countDeliverySince(any(), any())).thenReturn(new com.proautokimium.api.Infrastructure.repositories.email.EmailQueueRepository.DeliveryCount() {
+            public Long getDone() { return 40L; }
+            public Long getDelivered() { return 37L; }
+            public Long getBounced() { return 1L; }
+        });
+        when(queue.countAwaitingDeliverySince(any(), any())).thenReturn(2L);
+
+        Delivery d = admin.summary(7, null).delivery();
+
+        assertThat(d.tracked()).isEqualTo(40);
+        assertThat(d.delivered()).isEqualTo(37);
+        assertThat(d.bounced()).isEqualTo(1);
+        assertThat(d.awaiting()).isEqualTo(2);
+        assertThat(d.rate()).isEqualTo(92.5);
     }
 
     // ── remetentes ──

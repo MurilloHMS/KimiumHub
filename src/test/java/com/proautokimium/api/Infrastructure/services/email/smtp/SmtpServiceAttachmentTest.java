@@ -69,6 +69,34 @@ class SmtpServiceAttachmentTest {
                 java.util.List.of(new SmtpService.Attachment("c.pdf", new byte[]{1}, "application/pdf"))));
     }
 
+    @Test
+    @DisplayName("o e-mail sai com X-SMTPLW = tracking_id: é o que volta no relatório da Locaweb")
+    void cabecalhoDeRastreio() throws Exception {
+        when(sender.createMimeMessage()).thenReturn(new MimeMessage(Session.getInstance(new Properties())));
+        EmailQueue e = EmailQueue.of(com.proautokimium.api.domain.enums.email.EmailOrigin.CHECKLIST,
+                "ana@x.com", "Checklist", "<p>x</p>", java.time.LocalDateTime.of(2026, 10, 7, 9, 0));
+        e.assignSender("noreply@envios.proautokimium.com.br", "Proauto Kimium", null);
+
+        smtp.send(e, java.util.List.of());
+
+        ArgumentCaptor<MimeMessage> enviada = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(sender).send(enviada.capture());
+        assertThat(enviada.getValue().getHeader(SmtpService.TRACKING_HEADER))
+                .containsExactly(e.getTrackingId().toString());
+    }
+
+    @Test
+    @DisplayName("e-mail antigo, sem tracking_id, sai sem o cabeçalho")
+    void semRastreioSemCabecalho() throws Exception {
+        when(sender.createMimeMessage()).thenReturn(new MimeMessage(Session.getInstance(new Properties())));
+
+        smtp.send(email(), java.util.List.of());
+
+        ArgumentCaptor<MimeMessage> enviada = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(sender).send(enviada.capture());
+        assertThat(enviada.getValue().getHeader(SmtpService.TRACKING_HEADER)).isNull();
+    }
+
     private static BodyPart anexoDe(Multipart multipart) throws Exception {
         for (int i = 0; i < multipart.getCount(); i++) {
             BodyPart part = multipart.getBodyPart(i);

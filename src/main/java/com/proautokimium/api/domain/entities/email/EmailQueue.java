@@ -1,13 +1,16 @@
 package com.proautokimium.api.domain.entities.email;
 
 import com.proautokimium.api.domain.enums.EmailStatus;
+import com.proautokimium.api.domain.enums.email.EmailDeliveryState;
 import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.persistence.*;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "email_queue")
@@ -42,6 +45,22 @@ public class EmailQueue extends com.proautokimium.api.domain.abstractions.Entity
     private LocalDateTime lastAttemptAt;
     @OneToMany(mappedBy = "email", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EmailAttachment> attachments = new ArrayList<>();
+    /** Vai no cabeçalho X-SMTPLW e volta no relatório da Locaweb (ver V122). */
+    @Column(name = "tracking_id", unique = true)
+    private UUID trackingId;
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;
+    @Column(name = "bounced_at")
+    private LocalDateTime bouncedAt;
+    @Column(name = "bounce_reason", columnDefinition = "TEXT")
+    private String bounceReason;
+
+    /**
+     * Por quanto tempo depois do envio se pergunta à Locaweb pela entrega. A
+     * confirmação chega em segundos (medido); três dias cobrem uma caixa que
+     * adia a entrega (greylisting) sem perguntar para sempre.
+     */
+    public static final Duration DELIVERY_WINDOW = Duration.ofDays(3);
 
     /** Quantas tentativas o agendador faz antes de desistir. */
     public static final int MAX_ATTEMPTS = 5;
@@ -105,20 +124,8 @@ public class EmailQueue extends com.proautokimium.api.domain.abstractions.Entity
     }
 
     // Methods
-    public void retrySentEmail(){
-        this.status = EmailStatus.PENDING;
-
-        if(this.attempts <= 5){
-            this.attempts++;
-        }else{
-            this.status = EmailStatus.FAILED;
-        }
-    }
-
-    public void markEmailSent(){
-        this.status = EmailStatus.SENT;
-        this.sentAt = LocalDateTime.now();
-    }
+    // retrySentEmail() e markEmailSent() saíram (V122): contavam só as falhas,
+    // e o e-mail que saía na primeira ficava com 0 tentativas.
 
     public void markSchedule(){
         this.status = EmailStatus.SCHEDULED;
@@ -136,6 +143,8 @@ public class EmailQueue extends com.proautokimium.api.domain.abstractions.Entity
         email.body = body;
         email.attempts = 0;
         email.createdAt = now;
+        // Gerado aqui, e não no save: o envio na hora sai antes de a linha ser salva.
+        email.trackingId = UUID.randomUUID();
         return email;
     }
 
@@ -187,6 +196,18 @@ public class EmailQueue extends com.proautokimium.api.domain.abstractions.Entity
         return status == EmailStatus.FAILED && (origin == null || !origin.isSensitive());
     }
 
+    /** O que se sabe da chegada ao destinatário, agora. */
+    public EmailDeliveryState deliveryState(LocalDateTime now) {
+        if (status != EmailStatus.SENT) return EmailDeliveryState.NOT_SENT;
+        if (bouncedAt != null) return EmailDeliveryState.BOUNCED;
+        if (deliveredAt != null) return EmailDeliveryState.DELIVERED;
+        if (trackingId == null) return EmailDeliveryState.UNTRACKED;
+        if (sentAt != null && now != null && sentAt.isBefore(now.minus(DELIVERY_WINDOW))) {
+            return EmailDeliveryState.UNCONFIRMED;
+        }
+        return EmailDeliveryState.AWAITING;
+    }
+
     /** Reenviar: só o que falhou volta para a fila, com as tentativas zeradas. */
     public void requeue() {
         if (status != EmailStatus.FAILED) {
@@ -203,6 +224,10 @@ public class EmailQueue extends com.proautokimium.api.domain.abstractions.Entity
     }
 
     public EmailOrigin getOrigin() { return origin; }
+    public UUID getTrackingId() { return trackingId; }
+    public LocalDateTime getDeliveredAt() { return deliveredAt; }
+    public LocalDateTime getBouncedAt() { return bouncedAt; }
+    public String getBounceReason() { return bounceReason; }
     public String getFromName() { return fromName; }
     public String getLastError() { return lastError; }
     public LocalDateTime getLastAttemptAt() { return lastAttemptAt; }

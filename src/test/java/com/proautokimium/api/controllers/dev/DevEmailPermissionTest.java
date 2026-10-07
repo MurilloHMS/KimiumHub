@@ -37,6 +37,7 @@ class DevEmailPermissionTest {
 
     @Autowired MockMvc mockMvc;
     @MockitoBean EmailQueueAdminService queue;
+    @MockitoBean com.proautokimium.api.Infrastructure.services.email.EmailQueueInsightsService insights;
     @MockitoBean EmailSenderAdminService senders;
     @MockitoBean PermissionService permissionService;
     @MockitoBean UserRepository userRepository;
@@ -49,7 +50,16 @@ class DevEmailPermissionTest {
     void semTela() throws Exception {
         mockMvc.perform(get("/api/dev/email-queue")).andExpect(status().isForbidden());
         mockMvc.perform(get("/api/dev/email-senders")).andExpect(status().isForbidden());
-        verifyNoInteractions(queue, senders);
+        mockMvc.perform(get("/api/dev/email-queue/insights")).andExpect(status().isForbidden());
+        verifyNoInteractions(queue, senders, insights);
+    }
+
+    @Test
+    @DisplayName("a análise abre com CONSULTAR da fila, e o período chega ao serviço")
+    @WithMockUser(authorities = "dev/email-queue:CONSULTAR")
+    void analise() throws Exception {
+        mockMvc.perform(get("/api/dev/email-queue/insights").param("since", "2026-09-01")).andExpect(status().isOk());
+        verify(insights).insights(null, java.time.LocalDate.of(2026, 9, 1));
     }
 
     @Test

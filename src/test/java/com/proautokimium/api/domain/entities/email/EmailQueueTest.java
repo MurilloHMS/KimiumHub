@@ -109,4 +109,34 @@ class EmailQueueTest {
                 .isEqualTo(EmailFailureKind.TIMEOUT);
         assertThat(EmailFailureKind.classify("algo inesperado")).isEqualTo(EmailFailureKind.OTHER);
     }
+
+    @Test
+    @DisplayName("todo e-mail nasce com tracking_id próprio, antes de ser salvo")
+    void trackingIdNoNascimento() {
+        EmailQueue a = email(), b = email();
+
+        assertThat(a.getId()).as("o id do JPA ainda não existe").isNull();
+        assertThat(a.getTrackingId()).isNotNull().isNotEqualTo(b.getTrackingId());
+    }
+
+    @Test
+    @DisplayName("estado da entrega: na fila não tem; enviado espera; passa a janela sem confirmar")
+    void estadoDaEntrega() {
+        EmailQueue e = email();
+        assertThat(e.deliveryState(AGORA)).isEqualTo(com.proautokimium.api.domain.enums.email.EmailDeliveryState.NOT_SENT);
+
+        e.markSent(AGORA);
+        assertThat(e.deliveryState(AGORA.plusMinutes(5))).isEqualTo(com.proautokimium.api.domain.enums.email.EmailDeliveryState.AWAITING);
+        assertThat(e.deliveryState(AGORA.plus(EmailQueue.DELIVERY_WINDOW).plusMinutes(1)))
+                .isEqualTo(com.proautokimium.api.domain.enums.email.EmailDeliveryState.UNCONFIRMED);
+    }
+
+    @Test
+    @DisplayName("e-mail de antes do rastreio (sem tracking_id) não espera entrega nenhuma")
+    void semRastreio() {
+        EmailQueue antigo = new EmailQueue("a@x.com", "noreply@x.com", "s", "b");
+        antigo.markSent(AGORA);
+
+        assertThat(antigo.deliveryState(AGORA)).isEqualTo(com.proautokimium.api.domain.enums.email.EmailDeliveryState.UNTRACKED);
+    }
 }

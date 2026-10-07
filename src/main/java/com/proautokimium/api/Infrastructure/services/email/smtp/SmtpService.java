@@ -22,6 +22,13 @@ public class SmtpService {
         this.mailSender = mailSender;
     }
 
+	/**
+	 * O cabeçalho que o SMTP Locaweb devolve no campo {@code x_smtplw} do
+	 * relatório: é como o rastreio de entrega casa a mensagem com a linha da
+	 * fila (medido com envio real em 2026-10-07).
+	 */
+	public static final String TRACKING_HEADER = "X-SMTPLW";
+
 	/** Um arquivo anexado a um e-mail, em memória: o disco é assunto da fila. */
 	public record Attachment(String fileName, byte[] content, String contentType) {}
 
@@ -44,6 +51,9 @@ public class SmtpService {
 			}
 			for (Attachment a : attachments) {
 				helper.addAttachment(a.fileName(), new ByteArrayDataSource(a.content(), a.contentType()));
+			}
+			if (email.getTrackingId() != null) {
+				message.setHeader(TRACKING_HEADER, email.getTrackingId().toString());
 			}
 			mailSender.send(message);
 		} catch (jakarta.mail.MessagingException | java.io.UnsupportedEncodingException e) {
