@@ -90,4 +90,23 @@ class EmailDeliveryQueryTest {
         assertThat(c.getBounced()).isEqualTo(1);
         assertThat(repository.countAwaitingDeliverySince(EmailStatus.SENT, AGORA.minusDays(1))).isEqualTo(1);
     }
+
+    @Test
+    @DisplayName("a projeção da análise traz o período pedido, sem o corpo, com entrega e devolução")
+    void projecaoDaAnalise() {
+        EmailQueue dentro = enviado(AGORA.minusHours(1));
+        repository.markDelivered(dentro.getId(), AGORA.minusMinutes(59));
+        enviado(AGORA.minusDays(10)); // fora
+
+        List<EmailQueueRepository.StatRow> rows = repository.statRows(AGORA.minusDays(1), AGORA.plusDays(1));
+
+        assertThat(rows).singleElement().satisfies(r -> {
+            assertThat(r.getOrigin()).isEqualTo(EmailOrigin.CHECKLIST);
+            assertThat(r.getStatus()).isEqualTo(EmailStatus.SENT);
+            assertThat(r.getAttempts()).isEqualTo(1);
+            assertThat(r.getTrackingId()).isEqualTo(dentro.getTrackingId());
+            assertThat(r.getDeliveredAt()).isEqualTo(AGORA.minusMinutes(59));
+            assertThat(r.getToEmail()).isEqualTo("a@x.com");
+        });
+    }
 }

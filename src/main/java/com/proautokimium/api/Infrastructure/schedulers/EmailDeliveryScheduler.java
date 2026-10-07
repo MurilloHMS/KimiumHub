@@ -26,7 +26,7 @@ public class EmailDeliveryScheduler {
     @Scheduled(cron = "0 */10 * * * *")
     public void track() {
         try {
-            EmailDeliveryTrackingService.Result r = tracking.track();
+            EmailDeliveryTrackingService.Result r = tracking.trackAndRecord();
             if (r.awaiting() > 0) {
                 LOGGER.info("Rastreio de entrega: {} esperando, {} entregues, {} devolvidos ({} página(s))",
                         r.awaiting(), r.delivered(), r.bounced(), r.pages());

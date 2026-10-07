@@ -2,6 +2,7 @@ package com.proautokimium.api.controllers.dev;
 
 import com.proautokimium.api.Application.DTOs.email.EmailQueueDTOs.*;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueAdminService;
+import com.proautokimium.api.Infrastructure.services.email.EmailQueueInsightsService;
 import com.proautokimium.api.domain.enums.email.EmailOrigin;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,9 +19,11 @@ import java.util.UUID;
 public class EmailQueueAdminController {
 
     private final EmailQueueAdminService service;
+    private final EmailQueueInsightsService insights;
 
-    public EmailQueueAdminController(EmailQueueAdminService service) {
+    public EmailQueueAdminController(EmailQueueAdminService service, EmailQueueInsightsService insights) {
         this.service = service;
+        this.insights = insights;
     }
 
     @GetMapping
@@ -42,6 +45,14 @@ public class EmailQueueAdminController {
     public ResponseEntity<Summary> summary(@RequestParam(required = false) Integer days,
                                            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate since) {
         return ResponseEntity.ok(service.summary(days, since));
+    }
+
+    @GetMapping("/insights")
+    @PreAuthorize("hasAuthority('dev/email-queue:CONSULTAR')")
+    @Operation(summary = "Análise do período", description = "Tendência, funil, tempos, origem, provedor, endereços problemáticos, horário e o rastreio da Locaweb")
+    public ResponseEntity<Insights> insights(@RequestParam(required = false) Integer days,
+                                             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate since) {
+        return ResponseEntity.ok(insights.insights(days, since));
     }
 
     @GetMapping("/{id}")

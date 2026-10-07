@@ -79,6 +79,31 @@ public interface EmailQueueRepository extends JpaRepository<EmailQueue, UUID>, J
     @Query("SELECT MAX(COALESCE(e.lastAttemptAt, e.sentAt)) FROM EmailQueue e")
     LocalDateTime lastActivityAt();
 
+    // ── Análise (blocos A a H): uma linha por e-mail, sem o corpo ──
+
+    interface StatRow {
+        com.proautokimium.api.domain.enums.email.EmailOrigin getOrigin();
+        EmailStatus getStatus();
+        Integer getAttempts();
+        LocalDateTime getCreatedAt();
+        LocalDateTime getSentAt();
+        LocalDateTime getDeliveredAt();
+        LocalDateTime getBouncedAt();
+        UUID getTrackingId();
+        String getToEmail();
+        String getLastError();
+        String getBounceReason();
+    }
+
+    @Query("""
+            SELECT e.origin AS origin, e.status AS status, e.attempts AS attempts, e.createdAt AS createdAt,
+                   e.sentAt AS sentAt, e.deliveredAt AS deliveredAt, e.bouncedAt AS bouncedAt,
+                   e.trackingId AS trackingId, e.toEmail AS toEmail, e.lastError AS lastError,
+                   e.bounceReason AS bounceReason
+            FROM EmailQueue e WHERE e.createdAt >= :from AND e.createdAt < :to
+            """)
+    List<StatRow> statRows(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
     // ── Rastreio de entrega (V122) ──
 
     /** Só o que o agendador precisa para casar com a Locaweb: sem o corpo do e-mail. */

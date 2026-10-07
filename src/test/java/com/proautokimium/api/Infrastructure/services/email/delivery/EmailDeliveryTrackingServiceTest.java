@@ -130,4 +130,32 @@ class EmailDeliveryTrackingServiceTest {
         verifyNoInteractions(repository);
         verify(client, never()).messages(any(), any(), anyInt());
     }
+
+    @Test
+    @DisplayName("a última passada fica guardada: a que deu certo e a que falhou (a falha continua subindo)")
+    void ultimaPassada() {
+        when(repository.findAwaitingDelivery(any(), any())).thenReturn(List.of());
+        service.trackAndRecord();
+        assertThat(service.lastRun()).get().satisfies(r -> {
+            assertThat(r.ok()).isTrue();
+            assertThat(r.at()).isEqualTo(AGORA);
+        });
+
+        when(repository.findAwaitingDelivery(any(), any())).thenReturn(List.of(esperando(UUID.randomUUID(), UUID.randomUUID(), AGORA)));
+        when(client.messages(any(), any(), anyInt())).thenThrow(new org.springframework.web.client.ResourceAccessException("401 token inválido"));
+        org.assertj.core.api.Assertions.assertThatThrownBy(service::trackAndRecord)
+                .isInstanceOf(org.springframework.web.client.ResourceAccessException.class);
+        assertThat(service.lastRun()).get().satisfies(r -> {
+            assertThat(r.ok()).isFalse();
+            assertThat(r.error()).contains("401");
+        });
+    }
+
+    @Test
+    @DisplayName("sem token, nada é guardado: a tela mostra 'desligado', não uma passada")
+    void desligadoNaoGuarda() {
+        when(client.isEnabled()).thenReturn(false);
+        service.trackAndRecord();
+        assertThat(service.lastRun()).isEmpty();
+    }
 }

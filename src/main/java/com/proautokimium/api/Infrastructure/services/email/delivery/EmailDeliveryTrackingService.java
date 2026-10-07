@@ -17,7 +17,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Casa os e-mails enviados com o relatório do SMTP Locaweb e grava a entrega.
@@ -50,6 +52,32 @@ public class EmailDeliveryTrackingService {
     }
 
     public record Result(int awaiting, int delivered, int bounced, int pages) {}
+
+    /** A última passada, para a tela saber se o rastreio está vivo. Em memória: zera quando a API sobe. */
+    public record LastRun(LocalDateTime at, boolean ok, int pages, String error) {}
+
+    private final AtomicReference<LastRun> lastRun = new AtomicReference<>();
+
+    public boolean isEnabled() {
+        return client.isEnabled();
+    }
+
+    public Optional<LastRun> lastRun() {
+        return Optional.ofNullable(lastRun.get());
+    }
+
+    /** O que o agendador chama: rastreia e guarda como foi, inclusive a falha (que continua subindo). */
+    public Result trackAndRecord() {
+        try {
+            Result r = track();
+            if (client.isEnabled()) lastRun.set(new LastRun(LocalDateTime.now(clock), true, r.pages(), null));
+            return r;
+        } catch (RuntimeException e) {
+            String msg = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+            lastRun.set(new LastRun(LocalDateTime.now(clock), false, 0, msg.length() > 300 ? msg.substring(0, 300) : msg));
+            throw e;
+        }
+    }
 
     public Result track() {
         if (!client.isEnabled()) return new Result(0, 0, 0, 0);
