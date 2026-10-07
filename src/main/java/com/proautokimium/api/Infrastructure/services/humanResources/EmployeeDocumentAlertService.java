@@ -5,6 +5,7 @@ import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.EmployeeDocumentAlertSentRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.EmployeeDocumentRepository;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
+import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
 import com.proautokimium.api.Infrastructure.services.notification.NotificationService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.entities.humanResources.EmployeeDocument;
@@ -13,15 +14,13 @@ import com.proautokimium.api.domain.enums.NotificationType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
 
 /**
  * Os avisos de vencimento dos documentos — "igual à Programação", com duas
@@ -45,7 +44,7 @@ public class EmployeeDocumentAlertService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final EmailQueueService emailQueueService;
-    private final TemplateEngine templateEngine;
+    private final EmailRenderer renderer;
     private final Clock clock;
 
     @Value("${app.base-url}")
@@ -56,8 +55,7 @@ public class EmployeeDocumentAlertService {
                                         EmployeeRepository employeeRepository,
                                         UserRepository userRepository,
                                         NotificationService notificationService,
-                                        EmailQueueService emailQueueService,
-                                        TemplateEngine templateEngine,
+                                        EmailQueueService emailQueueService, EmailRenderer renderer,
                                         Clock clock) {
         this.documentRepository = documentRepository;
         this.sentRepository = sentRepository;
@@ -65,7 +63,7 @@ public class EmployeeDocumentAlertService {
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.emailQueueService = emailQueueService;
-        this.templateEngine = templateEngine;
+        this.renderer = renderer;
         this.clock = clock;
     }
 
@@ -149,15 +147,14 @@ public class EmployeeDocumentAlertService {
     }
 
     private String buildEmail(EmployeeDocument document, long daysLeft) {
-        Context ctx = new Context(new Locale("pt", "BR"));
-        ctx.setVariable("hoje", daysLeft == 0);
-        ctx.setVariable("chamada", headline(daysLeft));
-        ctx.setVariable("funcionario", document.getEmployee().getName());
-        ctx.setVariable("documento", document.getTitle());
-        ctx.setVariable("tipo", document.getType().getName());
-        ctx.setVariable("vencimento", document.getDueDate().format(DATE_BR));
-        ctx.setVariable("link", websiteBaseUrl + "/rh/employee-documents?status=EXPIRING&employeeId="
-                + document.getEmployee().getId());
-        return templateEngine.process(TEMPLATE, ctx);
+        return renderer.render(TEMPLATE, Map.of(
+                "hoje", daysLeft == 0,
+                "chamada", headline(daysLeft),
+                "funcionario", document.getEmployee().getName(),
+                "documento", document.getTitle(),
+                "tipo", document.getType().getName(),
+                "vencimento", document.getDueDate().format(DATE_BR),
+                "link", websiteBaseUrl + "/rh/employee-documents?status=EXPIRING&employeeId=" + document.getEmployee().getId()
+        ));
     }
 }

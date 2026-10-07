@@ -27,7 +27,7 @@ class TalentBankEmailServiceTest {
 
     private final EmailQueueService fila = mock(EmailQueueService.class);
     private final TalentBankEmailService service =
-            new TalentBankEmailService(motorReal(), fila, "https://site.teste");
+            new TalentBankEmailService(new EmailRenderer(motorReal()), fila, "https://site.teste");
 
     private static TemplateEngine motorReal() {
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
@@ -78,5 +78,19 @@ class TalentBankEmailServiceTest {
 
         assertThat(html).contains("href=\"https://site.teste/meu-curriculo\"");
         assertThat(html).doesNotContain("expira em 24 horas");
+    }
+
+    @Test
+    @DisplayName("cadastro sem nome: o e-mail sai com Olá, sem quebrar (o Map.of recusaria o null)")
+    void semNome() {
+        service.enviarLinkDeAcesso("maria@email.com", "  ", "tok123");
+        service.enviarAvisoDeExpiracao("maria@email.com", null, LocalDateTime.of(2028, 9, 11, 9, 0), Optional.empty());
+
+        ArgumentCaptor<String> corpo = ArgumentCaptor.forClass(String.class);
+        verify(fila, org.mockito.Mockito.times(2)).sendEmail(eq("maria@email.com"), eq("noreply@envios.proautokimium.com.br"),
+                org.mockito.ArgumentMatchers.anyString(), corpo.capture());
+        assertThat(corpo.getAllValues()).allSatisfy(html ->
+                assertThat(html).contains(">Olá</p>").doesNotContain("null"));
+        assertThat(corpo.getAllValues().get(0)).contains("href=\"https://site.teste/meu-curriculo/tok123\"");
     }
 }

@@ -19,7 +19,7 @@ class AuthEmailServiceTest {
     private final EmailQueueService emailQueueService = mock(EmailQueueService.class);
 
     private final AuthEmailService service =
-            new AuthEmailService(templateEngine, emailQueueService, "https://site.teste");
+            new AuthEmailService(new EmailRenderer(templateEngine), emailQueueService, "https://site.teste");
 
     @Test
     @DisplayName("Deve renderizar o template com token, TTL e deep link e enviar imediatamente")
@@ -56,5 +56,26 @@ class AuthEmailServiceTest {
         org.assertj.core.api.Assertions.assertThatThrownBy(
                         () -> service.sendFirstAccessToken("novo@teste.com", "ABC123"))
                 .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    @DisplayName("convite do cliente, com o motor real: nome da empresa, prazo em horas e o link do cliente")
+    void conviteDoCliente() {
+        org.thymeleaf.templateresolver.ClassLoaderTemplateResolver resolver = new org.thymeleaf.templateresolver.ClassLoaderTemplateResolver();
+        resolver.setPrefix("templates/");
+        resolver.setSuffix(".html");
+        resolver.setCharacterEncoding("UTF-8");
+        org.thymeleaf.spring6.SpringTemplateEngine engine = new org.thymeleaf.spring6.SpringTemplateEngine();
+        engine.setTemplateResolver(resolver);
+        AuthEmailService real = new AuthEmailService(new EmailRenderer(engine), emailQueueService, "https://site.teste");
+
+        real.sendClientInvite("financeiro@cliente.com", "tok", "Transportes Rápido Sul");
+
+        ArgumentCaptor<String> corpo = ArgumentCaptor.forClass(String.class);
+        verify(emailQueueService).sendNow(eq("financeiro@cliente.com"), any(), eq("Seu acesso ao Portal Proauto Kimium"), corpo.capture());
+        assertThat(corpo.getValue()).contains("Transportes Rápido Sul")
+                .contains("O convite expira em " + TokenAuthService.INVITE_TTL_HOURS + " horas.")
+                .contains("https://site.teste/cliente/primeiro-acesso?token=tok")
+                .doesNotContain("null");
     }
 }
