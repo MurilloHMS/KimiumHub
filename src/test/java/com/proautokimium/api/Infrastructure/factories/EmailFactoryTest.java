@@ -2,7 +2,7 @@ package com.proautokimium.api.Infrastructure.factories;
 
 import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
 import com.proautokimium.api.domain.entities.email.EmailQueue;
-import com.proautokimium.api.domain.models.EmailTemplates;
+import com.proautokimium.api.domain.enums.email.EmailHrSubjects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ class EmailFactoryTest {
 
         assertThat(email.getToEmail()).isEqualTo("camila@email.com");
         assertThat(email.getFromEmail()).isEqualTo("noreply@envios.proautokimium.com.br");
-        assertThat(email.getSubject()).isEqualTo(EmailTemplates.Subjects.CONFIRMACAO_CANDIDATURA);
+        assertThat(email.getSubject()).isEqualTo(EmailHrSubjects.APPLICATION_RECEIVED.getText());
         assertThat(email.getBody())
                 .contains("Proauto <span style=\"color:#57c1ab;\">Kimium</span>")   // o casco
                 .contains(">Olá, Camila</p>")
@@ -67,13 +67,13 @@ class EmailFactoryTest {
         EmailQueue reprovada = factory.candidaturaReprovada("camila@email.com", "Camila", "Técnico de Manutenção");
         EmailQueue avancou = factory.avancoEtapa("camila@email.com", "Camila", "Técnico de Manutenção");
 
-        assertThat(aprovada.getSubject()).isEqualTo(EmailTemplates.Subjects.APROVACAO);
+        assertThat(aprovada.getSubject()).isEqualTo(EmailHrSubjects.WELCOME.getText());
         assertThat(aprovada.getBody()).contains(">Você foi aprovado(a)!</h1>").contains(">Parabéns, Camila</p>");
 
-        assertThat(reprovada.getSubject()).isEqualTo(EmailTemplates.Subjects.REPROVACAO);
+        assertThat(reprovada.getSubject()).isEqualTo(EmailHrSubjects.REJECTED.getText());
         assertThat(reprovada.getBody()).contains(">Obrigado por participar</h1>").contains("Técnico de Manutenção");
 
-        assertThat(avancou.getSubject()).isEqualTo(EmailTemplates.Subjects.AVANCO_ETAPA);
+        assertThat(avancou.getSubject()).isEqualTo(EmailHrSubjects.NEXT_STAGE.getText());
         assertThat(avancou.getBody()).contains(">Você avançou para a próxima etapa</h1>").contains(">Parabéns, Camila</p>");
 
         for (EmailQueue e : java.util.List.of(aprovada, reprovada, avancou)) {
