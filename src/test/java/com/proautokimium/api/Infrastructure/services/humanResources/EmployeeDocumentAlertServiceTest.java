@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
+import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.repositories.humanResources.EmployeeDocumentAlertSentRepository;
@@ -78,7 +79,7 @@ class EmployeeDocumentAlertServiceTest {
 
         Clock clock = Clock.fixed(TODAY.atTime(8, 0).atZone(ZONE).toInstant(), ZONE);
         service = new EmployeeDocumentAlertService(documentRepository, sentRepository, employeeRepository,
-                userRepository, notificationService, emailQueueService, engine, clock);
+                userRepository, notificationService, emailQueueService, new EmailRenderer(engine), clock);
         service.websiteBaseUrl = "https://www.proautokimium.com.br";
 
         ana = employee("Ana Souza", null);

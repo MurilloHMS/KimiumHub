@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{html/layout :: email(area='Trabalhe conosco', preheader='Obrigado por participar do processo seletivo para ' + ${vaga} + '.', conteudo=~{::conteudo})}">
+<!-- Variáveis: nome, vaga. Sem alerta e sem vermelho: é uma resposta, não um problema. -->
+<body>
+<th:block th:fragment="conteudo">
+    <th:block th:replace="~{html/pecas :: titulo('Obrigado por participar', 'Olá, ' + ${nome})}"></th:block>
+    <p th:replace="~{html/pecas :: texto('Agradecemos sua participação no processo seletivo para a vaga de ' + ${vaga} + '. Depois de analisar os perfis, seguimos com outros candidatos neste momento.')}"></p>
+    <p th:replace="~{html/pecas :: texto('Agradecemos o seu interesse na Proauto Kimium e desejamos sucesso na sua trajetória.')}"></p>
+</th:block>
+</body>
+</html>

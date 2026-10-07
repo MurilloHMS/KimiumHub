@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{html/layout :: email(area='Trabalhe conosco', preheader='Você avançou para a próxima etapa da vaga de ' + ${vaga} + '.', conteudo=~{::conteudo})}">
+<!-- Variáveis: nome, vaga. -->
+<body>
+<th:block th:fragment="conteudo">
+    <th:block th:replace="~{html/pecas :: titulo('Você avançou para a próxima etapa', 'Parabéns, ' + ${nome})}"></th:block>
+    <p th:replace="~{html/pecas :: texto('Seu perfil seguiu no processo seletivo para a vaga de ' + ${vaga} + '. Em breve enviamos os detalhes da próxima etapa.')}"></p>
+</th:block>
+</body>
+</html>

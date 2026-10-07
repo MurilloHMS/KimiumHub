@@ -81,7 +81,7 @@ class MachineAlertServiceTest {
         SpringTemplateEngine engine = new SpringTemplateEngine();
         engine.setTemplateResolver(resolver);
 
-        service = new MachineAlertService(engine, configs, sent, registers, employees, emails, users, notifications, CLOCK);
+        service = new MachineAlertService(new com.proautokimium.api.Infrastructure.services.email.EmailRenderer(engine), configs, sent, registers, employees, emails, users, notifications, CLOCK);
         ReflectionTestUtils.setField(service, "websiteBaseUrl", "https://portal.proautokimium.com.br");
 
         config = new MachineAlertConfig();

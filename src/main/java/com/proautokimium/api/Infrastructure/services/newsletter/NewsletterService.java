@@ -5,32 +5,29 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
-import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 
 import com.proautokimium.api.Application.DTOs.email.NewsletterResponseDTO;
 import com.proautokimium.api.Infrastructure.repositories.NewsletterRepository;
+import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
 import com.proautokimium.api.Infrastructure.repositories.SmtpEmailRepository;
 import com.proautokimium.api.domain.entities.EmailEntity;
 import com.proautokimium.api.domain.entities.Newsletter;
 import com.proautokimium.api.domain.enums.EmailStatus;
 
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class NewsletterService {
 
     private static final String TEMPLATE_NAME= "html/newsletter_v2";
-    private static final String PROAUTO_LOGO_IMAGE= "templates/images/logo.png";
-    private static final String PNG_MIME= "image/png";
     private final JavaMailSender mailSender;
-    private final TemplateEngine htmlTemplateEngine;
+    private final EmailRenderer renderer;
     
     private final NewsletterRepository repository;
     private final SmtpEmailRepository emailRepository;
@@ -38,12 +35,12 @@ public class NewsletterService {
     
 
     public NewsletterService(JavaMailSender mailSender,
-                             TemplateEngine htmlTemplateEngine,
+                             EmailRenderer renderer,
                              NewsletterRepository repository,
                              SmtpEmailRepository emailRepository,
                              NewsletterConverter converter) {
         this.mailSender = mailSender;
-        this.htmlTemplateEngine = htmlTemplateEngine;
+        this.renderer = renderer;
         this.repository = repository;
         this.emailRepository = emailRepository;
         this.converter = converter;
@@ -77,40 +74,31 @@ public class NewsletterService {
         email.setSubject(capMonth + " trouxe surpresas - Veja seus resultados!");
         email.setFrom(new InternetAddress(mailFrom,mailFromName));
 
-        final Context ctx = new Context(LocaleContextHolder.getLocale());
-        ctx.setVariable("mes", newsletter.getMes());
-        ctx.setVariable("nomeDoCliente", newsletter.getNomeDoCliente());
-        ctx.setVariable("proautoLogo", PROAUTO_LOGO_IMAGE);
-        ctx.setVariable("produtoEmDestaque", newsletter.getProdutoEmDestaque());
-        ctx.setVariable("quantidadeDeProdutos", newsletter.getQuantidadeDeProdutos());
-        ctx.setVariable("quantidadeDeLitros", newsletter.getQuantidadeDeLitros());
-        ctx.setVariable("quantidadeDeVisitas", newsletter.getQuantidadeDeVisitas());
-        ctx.setVariable("valorDePecasTrocadas", newsletter.getValorDePecasTrocadas());
-        
-        // Total Horas
-        double totalHoras = newsletter.getValorTotalDeHoras() + newsletter.getValorTotalDeHorasMauUso();
-        ctx.setVariable("valorTotalDeHoras", totalHoras);
-        double totalCobrado = newsletter.getValorTotalCobradoHoras() + newsletter.getValorTotalCobradoHorasMauUso();
-        ctx.setVariable("valorTotalCobradoHoras", totalCobrado);
-        
-        // Total Horas Normais
-        ctx.setVariable("horasNormais", newsletter.getValorTotalDeHoras());
-        ctx.setVariable("valorHorasNormais", newsletter.getValorTotalCobradoHoras());
-        
-        // Total Horas Mau Uso
-        ctx.setVariable("horasMauUso", newsletter.getValorTotalDeHorasMauUso());
-        ctx.setVariable("valorHorasMauUso", newsletter.getValorTotalCobradoHorasMauUso());
-        
-        ctx.setVariable("mediaDiasAtendimento", newsletter.getMediaDiasAtendimento());
-        ctx.setVariable("faturamentoTotal", newsletter.getFaturamentoTotal());
+        // HashMap, e não Map.of: são 15 valores (o Map.of vai só até 10) e os
+        // textos (mês, cliente, produto em destaque) podem vir null da planilha.
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("mes", newsletter.getMes());
+        vars.put("nomeDoCliente", newsletter.getNomeDoCliente());
+        vars.put("produtoEmDestaque", newsletter.getProdutoEmDestaque());
+        vars.put("quantidadeDeProdutos", newsletter.getQuantidadeDeProdutos());
+        vars.put("quantidadeDeLitros", newsletter.getQuantidadeDeLitros());
+        vars.put("quantidadeDeVisitas", newsletter.getQuantidadeDeVisitas());
+        vars.put("valorDePecasTrocadas", newsletter.getValorDePecasTrocadas());
 
-        final String htmlContent = this.htmlTemplateEngine.process(TEMPLATE_NAME, ctx);
+        // Total de horas: normais + mau uso.
+        vars.put("valorTotalDeHoras", newsletter.getValorTotalDeHoras() + newsletter.getValorTotalDeHorasMauUso());
+        vars.put("valorTotalCobradoHoras", newsletter.getValorTotalCobradoHoras() + newsletter.getValorTotalCobradoHorasMauUso());
+        vars.put("horasNormais", newsletter.getValorTotalDeHoras());
+        vars.put("valorHorasNormais", newsletter.getValorTotalCobradoHoras());
+        vars.put("horasMauUso", newsletter.getValorTotalDeHorasMauUso());
+        vars.put("valorHorasMauUso", newsletter.getValorTotalCobradoHorasMauUso());
 
-        email.setText(htmlContent, true);
+        vars.put("mediaDiasAtendimento", newsletter.getMediaDiasAtendimento());
+        vars.put("faturamentoTotal", newsletter.getFaturamentoTotal());
 
-        ClassPathResource clr = new ClassPathResource(PROAUTO_LOGO_IMAGE);
-
-        email.addInline("proautoLogo", clr, PNG_MIME);
+        // O logo é o do layout comum (texto). Sem addInline: imagem embutida que o
+        // HTML não usa aparece como anexo em alguns programas de e-mail.
+        email.setText(renderer.render(TEMPLATE_NAME, vars), true);
 
         mailSender.send(mimeMessage);
     }

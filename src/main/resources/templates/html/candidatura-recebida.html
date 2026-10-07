@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{html/layout :: email(area='Trabalhe conosco', preheader='Recebemos sua candidatura para ' + ${vaga} + '. Vamos analisar e respondemos por e-mail.', conteudo=~{::conteudo})}">
+<!--
+  Variáveis: nome, vaga, aviso. O aviso é o que responde ao "já estou no banco e
+  me candidatei de novo" (ver CandidaturaService.avisoSobreOCurriculo): chega como
+  HTML pronto e entra com th:utext. Só é seguro porque o HTML é montado pelo
+  código, nunca pelo que o candidato digitou.
+-->
+<body>
+<th:block th:fragment="conteudo">
+    <th:block th:replace="~{html/pecas :: titulo('Recebemos sua candidatura', 'Olá, ' + ${nome})}"></th:block>
+    <p th:replace="~{html/pecas :: texto('Obrigado pelo interesse na vaga de ' + ${vaga} + '. Nosso time vai analisar o seu perfil e, se você avançar, entramos em contato.')}"></p>
+    <div th:if="${aviso != null and aviso != ''}" th:utext="${aviso}"
+         style="margin:0 0 14px; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.6; color:#1b2236;">Aviso sobre o currículo</div>
+    <p th:replace="~{html/pecas :: pequeno('Os próximos passos chegam por este e-mail. Fique de olho também na caixa de spam.')}"></p>
+</th:block>
+</body>
+</html>

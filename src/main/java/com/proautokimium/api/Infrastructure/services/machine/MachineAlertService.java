@@ -15,8 +15,7 @@ import com.proautokimium.api.domain.enums.NotificationType;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
+import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -25,7 +24,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 
 @Service
@@ -33,7 +31,7 @@ public class MachineAlertService {
     private static final String ALERT_TEMPLATE = "html/machine-alert-digest";
     private static final DateTimeFormatter DATE_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private final TemplateEngine templateEngine;
+    private final EmailRenderer renderer;
     @Value("${app.base-url}")
     String websiteBaseUrl;
 
@@ -49,11 +47,16 @@ public class MachineAlertService {
     private final com.proautokimium.api.Infrastructure.services.notification.NotificationService notificationService;
     private final Clock clock;
 
-    public MachineAlertService(TemplateEngine templateEngine, MachineAlertConfigRepository configRepository, MachineAlertSentRepository sentRepository, RegisterRepository registerRepository, EmployeeRepository employeeRepository, EmailQueueService emailQueueService,
+    public MachineAlertService(EmailRenderer renderer,
+                               MachineAlertConfigRepository configRepository,
+                               MachineAlertSentRepository sentRepository,
+                               RegisterRepository registerRepository,
+                               EmployeeRepository employeeRepository,
+                               EmailQueueService emailQueueService,
                                com.proautokimium.api.Infrastructure.repositories.UserRepository userRepository,
                                com.proautokimium.api.Infrastructure.services.notification.NotificationService notificationService,
                                Clock clock) {
-        this.templateEngine = templateEngine;
+        this.renderer = renderer;
         this.configRepository = configRepository;
         this.sentRepository = sentRepository;
         this.registerRepository = registerRepository;
@@ -239,15 +242,15 @@ public class MachineAlertService {
     }
 
     private String buildDigestBody(Digest d) {
-        Context ctx = new Context(new Locale("pt", "BR"));
-        ctx.setVariable("assunto", subject(d));
-        ctx.setVariable("resumo", summary(d));
-        ctx.setVariable("totalAtrasadas", d.late().size());
-        ctx.setVariable("totalProximas", d.upcoming().size());
-        ctx.setVariable("atrasadas", d.late().stream().map(this::row).toList());
-        ctx.setVariable("proximas", d.upcoming().stream().map(this::row).toList());
-        ctx.setVariable("link", websiteBaseUrl + "/stock/programacao");
-        return templateEngine.process(ALERT_TEMPLATE, ctx);
+        // Nenhum valor aqui é null (textos montados na hora e listas, nunca nulas): Map.of serve.
+        return renderer.render(ALERT_TEMPLATE, java.util.Map.of(
+                "assunto", subject(d),
+                "resumo", summary(d),
+                "totalAtrasadas", d.late().size(),
+                "totalProximas", d.upcoming().size(),
+                "atrasadas", d.late().stream().map(this::row).toList(),
+                "proximas", d.upcoming().stream().map(this::row).toList(),
+                "link", websiteBaseUrl + "/stock/programacao"));
     }
 
     /** Mapa, e não record: o Thymeleaf lê a linha por nome de propriedade. */

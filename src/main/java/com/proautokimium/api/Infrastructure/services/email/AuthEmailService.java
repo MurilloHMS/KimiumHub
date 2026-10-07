@@ -3,13 +3,11 @@ package com.proautokimium.api.Infrastructure.services.email;
 import com.proautokimium.api.Infrastructure.services.authentication.TokenAuthService;
 import com.proautokimium.api.domain.entities.auth.User;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /**
  * Composição dos e-mails transacionais de autenticação (templates Thymeleaf).
@@ -23,21 +21,21 @@ public class AuthEmailService {
     private static final String RESET_ACCESS_TEMPLATE = "html/reset-access-token";
     private static final String CLIENT_INVITE_TEMPLATE = "html/client-invite";
 
-    private final TemplateEngine templateEngine;
+    private final EmailRenderer renderer;
     private final EmailQueueService emailQueueService;
     private final String websiteBaseUrl;
 
-    public AuthEmailService(TemplateEngine templateEngine,
+    public AuthEmailService(EmailRenderer renderer,
                             EmailQueueService emailQueueService,
                             @Value("${app.base-url}") String websiteBaseUrl) {
-        this.templateEngine = templateEngine;
+
+        this.renderer = renderer;
         this.emailQueueService = emailQueueService;
         this.websiteBaseUrl = websiteBaseUrl;
     }
 
     public void sendFirstAccessToken(String to, String token) {
-        Context ctx = createContext(to, token, "/login/first-access");
-        String html = templateEngine.process(FIRST_ACCESS_TEMPLATE, ctx);
+        String html = codeEmail(FIRST_ACCESS_TEMPLATE, to, token, "/login/first-access");
         emailQueueService.sendNow(to, FROM, "Seu código de primeiro acesso", html);
     }
 
@@ -46,8 +44,7 @@ public class AuthEmailService {
                 ? "/cliente/redefinir-senha"
                 : "/login/forgot-password";
 
-        Context ctx = createContext(user.getEmail(), token, deepUrl);
-        String html = templateEngine.process(RESET_ACCESS_TEMPLATE, ctx);
+        String html = codeEmail(RESET_ACCESS_TEMPLATE, user.getEmail(), token, deepUrl);
         emailQueueService.sendNow(user.getEmail(), FROM, "Seu código de redefinição de senha", html);
     }
 
@@ -57,12 +54,13 @@ public class AuthEmailService {
                 + "&email=" + URLEncoder.encode(email, StandardCharsets.UTF_8);
     }
 
-    private Context createContext(String to, String token, String deepUrl){
-        Context ctx = new Context(LocaleContextHolder.getLocale());
-        ctx.setVariable("token", token);
-        ctx.setVariable("ttlMinutes", TokenAuthService.TOKEN_TTL_MINUTES);
-        ctx.setVariable("actionUrl", buildDeepUrlWithToken(to, token, deepUrl));
-        return ctx;
+    /** Os dois e-mails de código (primeiro acesso e redefinição) têm as mesmas variáveis. */
+    private String codeEmail(String template, String to, String token, String deepUrl){
+        return renderer.render(template, Map.of(
+                "token", token,
+                "ttlMinutes", TokenAuthService.TOKEN_TTL_MINUTES,
+                "actionUrl", buildDeepUrlWithToken(to, token, deepUrl)
+        ));
     }
 
     /**
@@ -71,12 +69,12 @@ public class AuthEmailService {
      * única coisa que ele precisa guardar — por isso 48 horas e não 30 minutos.
      */
     public void sendClientInvite(String to, String token, String customerName) {
-        Context ctx = new Context(LocaleContextHolder.getLocale());
-        ctx.setVariable("customerName", customerName);
-        ctx.setVariable("ttlHours", TokenAuthService.INVITE_TTL_HOURS);
-        ctx.setVariable("actionUrl", buildDeepUrlWithToken(to, token, "/cliente/primeiro-acesso"));
-
-        String html = templateEngine.process(CLIENT_INVITE_TEMPLATE, ctx);
+        // O convite tem as variáveis dele: o nome da empresa e o prazo em horas.
+        String html = renderer.render(CLIENT_INVITE_TEMPLATE, Map.of(
+                "customerName", customerName,
+                "ttlHours", TokenAuthService.INVITE_TTL_HOURS,
+                "actionUrl", buildDeepUrlWithToken(to, token, "/cliente/primeiro-acesso")
+        ));
         emailQueueService.sendNow(to, FROM, "Seu acesso ao Portal Proauto Kimium", html);
     }
 }

@@ -6,6 +6,7 @@ import com.proautokimium.api.Infrastructure.exceptions.humanResources.ReportEmai
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.ReportTooLargeForEmailException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
+import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
 import com.proautokimium.api.Infrastructure.services.email.smtp.SmtpService;
 import com.proautokimium.api.domain.entities.Employee;
 import com.proautokimium.api.domain.enums.humanResources.ReimbursementStatus;
@@ -13,15 +14,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -59,22 +58,21 @@ public class ReimbursementReportEmailService {
     private final ReimbursementReportService reportService;
     private final EmailQueueService emailQueueService;
     private final EmployeeRepository employeeRepository;
-    private final TemplateEngine templateEngine;
+    private final EmailRenderer renderer;
     private final Clock clock;
     private final String from;
 
     public ReimbursementReportEmailService(HrReportRecipientService recipients,
                                            ReimbursementReportService reportService,
                                            EmailQueueService emailQueueService,
-                                           EmployeeRepository employeeRepository,
-                                           TemplateEngine templateEngine,
+                                           EmployeeRepository employeeRepository, EmailRenderer renderer,
                                            Clock clock,
                                            @Value("${mail.from}") String from) {
         this.recipients = recipients;
         this.reportService = reportService;
         this.emailQueueService = emailQueueService;
         this.employeeRepository = employeeRepository;
-        this.templateEngine = templateEngine;
+        this.renderer = renderer;
         this.clock = clock;
         this.from = from;
     }
@@ -125,14 +123,13 @@ public class ReimbursementReportEmailService {
 
     private String body(String period, String employeeName, List<ReimbursementStatus> statuses,
                         String login, String fileName) {
-        Context ctx = new Context(Locale.of("pt", "BR"));
-        ctx.setVariable("periodo", period);
-        ctx.setVariable("escopo", employeeName != null ? "de " + employeeName : "de todos os funcionários");
-        ctx.setVariable("status", LIFECYCLE.stream().filter(statuses::contains)
-                .map(ReimbursementReportService::statusLabel).collect(Collectors.joining(", ")));
-        ctx.setVariable("emitidoPor", reportService.issuerName(login));
-        ctx.setVariable("emitidoEm", dateTime(LocalDateTime.now(clock)));
-        ctx.setVariable("arquivo", fileName);
-        return templateEngine.process(TEMPLATE, ctx);
+        return renderer.render(TEMPLATE, Map.of(
+                "periodo", period,
+                "escopo", employeeName != null ? "de " + employeeName : "de todos os funcionários",
+                "status", LIFECYCLE.stream().filter(statuses::contains).map(ReimbursementReportService::statusLabel).collect(Collectors.joining(", ")),
+                "emitidoPor", reportService.issuerName(login),
+                "emitidoEm", dateTime(LocalDateTime.now(clock)),
+                "arquivo", fileName
+        ));
     }
 }

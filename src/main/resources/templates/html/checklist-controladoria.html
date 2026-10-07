@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{html/layout :: email(area='Checklist de vendas', preheader=${mensagem}, conteudo=~{::conteudo})}">
+<!--
+  Variáveis: titulo, mensagem, link. Saiu do ChecklistNotifier.body(): lá o texto
+  era escapado à mão com HtmlUtils.htmlEscape; aqui o th:text já escapa.
+-->
+<body>
+<th:block th:fragment="conteudo">
+    <th:block th:replace="~{html/pecas :: titulo(${titulo}, 'Controladoria')}"></th:block>
+    <p th:replace="~{html/pecas :: texto(${mensagem})}"></p>
+    <table th:replace="~{html/pecas :: botao('Abrir no KimiumHub', ${link})}"></table>
+</th:block>
+</body>
+</html>

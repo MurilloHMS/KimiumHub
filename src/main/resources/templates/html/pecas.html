@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+  As peças dos e-mails: cada uma é um fragmento que o e-mail chama com
+  th:replace="~{html/pecas :: nome(argumentos)}". O casco está em layout.html.
+-->
+<body>
+
+
+<!-- Título, com sobretítulo opcional (null esconde). -->
+<th:block th:fragment="titulo(texto, sobre)">
+    <p th:if="${sobre}" th:text="${sobre}"
+       style="margin:0 0 6px; font-family:Arial,Helvetica,sans-serif; font-size:11px; font-weight:bold; letter-spacing:1.2px; text-transform:uppercase; color:#1d7a68;">Sobretítulo</p>
+    <h1 th:text="${texto}"
+        style="margin:0 0 14px; font-family:Arial,Helvetica,sans-serif; font-size:22px; line-height:1.3; font-weight:bold; color:#1b2236;">Título</h1>
+</th:block>
+
+<!-- Parágrafo. Para negrito no meio do texto, o e-mail escreve o <p> com este mesmo estilo. -->
+<p th:fragment="texto(texto)" th:text="${texto}"
+   style="margin:0 0 14px; font-family:Arial,Helvetica,sans-serif; font-size:15px; line-height:1.6; color:#1b2236;">Texto</p>
+
+<!-- Letra miúda: prazo, aviso de segurança, "se não foi você". -->
+<p th:fragment="pequeno(texto)" th:text="${texto}"
+   style="margin:14px 0 0; font-family:Arial,Helvetica,sans-serif; font-size:12.5px; line-height:1.5; color:#5d6579;">Letra miúda</p>
+
+<!-- O código de acesso, grande, com o prazo embaixo. -->
+<table th:fragment="codigo(valor, prazo)" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 16px;">
+    <tr>
+        <td align="center" style="background:#f0f3fb; border:1px dashed #b9c2e0; border-radius:10px; padding:18px 12px;">
+            <span th:text="${valor}"
+                  style="font-family:'Courier New',Courier,monospace; font-size:32px; line-height:1; font-weight:bold; letter-spacing:10px; color:#232e61;">ABC123</span><br>
+            <span th:if="${prazo}" th:text="${prazo}"
+                  style="display:inline-block; margin-top:10px; font-family:Arial,Helvetica,sans-serif; font-size:12.5px; color:#5d6579;">Prazo</span>
+        </td>
+    </tr>
+</table>
+
+<!-- Botão desenhado em tabela: é o que funciona no Outlook do Windows. -->
+<table th:fragment="botao(texto, link)" role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 16px;">
+    <tr>
+        <td style="border-radius:8px; background:#232e61;">
+            <a th:href="${link}" th:text="${texto}" target="_blank"
+               style="display:inline-block; padding:13px 26px; font-family:Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:8px;">Abrir</a>
+        </td>
+    </tr>
+</table>
+
+<!-- O endereço por extenso, para quem não consegue clicar no botão. -->
+<p th:fragment="link-reserva(link)"
+   style="margin:0 0 14px; font-family:Arial,Helvetica,sans-serif; font-size:12.5px; line-height:1.5; color:#5d6579;">
+    Se o botão não funcionar, copie este endereço no navegador:<br>
+    <a th:href="${link}" th:text="${link}" style="color:#232e61; word-break:break-all;">https://…</a>
+</p>
+
+<!--
+  Quadro de dados: uma lista de pares {rótulo, valor}, escrita no próprio e-mail
+  em SpEL — ${ { {'Funcionário', funcionario}, {'Vence em', vencimento} } }.
+  Linha com valor vazio some.
+-->
+<table th:fragment="quadro(linhas)" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+       style="margin:4px 0 16px; border:1px solid #e6e9f0; border-radius:10px; border-collapse:separate;">
+    <th:block th:each="linha, st : ${linhas}">
+        <tr th:if="${linha[1] != null and linha[1] != ''}">
+            <td th:text="${linha[0]}"
+                th:style="'padding:10px 14px; font-family:Arial,Helvetica,sans-serif; font-size:13px; color:#5d6579; width:38%;' + (${st.first} ? '' : ' border-top:1px solid #e6e9f0;')">Rótulo</td>
+            <td th:text="${linha[1]}"
+                th:style="'padding:10px 14px; font-family:Arial,Helvetica,sans-serif; font-size:13.5px; font-weight:bold; color:#1b2236;' + (${st.first} ? '' : ' border-top:1px solid #e6e9f0;')">Valor</td>
+        </tr>
+    </th:block>
+</table>
+
+<!-- Cabeçalho de uma lista; vermelho quando a lista é de coisa atrasada. -->
+<p th:fragment="lista-titulo(texto, alerta)" th:text="${texto}"
+   th:style="'margin:8px 0 6px; font-family:Arial,Helvetica,sans-serif; font-size:12px; font-weight:bold; letter-spacing:0.8px; text-transform:uppercase; color:' + (${alerta} ? '#b42318' : '#5d6579') + ';'">Lista</p>
+
+<!--
+  Uma linha de lista: título, linha de baixo e a marca à direita. A lista em si
+  é uma tabela do e-mail com th:each, e cada <tr> vira esta peça. O laço vai num
+  th:block por fora: th:replace tem precedência sobre th:each e th:if na mesma tag.
+    <th:block th:each="i, st : ${itens}"><tr th:replace="~{html/pecas :: linha(${i.a}, ${i.b}, ${i.c}, ${i.d}, ${st.first}, false)}"></tr></th:block>
+-->
+<tr th:fragment="linha(titulo, sub, extra, marca, primeiro, alerta)">
+    <td th:style="'padding:11px 14px;' + (${primeiro} ? '' : (${alerta} ? ' border-top:1px solid #f6e3e0;' : ' border-top:1px solid #e6e9f0;'))">
+        <span th:text="${titulo}" style="font-family:Arial,Helvetica,sans-serif; font-size:14px; font-weight:bold; color:#1b2236;">Título</span><br>
+        <span th:text="${sub}" style="font-family:Arial,Helvetica,sans-serif; font-size:12.5px; color:#5d6579;">Linha de baixo</span>
+        <th:block th:if="${extra}"><br><span th:text="${extra}" style="font-family:Arial,Helvetica,sans-serif; font-size:12.5px; color:#5d6579;">Extra</span></th:block>
+    </td>
+    <td align="right" th:text="${marca}"
+        th:style="'padding:11px 14px; font-family:Arial,Helvetica,sans-serif; font-size:13px; font-weight:bold; white-space:nowrap; color:' + (${alerta} ? '#b42318' : '#232e61') + ';' + (${primeiro} ? '' : (${alerta} ? ' border-top:1px solid #f6e3e0;' : ' border-top:1px solid #e6e9f0;'))">Marca</td>
+</tr>
+
+<!-- A moldura da lista, para o e-mail pôr as linhas dentro. -->
+<th:block th:fragment="lista(linhas, alerta)">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+           th:style="'margin:0 0 16px; border-radius:10px; border-collapse:separate; border:1px solid ' + (${alerta} ? '#f3cfca' : '#e6e9f0') + ';'">
+        <th:block th:replace="${linhas}"></th:block>
+    </table>
+</th:block>
+
+<!-- Alerta: o único lugar com vermelho. -->
+<table th:fragment="alerta(titulo, texto)" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">
+    <tr>
+        <td style="background:#fdecea; border-left:4px solid #b42318; border-radius:6px; padding:12px 14px;">
+            <span th:text="${titulo}" style="font-family:Arial,Helvetica,sans-serif; font-size:14px; font-weight:bold; color:#b42318;">Atenção</span><br>
+            <span th:text="${texto}" style="font-family:Arial,Helvetica,sans-serif; font-size:13.5px; line-height:1.5; color:#1b2236;">Texto</span>
+        </td>
+    </tr>
+</table>
+
+<!-- Aviso de anexo: o nome do arquivo que veio junto. -->
+<table th:fragment="anexo(nome, descricao)" role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">
+    <tr>
+        <td style="border:1px solid #e6e9f0; border-radius:10px; padding:12px 14px;">
+            <span th:text="'📎 ' + ${nome}" style="font-family:Arial,Helvetica,sans-serif; font-size:13.5px; font-weight:bold; color:#1b2236;">arquivo.pdf</span><br>
+            <span th:text="${descricao}" style="font-family:Arial,Helvetica,sans-serif; font-size:12.5px; color:#5d6579;">PDF anexado</span>
+        </td>
+    </tr>
+</table>
+
+
+</body>
+</html>

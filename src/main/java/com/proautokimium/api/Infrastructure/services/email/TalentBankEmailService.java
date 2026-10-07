@@ -2,15 +2,14 @@ package com.proautokimium.api.Infrastructure.services.email;
 
 import com.proautokimium.api.Infrastructure.services.processoSeletivo.TalentBankAccessTokenService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -30,14 +29,14 @@ public class TalentBankEmailService {
     private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final String ROTA_DO_SITE = "/meu-curriculo";
 
-    private final TemplateEngine templateEngine;
+    private final EmailRenderer renderer;
     private final EmailQueueService emailQueueService;
     private final String websiteBaseUrl;
 
-    public TalentBankEmailService(TemplateEngine templateEngine,
+    public TalentBankEmailService(EmailRenderer renderer,
                                   EmailQueueService emailQueueService,
                                   @Value("${app.base-url}") String websiteBaseUrl) {
-        this.templateEngine = templateEngine;
+        this.renderer = renderer;
         this.emailQueueService = emailQueueService;
         this.websiteBaseUrl = websiteBaseUrl;
     }
@@ -56,12 +55,10 @@ public class TalentBankEmailService {
      * de candidatura já tem hoje.
      */
     public void enviarLinkDeAcesso(String destinatario, String nomeCompleto, String token) {
-        Context ctx = new Context(LocaleContextHolder.getLocale());
-        ctx.setVariable("primeiroNome", primeiroNomeDe(nomeCompleto));
-        ctx.setVariable("ttlHoras", TalentBankAccessTokenService.TOKEN_TTL_HORAS);
-        ctx.setVariable("actionUrl", linkPara(token));
-
-        String html = templateEngine.process(ACCESS_TEMPLATE, ctx);
+        Map<String, Object> vars = comPrimeiroNome(nomeCompleto);
+        vars.put("ttlHoras", TalentBankAccessTokenService.TOKEN_TTL_HORAS);
+        vars.put("actionUrl", linkPara(token));
+        String html = renderer.render(ACCESS_TEMPLATE, vars);
 
         emailQueueService.sendEmail(destinatario, FROM,
                 "Seus dados no Banco de Talentos da Proauto Kimium", html);
@@ -81,14 +78,13 @@ public class TalentBankEmailService {
      */
     public void enviarAvisoDeExpiracao(String destinatario, String nomeCompleto,
                                        LocalDateTime expiraEm, Optional<String> token) {
-        Context ctx = new Context(LocaleContextHolder.getLocale());
-        ctx.setVariable("primeiroNome", primeiroNomeDe(nomeCompleto));
-        ctx.setVariable("dataDeExpiracao", expiraEm.format(DATA_BR));
-        ctx.setVariable("ttlHoras", TalentBankAccessTokenService.TOKEN_TTL_HORAS);
-        ctx.setVariable("comToken", token.isPresent());
-        ctx.setVariable("actionUrl", token.map(this::linkPara).orElse(websiteBaseUrl + ROTA_DO_SITE));
 
-        String html = templateEngine.process(EXPIRING_TEMPLATE, ctx);
+        Map<String, Object> vars = comPrimeiroNome(nomeCompleto);
+        vars.put("dataDeExpiracao", expiraEm.format(DATA_BR));
+        vars.put("ttlHoras", TalentBankAccessTokenService.TOKEN_TTL_HORAS);
+        vars.put("comToken", token.isPresent());
+        vars.put("actionUrl", token.map(this::linkPara).orElse(websiteBaseUrl + ROTA_DO_SITE));
+        String html = renderer.render(EXPIRING_TEMPLATE, vars);
 
         emailQueueService.sendEmail(destinatario, FROM,
                 "Seus dados no Banco de Talentos vencem em " + expiraEm.format(DATA_BR), html);
@@ -106,6 +102,17 @@ public class TalentBankEmailService {
     private String linkPara(String token) {
         return websiteBaseUrl + ROTA_DO_SITE
                 + "/" + URLEncoder.encode(token, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * HashMap, e não Map.of: o primeiro nome é null quando o cadastro não tem
+     * nome, e o Map.of recusa null com NullPointerException. O template já
+     * cumprimenta só com "Olá" nesse caso.
+     */
+    private Map<String, Object> comPrimeiroNome(String nomeCompleto) {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("primeiroNome", primeiroNomeDe(nomeCompleto));
+        return vars;
     }
 
     private static String primeiroNomeDe(String nomeCompleto) {

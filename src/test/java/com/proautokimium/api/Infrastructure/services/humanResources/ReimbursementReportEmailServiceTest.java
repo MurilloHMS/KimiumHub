@@ -1,5 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
+import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
 import com.proautokimium.api.Application.DTOs.humanResources.Reimbursement.ReportEmailResultDTO;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.NoReportRecipientException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.ReportEmailFailedException;
@@ -66,7 +67,10 @@ class ReimbursementReportEmailServiceTest {
         Clock clock = Clock.fixed(LocalDateTime.of(2026, 9, 28, 14, 32)
                 .atZone(ZoneId.of("America/Sao_Paulo")).toInstant(), ZoneId.of("America/Sao_Paulo"));
         service = new ReimbursementReportEmailService(recipients, reportService, emailQueueService,
-                employeeRepository, engine, clock, "no-reply@envios.proautokimium.com.br");
+                employeeRepository, new EmailRenderer(engine), clock, "no-reply@envios.proautokimium.com.br");
+        // Em produção o issuerName nunca é null (sem funcionário, devolve o login).
+        // O mock sem resposta devolvia null, e o Map.of do e-mail recusa null.
+        org.mockito.Mockito.lenient().when(reportService.issuerName(org.mockito.ArgumentMatchers.any())).thenReturn("Carla Mendes");
     }
 
     /** Montar um PDF com anexos para descobrir que não há para quem mandar é trabalho jogado fora. */

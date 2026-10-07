@@ -2,6 +2,7 @@ package com.proautokimium.api.Infrastructure.services.sales;
 
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
 import com.proautokimium.api.Infrastructure.services.email.EmailQueueService;
+import com.proautokimium.api.Infrastructure.services.email.EmailRenderer;
 import com.proautokimium.api.Infrastructure.services.notification.NotificationService;
 import com.proautokimium.api.domain.entities.auth.User;
 import com.proautokimium.api.domain.entities.sales.Checklist;
@@ -11,9 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.util.HtmlUtils;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Quem fica sabendo do quê.
@@ -40,13 +41,15 @@ public class ChecklistNotifier {
     private final NotificationService notificationService;
     private final EmailQueueService emailQueueService;
     private final String baseUrl;
+    private final EmailRenderer renderer;
 
     public ChecklistNotifier(UserRepository userRepository, NotificationService notificationService,
-                             EmailQueueService emailQueueService, @Value("${app.base-url}") String baseUrl) {
+                             EmailQueueService emailQueueService, @Value("${app.base-url}") String baseUrl, EmailRenderer renderer) {
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.emailQueueService = emailQueueService;
         this.baseUrl = baseUrl;
+        this.renderer = renderer;
     }
 
     public void submitted(Checklist c) {
@@ -83,14 +86,11 @@ public class ChecklistNotifier {
     }
 
     private String body(String title, String message) {
-        return """
-                <div style="font-family:Arial,sans-serif;font-size:15px;color:#1a202c;max-width:560px">
-                  <h2 style="color:#232e61;font-size:19px;margin:0 0 12px">%s</h2>
-                  <p style="margin:0 0 20px;line-height:1.5">%s</p>
-                  <a href="%s%s" style="display:inline-block;background:#232e61;color:#fff;text-decoration:none;
-                     padding:12px 20px;border-radius:8px;font-weight:bold">Abrir no KimiumHub</a>
-                </div>
-                """.formatted(HtmlUtils.htmlEscape(title), HtmlUtils.htmlEscape(message), baseUrl, REVIEW_LINK);
+        return renderer.render("html/checklist-controladoria", Map.of(
+                "titulo", title,
+                "mensagem", message,
+                "link", baseUrl + REVIEW_LINK
+        ));
     }
 
     static String number(Checklist c) {
