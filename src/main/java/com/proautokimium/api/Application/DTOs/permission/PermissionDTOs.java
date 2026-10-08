@@ -19,8 +19,14 @@ public final class PermissionDTOs {
 
     private PermissionDTOs() { }
 
-    /** Uma tela do catálogo, do jeito que o grid a desenha. */
-    public record ScreenDTO(String code, String label, String module, int sortOrder) { }
+    /**
+     * Uma tela do catálogo, do jeito que o grid a desenha.
+     *
+     * `actions` são as ações que a tela usa de verdade, lidas dos
+     * `@PreAuthorize` ({@code ScreenActionCatalog}). A grade mostra só essas.
+     */
+    public record ScreenDTO(String code, String label, String module, int sortOrder,
+                            List<String> actions) { }
 
     /** Uma linha da lista lateral de modelos. */
     public record TemplateSummaryDTO(UUID id, String name, String description,
@@ -80,6 +86,42 @@ public final class PermissionDTOs {
 
     /** Aplicar um modelo a N pessoas. */
     public record ApplyTemplateDTO(List<String> userIds, ApplyMode mode) { }
+
+    /**
+     * O que o "Reaplicar" faria com uma pessoa.
+     *
+     * `loses` e `gains` vêm como `tela:AÇÃO`; a tela traduz pelo catálogo.
+     * `loses` é o ajuste à mão que se perde; `gains`, o que o modelo passou a dar.
+     */
+    public record ReapplyPersonDTO(String id, String name, List<String> loses, List<String> gains) { }
+
+    /** A prévia do "Reaplicar", pessoa por pessoa. */
+    public record ReapplyPreviewDTO(List<ReapplyPersonDTO> people) { }
+
+    /**
+     * Uma pessoa que acessa uma tela, e de onde vem cada ação.
+     *
+     * `actions` são as ações liberadas que a tela usa. `templates`, os modelos
+     * aplicados nela que dão alguma dessas ações. `addedByHand` é o que está
+     * liberado sem modelo nenhum dar; `removedByHand`, o que um modelo dá e
+     * alguém tirou — as duas direções do ponto laranja.
+     */
+    public record ScreenAccessPersonDTO(String id, String name, String login, boolean active,
+                                        List<String> actions, List<String> templates,
+                                        List<String> addedByHand, List<String> removedByHand) { }
+
+    /** Quem acessa uma tela. Lista vazia é "ninguém". */
+    public record ScreenAccessDTO(String screen, List<ScreenAccessPersonDTO> people) { }
+
+    /**
+     * Quem acessa cada tela, de uma vez só.
+     *
+     * Uma requisição para as 70 telas, e não uma por tela: são poucas pessoas,
+     * e a lista lateral precisa da contagem de todas para dizer "4 pessoas" ao
+     * lado de cada nome. `developers` é quantas contas têm tudo por definição e
+     * por isso não aparecem nas listas.
+     */
+    public record ScreenAccessOverviewDTO(int developers, List<ScreenAccessDTO> screens) { }
 
     /** O que a aplicação mexeu, para a tela poder dizer em vez de só fechar. */
     public record ApplyResultDTO(int users, int cellsChanged) { }

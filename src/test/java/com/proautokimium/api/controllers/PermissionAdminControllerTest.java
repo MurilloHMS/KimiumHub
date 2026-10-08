@@ -28,6 +28,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -52,8 +54,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SecurityConfiguration.class)
 class PermissionAdminControllerTest {
 
-    private static final String TEMPLATES = "settings/permissions/templates";
-    private static final String USERS = "settings/permissions/users";
+    // Desde a V124 tudo mora na administração. A tela antiga fica só para o
+    // teste provar que ela não abre mais nada.
+    private static final String USERS = "settings/admin";
+    private static final String TELA_ANTIGA = "settings/permissions/users";
 
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper json;
@@ -175,25 +179,68 @@ class PermissionAdminControllerTest {
                 .andExpect(jsonPath("$.cellsChanged").value(9));
     }
 
-    // ─── O catálogo serve às duas telas ──────────────────────────────────────
+    // ─── Uma tela só ─────────────────────────────────────────────────────────
 
     /**
-     * O catálogo abre com **qualquer uma** das duas permissões.
+     * A permissão da tela antiga não abre mais nada.
      *
-     * Exigir a de modelos para desenhar a grade de um usuário trancaria quem só
-     * cuida de pessoas — e o sintoma seria uma tela de configuração sem linha
-     * nenhuma, que ninguém associa a permissão.
+     * Se um endpoint ficasse para trás com a authority velha, ele continuaria
+     * funcionando para quem a tinha e falharia para quem só recebeu
+     * `settings/admin` — o tipo de defeito que só aparece com outra pessoa.
      */
     @Test
-    @DisplayName("quem só cuida de pessoas ainda enxerga o catálogo de telas")
+    @DisplayName("a permissão da tela antiga de permissões não abre o catálogo")
+    @WithMockUser(username = "ana", authorities = {TELA_ANTIGA + ":CONSULTAR"})
+    void telaAntigaNaoAbre() throws Exception {
+        mockMvc.perform(get("/api/permissions/screens"))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    @DisplayName("o catálogo vem com as ações de cada tela")
     @WithMockUser(username = "ana", authorities = {USERS + ":CONSULTAR"})
-    void catalogoAbreComQualquerUmaDasDuas() throws Exception {
+    void catalogoComAcoes() throws Exception {
         when(service.screens()).thenReturn(List.of(
-                new ScreenDTO("stock/movements", "Movimentações", "Estoque", 220)));
+                new ScreenDTO("stock/movements", "Movimentações", "Estoque", 220, List.of("CONSULTAR", "INCLUIR"))));
 
         mockMvc.perform(get("/api/permissions/screens"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].code").value("stock/movements"));
+                .andExpect(jsonPath("$[0].code").value("stock/movements"))
+                .andExpect(jsonPath("$[0].actions[1]").value("INCLUIR"));
+    }
+
+    // ─── Reaplicar ───────────────────────────────────────────────────────────
+
+    /** Ver o que o reaplicar faria é leitura; reaplicar alcança várias pessoas. */
+    @Test
+    @DisplayName("quem só consulta vê a prévia do reaplicar, mas não reaplica")
+    @WithMockUser(username = "ana", authorities = {USERS + ":CONSULTAR"})
+    void consultarVePreviaMasNaoReaplica() throws Exception {
+        UUID modelo = UUID.randomUUID();
+        when(service.reapplyPreview(modelo)).thenReturn(new ReapplyPreviewDTO(List.of(
+                new ReapplyPersonDTO("u-1", "Weslley", List.of("stock/products:EXCLUIR"), List.of()))));
+
+        mockMvc.perform(get("/api/permissions/templates/" + modelo + "/reapply-preview"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.people[0].loses[0]").value("stock/products:EXCLUIR"));
+
+        mockMvc.perform(post("/api/permissions/templates/" + modelo + "/reapply").with(csrf()))
+                .andExpect(status().isForbidden());
+        verify(service, never()).reapply(any(), anyString());
+    }
+
+    @Test
+    @DisplayName("o reaplicar registra quem reaplicou, tirado da autenticação")
+    @WithMockUser(username = "murillo", authorities = {USERS + ":CONFIGURAR"})
+    void reaplicarRegistraQuem() throws Exception {
+        UUID modelo = UUID.randomUUID();
+        when(service.reapply(modelo, "murillo")).thenReturn(new ApplyResultDTO(3, 5));
+
+        mockMvc.perform(post("/api/permissions/templates/" + modelo + "/reapply").with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.users").value(3));
     }
 
     // ─── Caminho feliz ───────────────────────────────────────────────────────

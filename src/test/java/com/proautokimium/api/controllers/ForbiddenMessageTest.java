@@ -40,10 +40,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Com a authority no corpo, o mesmo chamado chega como
  * "falta stock/movements:EXCLUIR" e acaba numa célula da tela de permissões.
  *
- * Estes testes usam o controller de permissões porque ele é o único anotado
- * hoje — mas o que se prova aqui vale para os 228 que vêm.
+ * Estes testes usam o controller de permissões, que foi o primeiro anotado, e
+ * o de NFe para o caso de mais de uma authority: desde a V124 o de permissões
+ * exige uma só, `settings/admin`.
  */
-@WebMvcTest(PermissionAdminController.class)
+@WebMvcTest({PermissionAdminController.class, NfeController.class})
 @TestPropertySource(properties = {"server.port=0"})
 @Import({SecurityConfiguration.class, GlobalExceptionHandler.class})
 class ForbiddenMessageTest {
@@ -52,6 +53,8 @@ class ForbiddenMessageTest {
     @Autowired ObjectMapper json;
 
     @MockitoBean PermissionAdminService service;
+    @MockitoBean com.proautokimium.api.Infrastructure.interfaces.nfe.INfeProcessing nfeProcessing;
+    @MockitoBean com.proautokimium.api.Infrastructure.services.nfe.NfseRenameService nfseRenameService;
     @MockitoBean PermissionService permissionService;
     @MockitoBean UserRepository userRepository;
     @MockitoBean TokenService tokenService;
@@ -74,7 +77,7 @@ class ForbiddenMessageTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message")
                         .value(org.hamcrest.Matchers.containsString(
-                                "settings/permissions/users:ALTERAR")))
+                                "settings/admin:ALTERAR")))
                 .andExpect(jsonPath("$.message")
                         .value(org.hamcrest.Matchers.containsString("ALTERAR em")));
     }
@@ -88,13 +91,15 @@ class ForbiddenMessageTest {
     @WithMockUser(username = "ricardo", authorities = {"ROLE_USER"})
     void listaAlternativas() throws Exception {
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                        .get("/api/permissions/screens"))
+                        .multipart("/api/nfe/nfse/upload")
+                        .file(new org.springframework.mock.web.MockMultipartFile("files", "a.pdf", "application/pdf", new byte[]{1}))
+                        .with(csrf()))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message")
                         .value(org.hamcrest.Matchers.containsString("Falta uma destas")))
                 .andExpect(jsonPath("$.message")
                         .value(org.hamcrest.Matchers.containsString(
-                                "settings/permissions/templates:CONSULTAR")));
+                                "tools/pdf/nfse-rename:INCLUIR")));
     }
 
     /**

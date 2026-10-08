@@ -2,6 +2,7 @@ package com.proautokimium.api.controllers;
 
 import com.proautokimium.api.Application.DTOs.authentication.*;
 import com.proautokimium.api.Application.DTOs.user.*;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionService;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserAlreadyExistsException;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
@@ -51,6 +52,7 @@ public class AuthenticationController {
     private final AuthenticationService authService;
     private final NotificationService notificationService;
     private final AuthorizationService authorizationService;
+    private final PermissionService permissionService;
 
     public AuthenticationController(
             UserRepository repository,
@@ -61,7 +63,8 @@ public class AuthenticationController {
             EmailQueueService emailQueueService,
             AuthEmailService authEmailService,
             AuthenticationService authService,
-            NotificationService notificationService, AuthorizationService authorizationService
+            NotificationService notificationService, AuthorizationService authorizationService,
+            PermissionService permissionService
     ){
         this.repository = repository;
         this.employeeRepository = employeeRepository;
@@ -73,6 +76,7 @@ public class AuthenticationController {
         this.authService = authService;
         this.notificationService = notificationService;
         this.authorizationService = authorizationService;
+        this.permissionService = permissionService;
     }
 
 
@@ -151,6 +155,21 @@ public class AuthenticationController {
         return authService.unlinkEmployee(login) != null ?
                 ResponseEntity.ok("Vínculo removido com sucesso!")
                 : ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Edita uma conta pela tela de administração. Hoje, só o e-mail.
+     *
+     * CONFIGURAR, como o vínculo com o funcionário e o bloqueio: são as outras
+     * coisas que se mexem na conta de alguém por esta tela.
+     */
+    @PatchMapping("/users/{login}")
+    @PreAuthorize("hasAuthority('settings/admin:CONFIGURAR')")
+    @Operation(summary = "Editar usuário", description = "Troca o e-mail de uma conta")
+    public ResponseEntity<Void> updateUser(@PathVariable String login,
+                                           @RequestBody @Valid UpdateUserRequest body) {
+        authService.updateUser(login, body);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/users")
@@ -309,6 +328,11 @@ public class AuthenticationController {
 
         user.setRoles(roles.roles());
         repository.save(user);
+
+        // A resolução das authorities olha a role DEVELOPER, e o resultado fica
+        // em cache. Sem esquecer, dar ou tirar o DEVELOPER só valeria quando o
+        // cache caísse por outro motivo.
+        permissionService.forget(user.getId());
         return ResponseEntity.ok().body("Roles Atualizadas com sucesso!");
     }
 

@@ -2,6 +2,8 @@ package com.proautokimium.api.Infrastructure.services.authentication;
 
 import com.proautokimium.api.Application.DTOs.authentication.NewAccessPasswordDTO;
 import com.proautokimium.api.Application.DTOs.user.RegisterDTO;
+import com.proautokimium.api.Application.DTOs.user.UpdateUserRequest;
+import com.proautokimium.api.Infrastructure.exceptions.auth.EmailAlreadyInUseException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserAlreadyExistsException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserBlockedException;
 import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
@@ -34,6 +36,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import com.proautokimium.api.Infrastructure.services.permission.PermissionProvisioningService;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionAdminService;
 
 class AuthenticationServiceTest {
 
@@ -59,6 +62,9 @@ class AuthenticationServiceTest {
     // em RefreshTokenServiceTest, e aqui o que importa é o login chamá-la.
     private final RefreshTokenService refreshTokens = mock(RefreshTokenService.class);
 
+    // Só para a lista da administração mostrar os modelos de cada um.
+    private final PermissionAdminService permissionAdmin = mock(PermissionAdminService.class);
+
     private final AuthenticationService service = new AuthenticationService(
             authenticationManager,
             userRepository,
@@ -70,7 +76,8 @@ class AuthenticationServiceTest {
             authEmailService,
             customerRepository,
             permissionProvisioning,
-            refreshTokens
+            refreshTokens,
+            permissionAdmin
     );
 
     @Test
@@ -192,5 +199,48 @@ class AuthenticationServiceTest {
         token.setPartner(employee);
         token.setExpiration(NOON_LOCAL.plusMinutes(30));
         return token;
+    }
+
+    // ─── Editar a conta pela administração ───────────────────────────────────
+
+    /**
+     * O e-mail é único no banco. Sem conferir antes, a violação do índice
+     * subia como 500, sem dizer o que estava errado.
+     */
+    @Test
+    @DisplayName("trocar para um e-mail de outra conta é recusado com 409, sem gravar")
+    void emailDeOutraContaRecusa() {
+        User ana = new User("ana", "ana@kimium.com", "hash", List.of(UserRole.USER));
+        ana.setId("u-ana");
+        when(userRepository.findByLoginWithEmployee("ana")).thenReturn(Optional.of(ana));
+        when(userRepository.existsByEmailIgnoringUser("ricardo@kimium.com", "u-ana")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.updateUser("ana", new UpdateUserRequest("ricardo@kimium.com")))
+                .isInstanceOf(EmailAlreadyInUseException.class);
+        verify(userRepository, never()).save(any());
+        assertThat(ana.getEmail()).isEqualTo("ana@kimium.com");
+    }
+
+    @Test
+    @DisplayName("trocar o e-mail grava o novo, sem espaços nas pontas")
+    void trocaOEmail() {
+        User ana = new User("ana", "ana@kimium.com", "hash", List.of(UserRole.USER));
+        ana.setId("u-ana");
+        when(userRepository.findByLoginWithEmployee("ana")).thenReturn(Optional.of(ana));
+
+        service.updateUser("ana", new UpdateUserRequest("  ana.souza@kimium.com "));
+
+        assertThat(ana.getEmail()).isEqualTo("ana.souza@kimium.com");
+        verify(userRepository).save(ana);
+    }
+
+    @Test
+    @DisplayName("o cadastro recusa e-mail que já é de outra conta")
+    void cadastroRecusaEmailRepetido() {
+        when(userRepository.existsByEmailIgnoringUser("ana@kimium.com", null)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.signIn(new RegisterDTO("ana2", "ana@kimium.com", "12345678", List.of(UserRole.USER))))
+                .isInstanceOf(EmailAlreadyInUseException.class);
+        verify(userRepository, never()).save(any());
     }
 }

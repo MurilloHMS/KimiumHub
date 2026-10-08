@@ -31,6 +31,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import com.proautokimium.api.Infrastructure.exceptions.auth.EmailAlreadyInUseException;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.proautokimium.api.Application.DTOs.authentication.ResetPasswordDTO;
@@ -40,12 +41,14 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import com.proautokimium.api.Application.DTOs.user.LoginResponseDTO;
@@ -563,5 +566,68 @@ class AuthenticationControllerTest {
                 .andExpect(status().isOk());
 
         verify(userRepository).save(dev);
+    }
+
+    // ─── Editar a conta ──────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("editar o e-mail exige CONFIGURAR na administração")
+    @WithMockUser(username = "ricardo", authorities = {"settings/admin:CONSULTAR"})
+    void editarExigeConfigurar() throws Exception {
+        mockMvc.perform(patch("/api/auth/users/ana")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"ana@kimium.com\"}"))
+                .andExpect(status().isForbidden());
+
+        verify(authService, never()).updateUser(anyString(), any());
+    }
+
+    @Test
+    @DisplayName("e-mail inválido volta 400 com a frase do campo")
+    @WithMockUser(username = "murillo", authorities = {"settings/admin:CONFIGURAR"})
+    void emailInvalido() throws Exception {
+        mockMvc.perform(patch("/api/auth/users/ana")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"nao-e-email\"}"))
+                .andExpect(status().isBadRequest());
+
+        verify(authService, never()).updateUser(anyString(), any());
+    }
+
+    @Test
+    @DisplayName("e-mail de outra conta volta 409 com a frase para a tela")
+    @WithMockUser(username = "murillo", authorities = {"settings/admin:CONFIGURAR"})
+    void emailRepetido409() throws Exception {
+        doThrow(new EmailAlreadyInUseException()).when(authService).updateUser(anyString(), any());
+
+        mockMvc.perform(patch("/api/auth/users/ana")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\": \"ricardo@kimium.com\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Este e-mail já é usado por outra conta."));
+    }
+
+    /**
+     * A resolução das authorities olha a role DEVELOPER e fica em cache: sem o
+     * `forget`, dar ou tirar o DEVELOPER só valeria quando o cache caísse.
+     */
+    @Test
+    @DisplayName("mudar as roles esquece o cache de permissões da pessoa")
+    @WithMockUser(username = "murillo", authorities = {"settings/admin:CONFIGURAR"})
+    void mudarRolesEsqueceCache() throws Exception {
+        User user = new User("ana", "ana@kimium.com", "hash", List.of(UserRole.USER));
+        user.setId("u-ana");
+        when(userRepository.findByLogin("ana")).thenReturn(user);
+
+        mockMvc.perform(put("/api/auth/users/ana/roles")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"roles\": [\"USER\", \"RH\"]}"))
+                .andExpect(status().isOk());
+
+        verify(permissionService).forget("u-ana");
     }
 }

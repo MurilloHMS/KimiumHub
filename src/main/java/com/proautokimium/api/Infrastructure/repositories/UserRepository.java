@@ -52,6 +52,10 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     boolean existsByLogin(String username);
 
+    /** O e-mail é único: no cadastro passa `null` como id, na edição o da própria conta. */
+    @Query("SELECT COUNT(u) > 0 FROM users u WHERE LOWER(u.email) = LOWER(:email) AND (:id IS NULL OR u.id <> :id)")
+    boolean existsByEmailIgnoringUser(@Param("email") String email, @Param("id") String id);
+
     @Query("select coalesce(e.name, u.login) from users u left join u.employee e where u.login = :login")
     Optional<String> findDisplayName(@Param("login") String login);
 

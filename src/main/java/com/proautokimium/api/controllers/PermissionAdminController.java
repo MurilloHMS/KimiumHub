@@ -20,16 +20,21 @@ import java.util.UUID;
  * neste sistema — quem alcança `PUT /users/{id}/grid` se dá tudo com um `curl`,
  * e o front escondendo o menu não muda isso.
  *
- * As authorities são as duas telas da V87. Sem elas, ninguém configura nada —
- * e é por isso que a V87 as abre para o ADMIN direto no banco: não existe saída
- * pela interface quando a interface é justamente o que está trancado.
+ * As authorities eram as duas telas da V87. Desde a V124 (2026-10-08) tudo
+ * mora na tela de administração: usuários, acesso e modelos ficam numa tela só,
+ * e a migration deu `settings/admin` a quem tinha qualquer uma das duas — sem
+ * isso, quem configurava permissões ficaria trancado fora da tela que as
+ * configura.
+ *
+ * Os verbos: CONSULTAR lê, ALTERAR grava a grade (de pessoa ou de modelo),
+ * INCLUIR cria modelo, CONFIGURAR mexe em várias pessoas de uma vez (aplicar,
+ * desfazer, copiar, reaplicar).
  */
 @RestController
 @RequestMapping("api/permissions")
 public class PermissionAdminController {
 
-    private static final String TEMPLATES = "settings/permissions/templates";
-    private static final String USERS = "settings/permissions/users";
+    private static final String ADMIN = "settings/admin";
 
     private final PermissionAdminService service;
 
@@ -39,55 +44,51 @@ public class PermissionAdminController {
 
     // ─── Catálogo ────────────────────────────────────────────────────────────
 
-    /**
-     * As telas do catálogo — as linhas da grade.
-     *
-     * Serve às duas telas, então basta **qualquer uma** das duas permissões:
-     * exigir a de modelos para desenhar a grade de um usuário trancaria quem só
-     * cuida de pessoas.
-     */
+    /** As telas do catálogo, cada uma com as ações que usa: as linhas da grade. */
     @GetMapping("/screens")
-    @PreAuthorize("hasAnyAuthority('" + TEMPLATES + ":CONSULTAR', '" + USERS + ":CONSULTAR')")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":CONSULTAR')")
     public ResponseEntity<List<ScreenDTO>> screens() {
         return ResponseEntity.ok(service.screens());
     }
 
+    /** Quem acessa cada tela: a aba Telas. Só lê. */
+    @GetMapping("/screen-access")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":CONSULTAR')")
+    public ResponseEntity<ScreenAccessOverviewDTO> screenAccess() {
+        return ResponseEntity.ok(service.screenAccess());
+    }
+
     // ─── Modelos ─────────────────────────────────────────────────────────────
 
-    /** A lista de modelos. Também serve às duas telas: o "aplicar modelo" a lê. */
+    /** A lista de modelos. A aba Modelos e o "aplicar modelo" a leem. */
     @GetMapping("/templates")
-    @PreAuthorize("hasAnyAuthority('" + TEMPLATES + ":CONSULTAR', '" + USERS + ":CONSULTAR')")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":CONSULTAR')")
     public ResponseEntity<List<TemplateSummaryDTO>> templates() {
         return ResponseEntity.ok(service.templates());
     }
 
     @GetMapping("/templates/{templateId}/grid")
-    @PreAuthorize("hasAuthority('" + TEMPLATES + ":CONSULTAR')")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":CONSULTAR')")
     public ResponseEntity<TemplateGridDTO> templateGrid(@PathVariable UUID templateId) {
         return ResponseEntity.ok(service.templateGrid(templateId));
     }
 
-    /**
-     * A quem este modelo já foi aplicado.
-     *
-     * Abre com qualquer uma das duas permissões: é a lista que sustenta o aviso
-     * "aplicado a 3 pessoas" na tela de modelos.
-     */
+    /** A quem este modelo já foi aplicado: o aviso "3 pessoas já receberam". */
     @GetMapping("/templates/{templateId}/applied-to")
-    @PreAuthorize("hasAnyAuthority('" + TEMPLATES + ":CONSULTAR', '" + USERS + ":CONSULTAR')")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":CONSULTAR')")
     public ResponseEntity<List<UserSummaryDTO>> appliedTo(@PathVariable UUID templateId) {
         return ResponseEntity.ok(service.appliedTo(templateId));
     }
 
     /** Criar. Com `copyFromId` preenchido, é o duplicar. */
     @PostMapping("/templates")
-    @PreAuthorize("hasAuthority('" + TEMPLATES + ":INCLUIR')")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":INCLUIR')")
     public ResponseEntity<TemplateSummaryDTO> create(@RequestBody TemplateFormDTO form) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(form));
     }
 
     @PatchMapping("/templates/{templateId}")
-    @PreAuthorize("hasAuthority('" + TEMPLATES + ":ALTERAR')")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":ALTERAR')")
     public ResponseEntity<Void> edit(@PathVariable UUID templateId,
                                      @RequestBody TemplateEditDTO form) {
         service.edit(templateId, form);
@@ -102,29 +103,49 @@ public class PermissionAdminController {
      * você não mandou?".
      */
     @PutMapping("/templates/{templateId}/grid")
-    @PreAuthorize("hasAuthority('" + TEMPLATES + ":ALTERAR')")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":ALTERAR')")
     public ResponseEntity<ApplyResultDTO> saveTemplateGrid(@PathVariable UUID templateId,
                                                            @RequestBody GridDTO grid) {
         int alteradas = service.saveTemplateGrid(templateId, grid);
         return ResponseEntity.ok(new ApplyResultDTO(0, alteradas));
     }
 
+    /**
+     * O que o "Reaplicar" faria, pessoa por pessoa. Só lê: CONSULTAR basta.
+     */
+    @GetMapping("/templates/{templateId}/reapply-preview")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":CONSULTAR')")
+    public ResponseEntity<ReapplyPreviewDTO> reapplyPreview(@PathVariable UUID templateId) {
+        return ResponseEntity.ok(service.reapplyPreview(templateId));
+    }
+
+    /**
+     * Leva a versão nova do modelo a quem já o recebeu, refazendo cada pessoa
+     * pela soma dos modelos dela. CONFIGURAR, como o aplicar: alcança várias
+     * pessoas e apaga ajuste individual.
+     */
+    @PostMapping("/templates/{templateId}/reapply")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":CONFIGURAR')")
+    public ResponseEntity<ApplyResultDTO> reapply(@PathVariable UUID templateId, Authentication auth) {
+        return ResponseEntity.ok(service.reapply(templateId, auth.getName()));
+    }
+
     // ─── Pessoas ─────────────────────────────────────────────────────────────
 
     @GetMapping("/users")
-    @PreAuthorize("hasAuthority('" + USERS + ":CONSULTAR')")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":CONSULTAR')")
     public ResponseEntity<List<UserSummaryDTO>> users() {
         return ResponseEntity.ok(service.users());
     }
 
     @GetMapping("/users/{userId}/grid")
-    @PreAuthorize("hasAuthority('" + USERS + ":CONSULTAR')")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":CONSULTAR')")
     public ResponseEntity<UserGridDTO> userGrid(@PathVariable String userId) {
         return ResponseEntity.ok(service.userGrid(userId));
     }
 
     @PutMapping("/users/{userId}/grid")
-    @PreAuthorize("hasAuthority('" + USERS + ":ALTERAR')")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":ALTERAR')")
     public ResponseEntity<ApplyResultDTO> saveUserGrid(@PathVariable String userId,
                                                        @RequestBody GridDTO grid) {
         int alteradas = service.saveUserGrid(userId, grid);
@@ -139,7 +160,7 @@ public class PermissionAdminController {
      * modo é SUBSTITUIR. São dois pesos diferentes.
      */
     @PostMapping("/templates/{templateId}/apply")
-    @PreAuthorize("hasAuthority('" + USERS + ":CONFIGURAR')")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":CONFIGURAR')")
     public ResponseEntity<ApplyResultDTO> apply(@PathVariable UUID templateId,
                                                 @RequestBody ApplyTemplateDTO form,
                                                 Authentication auth) {
@@ -157,14 +178,14 @@ public class PermissionAdminController {
      * Exige `CONFIGURAR` pelo mesmo motivo do aplicar: tira acesso de alguém.
      */
     @DeleteMapping("/users/{userId}/templates/{templateId}")
-    @PreAuthorize("hasAuthority('" + USERS + ":CONFIGURAR')")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":CONFIGURAR')")
     public ResponseEntity<ApplyResultDTO> undoApply(@PathVariable String userId,
                                                     @PathVariable UUID templateId) {
         return ResponseEntity.ok(service.undoApply(userId, templateId));
     }
 
     @PostMapping("/users/{userId}/copy-from/{sourceUserId}")
-    @PreAuthorize("hasAuthority('" + USERS + ":CONFIGURAR')")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":CONFIGURAR')")
     public ResponseEntity<ApplyResultDTO> copyFrom(@PathVariable String userId,
                                                    @PathVariable String sourceUserId) {
         int alteradas = service.copyFrom(userId, sourceUserId);
