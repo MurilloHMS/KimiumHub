@@ -1,9 +1,6 @@
 package com.proautokimium.api.Infrastructure.services.partner;
 
-import com.proautokimium.api.Application.DTOs.partners.CreateEmployeeRequestDTO;
-import com.proautokimium.api.Application.DTOs.partners.EmployeeDTO;
-import com.proautokimium.api.Application.DTOs.partners.EmployeeResponseDTO;
-import com.proautokimium.api.Application.DTOs.partners.PartnerRecipientDTO;
+import com.proautokimium.api.Application.DTOs.partners.*;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.CompanyNotFoundException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.HierarchyNotFoundException;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.PositionLevelNotFoundException;
@@ -48,6 +45,7 @@ public class EmployeeService {
     private final HierarchyRepository hierarchyRepository;
     private final CareerHistoryRepository careerHistoryRepository;
     private final PositionLevelSalaryResolver salaryResolver;
+    private final SiteAccessResolver siteAccessResolver;
 
     public EmployeeService(
             EmployeeRepository employeeRepository,
@@ -57,7 +55,8 @@ public class EmployeeService {
             TeamRepository teamRepository,
             HierarchyRepository hierarchyRepository,
             CareerHistoryRepository careerHistoryRepository,
-            PositionLevelSalaryResolver salaryResolver
+            PositionLevelSalaryResolver salaryResolver,
+            SiteAccessResolver siteAccessResolver
     ) {
         this.employeeRepository = employeeRepository;
         this.positionRepository = positionRepository;
@@ -67,6 +66,7 @@ public class EmployeeService {
         this.hierarchyRepository = hierarchyRepository;
         this.careerHistoryRepository = careerHistoryRepository;
         this.salaryResolver = salaryResolver;
+        this.siteAccessResolver = siteAccessResolver;
     }
 
     /**
@@ -136,7 +136,7 @@ public class EmployeeService {
         );
         CareerHistory savedHistory = careerHistoryRepository.save(hiringSnapshot);
 
-        return toResponse(savedEmployee, savedHistory);
+        return toResponse(savedEmployee, savedHistory, null);
     }
 
     /**
@@ -188,15 +188,19 @@ public class EmployeeService {
         Employee saved = employeeRepository.save(employee);
         CareerHistory latest = careerHistoryRepository.findByEmployeeOrderByEffectiveDateDesc(saved)
                 .stream().findFirst().orElse(null);
-        return toResponse(saved, latest);
+        return toResponse(saved, latest, null);
     }
 
     public List<EmployeeResponseDTO> getAllEmployes() {
         List<Employee> employees = employeeRepository.findAll();
         Map<UUID, CareerHistory> latestByEmployee = careerHistoryRepository.findLatestPerEmployee().stream()
                 .collect(Collectors.toMap(ch -> ch.getEmployee().getId(), ch -> ch, (a, b) -> a));
+        // A situação no site, para todos de uma vez: o mesmo desenho do cargo,
+        // tudo antes e só `get` por id dentro do map. Nada de uma consulta por
+        // funcionário.
+        Map<UUID, EmployeeSiteAccess> accessByEmployee = siteAccessResolver.resolve(employees);
         return employees.stream()
-                .map(e -> toResponse(e, latestByEmployee.get(e.getId())))
+                .map(e -> toResponse(e, latestByEmployee.get(e.getId()), accessByEmployee.get(e.getId())))
                 .toList();
     }
 
@@ -211,7 +215,12 @@ public class EmployeeService {
                 .toList();
     }
 
-    private EmployeeResponseDTO toResponse(Employee employee, CareerHistory latest) {
+    /**
+     * {@code access} chega nulo ao criar e ao editar: a resposta desses dois só
+     * confirma o que foi salvo, e o site recarrega a lista logo depois — é lá
+     * que a situação no site aparece.
+     */
+    private EmployeeResponseDTO toResponse(Employee employee, CareerHistory latest, EmployeeSiteAccess access) {
         return new EmployeeResponseDTO(
                 employee.getId(),
                 employee.getCodParceiro(),
@@ -238,7 +247,10 @@ public class EmployeeService {
                 employee.getTicketPrice(),
                 employee.getVehicleKmPerLiter(),
                 employee.getDailyDistanceKm(),
-                employee.getVacationBalanceDays()
+                employee.getVacationBalanceDays(),
+                access != null ? access.status() : null,
+                access != null ? access.login() : null,
+                access != null ? access.firstAccessRequestedAt() : null
         );
     }
 }

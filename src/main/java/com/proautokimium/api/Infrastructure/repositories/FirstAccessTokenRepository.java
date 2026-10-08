@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface FirstAccessTokenRepository extends JpaRepository<FirstAccessToken, UUID> {
     Optional<FirstAccessToken> findByToken(String token);
     List<FirstAccessToken> findByPartner_IdAndUsedFalse(UUID partner_id);
+    List<FirstAccessToken> findByUsedFalse();
 }

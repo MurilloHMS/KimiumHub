@@ -51,6 +51,7 @@ import static org.mockito.Mockito.*;
 class EmployeeServiceTest {
 
     @Mock private EmployeeRepository employeeRepository;
+    @Mock private SiteAccessResolver siteAccessResolver;
     @Mock private PositionRepository positionRepository;
     @Mock private PositionLevelRepository positionLevelRepository;
     @Mock private CompanyRepository companyRepository;
@@ -76,7 +77,7 @@ class EmployeeServiceTest {
         employeeService = new EmployeeService(
                 employeeRepository, positionRepository, positionLevelRepository,
                 companyRepository, teamRepository, hierarchyRepository,
-                careerHistoryRepository, salaryResolver
+                careerHistoryRepository, salaryResolver, siteAccessResolver
         );
 
         companyId = UUID.randomUUID();
@@ -271,6 +272,30 @@ class EmployeeServiceTest {
 
         assertThat(response).hasSize(1);
         assertThat(response.get(0).partnerCode()).isEqualTo("EMP001");
+    }
+
+    /**
+     * A situação no site chega à resposta. Sem isto o RH voltaria a ver todo
+     * mundo pendente — o defeito que a tela de Funcionários tinha.
+     */
+    @Test
+    @DisplayName("a lista leva a situação no site de cada funcionário")
+    void listaLevaASituacaoNoSite() {
+        Employee employee = new Employee();
+        employee.id = UUID.randomUUID();
+        employee.setCodParceiro("EMP001");
+        employee.setEmail(new Email("func@teste.com"));
+        java.time.LocalDateTime pedido = java.time.LocalDateTime.of(2026, 10, 3, 9, 12);
+        when(employeeRepository.findAll()).thenReturn(List.of(employee));
+        when(careerHistoryRepository.findLatestPerEmployee()).thenReturn(List.of());
+        when(siteAccessResolver.resolve(List.of(employee))).thenReturn(java.util.Map.of(employee.getId(),
+                new com.proautokimium.api.Application.DTOs.partners.EmployeeSiteAccess(
+                        com.proautokimium.api.domain.enums.SiteAccess.PENDING, null, pedido)));
+
+        EmployeeResponseDTO response = employeeService.getAllEmployes().get(0);
+
+        assertThat(response.siteAccess()).isEqualTo(com.proautokimium.api.domain.enums.SiteAccess.PENDING);
+        assertThat(response.firstAccessRequestedAt()).isEqualTo(pedido);
     }
 
     @Test

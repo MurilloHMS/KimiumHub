@@ -1,0 +1,57 @@
+<!-- Funcionários ativos que ainda não entraram no site. A4 paisagem.
+     Mesmo desenho do comprovante de reembolsos. Edite aqui ou no Jaspersoft Studio 7;
+     depois recompile o .jasper (comando no PendingSiteAccessReportTemplateTest). -->
+<jasperReport name="pending_site_access" language="java" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="762" leftMargin="40" rightMargin="40" topMargin="30" bottomMargin="24" whenNoDataType="AllSectionsNoDetail" uuid="4d1e2c7a-6b3f-4f0e-9a51-2f6c8d0b7e11">
+	<parameter name="ISSUED_AT" class="java.lang.String"/>
+	<parameter name="TOTAL_LABEL" class="java.lang.String"/>
+	<field name="code" class="java.lang.String"/>
+	<field name="name" class="java.lang.String"/>
+	<field name="email" class="java.lang.String"/>
+	<field name="company" class="java.lang.String"/>
+	<field name="department" class="java.lang.String"/>
+	<field name="position" class="java.lang.String"/>
+	<field name="detail" class="java.lang.String"/>
+	<title height="72" splitType="Stretch">
+		<element kind="rectangle" uuid="0b8f8c1e-2a40-4c51-8d0a-6a1f2e3c4d01" x="0" y="0" width="30" height="30" forecolor="#232E61" backcolor="#232E61"><pen lineWidth="0.0"/></element>
+		<element kind="staticText" uuid="0b8f8c1e-2a40-4c51-8d0a-6a1f2e3c4d02" x="0" y="0" width="30" height="30" forecolor="#FFFFFF" fontName="Montserrat" fontSize="11.0" bold="true" hTextAlign="Center" vTextAlign="Middle"><text><![CDATA[PK]]></text></element>
+		<element kind="staticText" uuid="0b8f8c1e-2a40-4c51-8d0a-6a1f2e3c4d03" x="38" y="2" width="220" height="13" forecolor="#232E61" fontName="Montserrat" fontSize="10.0" bold="true" vTextAlign="Middle"><text><![CDATA[PROAUTO KIMIUM]]></text></element>
+		<element kind="staticText" uuid="0b8f8c1e-2a40-4c51-8d0a-6a1f2e3c4d04" x="38" y="16" width="220" height="11" forecolor="#5D6278" fontName="Montserrat" fontSize="7.5" vTextAlign="Middle"><text><![CDATA[Recursos Humanos]]></text></element>
+		<element kind="staticText" uuid="0b8f8c1e-2a40-4c51-8d0a-6a1f2e3c4d05" x="300" y="0" width="462" height="17" forecolor="#232E61" fontName="Montserrat" fontSize="12.0" bold="true" hTextAlign="Right" vTextAlign="Middle"><text><![CDATA[Funcionários sem acesso ao site]]></text></element>
+		<element kind="staticText" uuid="0b8f8c1e-2a40-4c51-8d0a-6a1f2e3c4d06" x="300" y="18" width="462" height="11" forecolor="#5D6278" fontName="Montserrat" fontSize="7.5" hTextAlign="Right" vTextAlign="Middle"><text><![CDATA[Ativos que ainda não fizeram o primeiro acesso]]></text></element>
+		<element kind="line" uuid="0b8f8c1e-2a40-4c51-8d0a-6a1f2e3c4d07" x="0" y="38" width="762" height="1" forecolor="#232E61"><pen lineWidth="2"/></element>
+		<element kind="textField" uuid="0b8f8c1e-2a40-4c51-8d0a-6a1f2e3c4d08" x="0" y="46" width="500" height="14" forecolor="#1B1F33" fontName="Montserrat" fontSize="8.5" bold="true" blankWhenNull="true" vTextAlign="Middle"><expression><![CDATA[$P{TOTAL_LABEL} + " sem acesso"]]></expression></element>
+		<element kind="textField" uuid="0b8f8c1e-2a40-4c51-8d0a-6a1f2e3c4d09" x="500" y="46" width="262" height="14" forecolor="#5D6278" fontName="Montserrat" fontSize="7.5" blankWhenNull="true" hTextAlign="Right" vTextAlign="Middle"><expression><![CDATA["Emitido em " + $P{ISSUED_AT}]]></expression></element>
+	</title>
+	<columnHeader height="18" splitType="Stretch">
+		<element kind="rectangle" uuid="1c9a7d2e-3b51-4d62-9e1b-7b2f3e4d5e01" x="0" y="0" width="762" height="16" forecolor="#F5F6FA" backcolor="#F5F6FA"><pen lineWidth="0.0"/></element>
+		<element kind="staticText" uuid="1c9a7d2e-3b51-4d62-9e1b-7b2f3e4d5e02" x="4" y="0" width="46" height="16" forecolor="#5D6278" fontName="Montserrat" fontSize="6.5" bold="true" vTextAlign="Middle"><text><![CDATA[CÓDIGO]]></text></element>
+		<element kind="staticText" uuid="1c9a7d2e-3b51-4d62-9e1b-7b2f3e4d5e03" x="52" y="0" width="146" height="16" forecolor="#5D6278" fontName="Montserrat" fontSize="6.5" bold="true" vTextAlign="Middle"><text><![CDATA[NOME]]></text></element>
+		<element kind="staticText" uuid="1c9a7d2e-3b51-4d62-9e1b-7b2f3e4d5e04" x="200" y="0" width="148" height="16" forecolor="#5D6278" fontName="Montserrat" fontSize="6.5" bold="true" vTextAlign="Middle"><text><![CDATA[E-MAIL]]></text></element>
+		<element kind="staticText" uuid="1c9a7d2e-3b51-4d62-9e1b-7b2f3e4d5e05" x="350" y="0" width="88" height="16" forecolor="#5D6278" fontName="Montserrat" fontSize="6.5" bold="true" vTextAlign="Middle"><text><![CDATA[EMPRESA]]></text></element>
+		<element kind="staticText" uuid="1c9a7d2e-3b51-4d62-9e1b-7b2f3e4d5e06" x="440" y="0" width="128" height="16" forecolor="#5D6278" fontName="Montserrat" fontSize="6.5" bold="true" vTextAlign="Middle"><text><![CDATA[DEPARTAMENTO / SETOR]]></text></element>
+		<element kind="staticText" uuid="1c9a7d2e-3b51-4d62-9e1b-7b2f3e4d5e07" x="570" y="0" width="98" height="16" forecolor="#5D6278" fontName="Montserrat" fontSize="6.5" bold="true" vTextAlign="Middle"><text><![CDATA[CARGO]]></text></element>
+		<element kind="staticText" uuid="1c9a7d2e-3b51-4d62-9e1b-7b2f3e4d5e08" x="670" y="0" width="92" height="16" forecolor="#5D6278" fontName="Montserrat" fontSize="6.5" bold="true" vTextAlign="Middle"><text><![CDATA[SITUAÇÃO]]></text></element>
+		<element kind="line" uuid="1c9a7d2e-3b51-4d62-9e1b-7b2f3e4d5e09" x="0" y="16" width="762" height="1" forecolor="#232E61"><pen lineWidth="0.8"/></element>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Prevent">
+			<element kind="textField" uuid="2da8be3f-4c62-4e73-8f2c-8c3a4f5e6f01" x="4" y="3" width="46" height="12" forecolor="#1B1F33" fontName="Montserrat" fontSize="7.5" bold="true" blankWhenNull="true" vTextAlign="Top"><expression><![CDATA[$F{code}]]></expression></element>
+			<element kind="textField" uuid="2da8be3f-4c62-4e73-8f2c-8c3a4f5e6f02" x="52" y="3" width="146" height="12" forecolor="#1B1F33" fontName="Montserrat" fontSize="7.5" bold="true" textAdjust="StretchHeight" blankWhenNull="true" vTextAlign="Top"><expression><![CDATA[$F{name}]]></expression></element>
+			<element kind="textField" uuid="2da8be3f-4c62-4e73-8f2c-8c3a4f5e6f03" x="200" y="3" width="148" height="12" forecolor="#1B1F33" fontName="Montserrat" fontSize="7.5" textAdjust="StretchHeight" blankWhenNull="true" vTextAlign="Top"><expression><![CDATA[$F{email} == null ? "—" : $F{email}]]></expression></element>
+			<element kind="textField" uuid="2da8be3f-4c62-4e73-8f2c-8c3a4f5e6f04" x="350" y="3" width="88" height="12" forecolor="#1B1F33" fontName="Montserrat" fontSize="7.5" textAdjust="StretchHeight" blankWhenNull="true" vTextAlign="Top"><expression><![CDATA[$F{company} == null ? "—" : $F{company}]]></expression></element>
+			<element kind="textField" uuid="2da8be3f-4c62-4e73-8f2c-8c3a4f5e6f05" x="440" y="3" width="128" height="12" forecolor="#1B1F33" fontName="Montserrat" fontSize="7.5" textAdjust="StretchHeight" blankWhenNull="true" vTextAlign="Top"><expression><![CDATA[$F{department} == null ? "—" : $F{department}]]></expression></element>
+			<element kind="textField" uuid="2da8be3f-4c62-4e73-8f2c-8c3a4f5e6f06" x="570" y="3" width="98" height="12" forecolor="#1B1F33" fontName="Montserrat" fontSize="7.5" textAdjust="StretchHeight" blankWhenNull="true" vTextAlign="Top"><expression><![CDATA[$F{position} == null ? "—" : $F{position}]]></expression></element>
+			<element kind="textField" uuid="2da8be3f-4c62-4e73-8f2c-8c3a4f5e6f07" x="670" y="3" width="92" height="12" forecolor="#9A6200" fontName="Montserrat" fontSize="7.0" bold="true" textAdjust="StretchHeight" blankWhenNull="true" vTextAlign="Top"><expression><![CDATA[$F{detail}]]></expression></element>
+			<element kind="line" uuid="2da8be3f-4c62-4e73-8f2c-8c3a4f5e6f08" positionType="Float" x="0" y="19" width="762" height="1" forecolor="#D9DCE6"><pen lineWidth="0.5"/></element>
+		</band>
+	</detail>
+	<pageFooter height="18" splitType="Stretch">
+		<element kind="line" uuid="3eb9cf40-5d73-4f84-902d-9d4b5a6f7a01" x="0" y="2" width="762" height="1" forecolor="#D9DCE6"><pen lineWidth="0.6"/></element>
+		<element kind="staticText" uuid="3eb9cf40-5d73-4f84-902d-9d4b5a6f7a02" x="0" y="6" width="520" height="11" forecolor="#5D6278" fontName="Montserrat" fontSize="6.5" vTextAlign="Middle"><text><![CDATA[KimiumHub · O primeiro acesso é feito em proautokimium.com.br, pelo CPF e um e-mail da própria pessoa.]]></text></element>
+		<element kind="textField" uuid="3eb9cf40-5d73-4f84-902d-9d4b5a6f7a03" x="632" y="6" width="96" height="11" forecolor="#5D6278" fontName="Montserrat" fontSize="6.5" blankWhenNull="true" hTextAlign="Right" vTextAlign="Middle"><expression><![CDATA["Página " + $V{PAGE_NUMBER}]]></expression></element>
+		<element kind="textField" uuid="3eb9cf40-5d73-4f84-902d-9d4b5a6f7a04" x="728" y="6" width="34" height="11" forecolor="#5D6278" fontName="Montserrat" fontSize="6.5" evaluationTime="Report" blankWhenNull="true" hTextAlign="Left" vTextAlign="Middle"><expression><![CDATA[" de " + $V{PAGE_NUMBER}]]></expression></element>
+	</pageFooter>
+	<summary height="30" splitType="Prevent">
+		<element kind="staticText" uuid="4fcad051-6e84-4095-a13e-ae5c6b7a8b01" x="0" y="10" width="762" height="14" forecolor="#31756A" fontName="Montserrat" fontSize="8.5" bold="true" vTextAlign="Middle"><printWhenExpression><![CDATA[$V{REPORT_COUNT} == 0]]></printWhenExpression><text><![CDATA[Ninguém pendente: todos os funcionários ativos já entraram no site.]]></text></element>
+	</summary>
+</jasperReport>

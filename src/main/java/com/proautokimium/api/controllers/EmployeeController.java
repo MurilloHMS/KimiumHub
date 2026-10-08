@@ -11,6 +11,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ContentDisposition;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.proautokimium.api.Application.DTOs.partners.CreateEmployeeRequestDTO;
@@ -25,6 +29,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import com.proautokimium.api.Application.DTOs.partners.ErpPartnerDTO;
 import com.proautokimium.api.Infrastructure.services.partner.ErpPartnerLookupService;
+import com.proautokimium.api.Infrastructure.services.partner.PendingSiteAccessReportService;
 
 /**
  * Responsável pelo cadastro dos funcionários
@@ -55,10 +60,13 @@ public class EmployeeController {
 
 	private final EmployeeService service;
 	private final ErpPartnerLookupService erpPartnerLookup;
+	private final PendingSiteAccessReportService pendingSiteAccessReport;
 
-	public EmployeeController(EmployeeService service, ErpPartnerLookupService erpPartnerLookup) {
+	public EmployeeController(EmployeeService service, ErpPartnerLookupService erpPartnerLookup,
+							  PendingSiteAccessReportService pendingSiteAccessReport) {
 		this.erpPartnerLookup = erpPartnerLookup;
 		this.service = service;
+		this.pendingSiteAccessReport = pendingSiteAccessReport;
 	}
 
 	@PreAuthorize(LER_FUNCIONARIOS)
@@ -117,5 +125,29 @@ public class EmployeeController {
     @Operation(summary = "Busca um parceiro no Sankhya", description = "Preenche o cadastro de funcionário a partir do CODPARC")
     public ResponseEntity<ErpPartnerDTO> fromErp(@PathVariable int codParceiro) {
         return ResponseEntity.ok(erpPartnerLookup.byCode(codParceiro));
+    }
+
+    /**
+     * O relatório dos funcionários ativos que ainda não entraram no site.
+     *
+     * BAIXAR, e não CONSULTAR: é obter um arquivo do que já existe no sistema.
+     * A V125 liberou essa ação para quem já consultava funcionários — sem ela,
+     * a ação nova nasceria fechada para o RH inteiro.
+     */
+    @PreAuthorize("hasAuthority('rh/employees:BAIXAR')")
+    @GetMapping("site-access/pending/report")
+    @Operation(summary = "Relatório dos sem acesso ao site", description = "Funcionários ativos que ainda não fizeram o primeiro acesso, em xlsx ou pdf")
+    public ResponseEntity<byte[]> pendingSiteAccessReport(@RequestParam(defaultValue = "xlsx") String format) {
+        boolean pdf = "pdf".equalsIgnoreCase(format);
+        if (!pdf && !"xlsx".equalsIgnoreCase(format)) {
+            return ResponseEntity.badRequest().build();
+        }
+        byte[] file = pdf ? pendingSiteAccessReport.pdf() : pendingSiteAccessReport.excel();
+        String fileName = pendingSiteAccessReport.fileName(pdf ? "pdf" : "xlsx");
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(fileName).build().toString())
+                .contentType(pdf ? MediaType.APPLICATION_PDF
+                        : MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(file);
     }
 }

@@ -65,9 +65,16 @@ public class SecurityConfiguration {
                         "https://proautokimium.com.br")
                 );
         
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // PATCH faltava até 2026-10-08, e três telas usam: renomear modelo de
+        // permissão, editar remetente de e-mail e trocar o e-mail de uma conta.
+        // O site e a API ficam em domínios diferentes, então o navegador pergunta
+        // antes (preflight) e recusava os três em produção. No ambiente local o
+        // proxy deixa tudo no mesmo domínio, e por isso ninguém viu.
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin"));
-        configuration.setExposedHeaders(List.of("Authorization"));
+        // Content-Disposition traz o nome do arquivo dos downloads (relatórios,
+        // planilhas). Sem expor, o site não lê e salva com um nome genérico.
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
