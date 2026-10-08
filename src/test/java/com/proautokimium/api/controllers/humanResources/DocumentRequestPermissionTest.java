@@ -82,7 +82,7 @@ class DocumentRequestPermissionTest {
     }
 
     @Test
-    @DisplayName("a tela do RH não responde por ninguém: responder e anexar são do portal")
+    @DisplayName("o RH não usa as rotas do portal: registrar no lugar do funcionário tem rota própria")
     @WithMockUser(authorities = {"rh/document-requests:ALTERAR", "rh/document-requests:INCLUIR"})
     void rhNaoResponde() throws Exception {
         UUID recipientId = UUID.randomUUID();
@@ -149,6 +149,31 @@ class DocumentRequestPermissionTest {
                 .contentType(MediaType.APPLICATION_JSON).content("{\"all\":true}"))
                 .andExpect(status().isForbidden());
         mockMvc.perform(multipart(BASE + "/" + id + "/template").file("file", "%PDF".getBytes()).with(csrf()))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    @DisplayName("registrar no lugar leva o login do RH como quem registrou")
+    @WithMockUser(username = "rita", authorities = {"rh/document-requests:ALTERAR"})
+    void registrarLevaOLogin() throws Exception {
+        UUID recipientId = UUID.randomUUID();
+        mockMvc.perform(post(BASE + "/recipients/" + recipientId + "/register").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"answers\":{\"camisa\":\"G\"},\"approve\":true}"))
+                .andExpect(status().isOk());
+        verify(service).registerOnBehalf(eq(recipientId), eq("rita"), any(), eq(true));
+    }
+
+    @Test
+    @DisplayName("quem só consulta no RH, ou o portal do funcionário, não registra nem anexa no lugar de ninguém")
+    @WithMockUser(authorities = {"rh/document-requests:CONSULTAR", "documentos/rh/requests:INCLUIR", "documentos/rh/requests:ALTERAR"})
+    void registrarExigeAlterarNoRh() throws Exception {
+        UUID recipientId = UUID.randomUUID();
+        mockMvc.perform(post(BASE + "/recipients/" + recipientId + "/register").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"answers\":{},\"approve\":false}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(multipart(BASE + "/recipients/" + recipientId + "/files")
+                        .file("file", "%PDF".getBytes()).param("fieldKey", "rg").with(csrf()))
                 .andExpect(status().isForbidden());
         verifyNoInteractions(service);
     }

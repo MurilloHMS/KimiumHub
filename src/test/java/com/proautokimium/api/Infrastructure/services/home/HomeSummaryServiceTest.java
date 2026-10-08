@@ -303,7 +303,7 @@ class HomeSummaryServiceTest {
                 UUID.randomUUID(), UUID.randomUUID(), "Envie seu RG", null, LocalDate.of(2026, 10, 20),
                 requestStatus, List.of(), null, UUID.randomUUID(), "Ana Souza", status, java.util.Map.of(),
                 LocalDateTime.of(2026, 10, 1, 9, 0), LocalDateTime.of(2026, 10, 2, 9, 0),
-                null, LocalDateTime.of(2026, 10, 3, 9, 0), motivo, List.of());
+                null, LocalDateTime.of(2026, 10, 3, 9, 0), motivo, List.of(), true, null);
     }
 
     @Test

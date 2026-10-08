@@ -1,6 +1,8 @@
 package com.proautokimium.api.Infrastructure.services.humanResources;
 
+import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.AudiencePreviewDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.DocumentRequestDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.PersonOptionDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.RecipientDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.RequestFileDTO;
 import com.proautokimium.api.Infrastructure.exceptions.humanResources.DocumentRequestFileNotFoundException;
@@ -229,7 +231,7 @@ public class DocumentRequestService {
         // Antes do send: com público vazio, a solicitação continua rascunho e o RH corrige.
         List<Employee> audience = resolveAudience(all, companyIds, departmentIds, employeeIds);
         if(audience.isEmpty())
-            throw new InvalidRequestDataException("Ninguém do público escolhido tem acesso ao sistema.");
+            throw new InvalidRequestDataException("Ninguém ativo no público escolhido.");
 
         request.send(now);
 
@@ -316,6 +318,66 @@ public class DocumentRequestService {
         return saved;
     }
 
+    /**
+     * O RH registra a resposta no lugar do funcionário. As mesmas conferências
+     * do portal (aberta, obrigatórios, arquivos), sem a de dono. "Registrar e
+     * aprovar" aprova na mesma transação: o RH já conferiu o papel na mão.
+     */
+    @Transactional
+    public DocumentRequestRecipient registerOnBehalf(UUID recipientId, String registrar, Map<String, Object> answers, boolean approve){
+        DocumentRequestRecipient recipient = documentRequestRecipientRepository.findById(recipientId)
+                .orElseThrow(DocumentRequestRecipientNotFoundException::new);
+        requireOpen(recipient);
+
+        Map<String, Object> accepted = acceptedAnswers(recipient, answers == null ? Map.of() : answers);
+        recipient.registerOnBehalf(accepted, registrar, LocalDateTime.now(clock));
+        DocumentRequestRecipient saved = documentRequestRecipientRepository.save(recipient);
+
+        if(approve) return approve(recipientId, registrar);
+        notifyOwner(recipient, "O RH registrou sua resposta", recipient.getDocumentRequest().getTitle());
+        return saved;
+    }
+
+    /** Quem do público tem login (recebe pelo portal) e quem não tem (o RH registra). */
+    @Transactional(readOnly = true)
+    public AudiencePreviewDTO previewAudience(boolean all, Set<UUID> companyIds, Set<UUID> departmentIds, Set<UUID> employeeIds){
+        List<Employee> audience = resolveAudience(all, companyIds, departmentIds, employeeIds);
+        Set<UUID> withLogin = withLogin(audience);
+        List<PersonOptionDTO> without = audience.stream().filter(e -> !withLogin.contains(e.getId()))
+                .map(e -> new PersonOptionDTO(e.getId(), e.getName(), null, false))
+                .sorted(Comparator.comparing(PersonOptionDTO::name, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+        return new AudiencePreviewDTO(audience.size(), audience.size() - without.size(), without);
+    }
+
+    /** As pessoas do seletor de público: todos os ativos, marcando quem não tem acesso. */
+    @Transactional(readOnly = true)
+    public List<PersonOptionDTO> audiencePeople(){
+        List<Employee> active = employeeRepository.findByAtivoTrue();
+        Set<UUID> withLogin = withLogin(active);
+        return active.stream()
+                .map(e -> new PersonOptionDTO(e.getId(), e.getName(), whereWorks(e), withLogin.contains(e.getId())))
+                .sorted(Comparator.comparing(PersonOptionDTO::name, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+    }
+
+    /** "Matriz · Comercial": o mesmo detalhe que o seletor dos Eventos mostra. */
+    private static String whereWorks(Employee e){
+        String company = e.getCompany() == null ? null : e.getCompany().getName();
+        String department = e.getTeam() == null || e.getTeam().getDepartment() == null ? null : e.getTeam().getDepartment().getName();
+        if(company == null) return department;
+        return department == null ? company : company + " · " + department;
+    }
+
+    /** Os funcionários desta lista que têm login ativo: uma consulta só. */
+    private Set<UUID> withLogin(List<Employee> employees){
+        if(employees.isEmpty()) return Set.of();
+        return userRepository.findActiveByEmployeeIds(employees.stream().map(Employee::getId).toList()).stream()
+                .filter(u -> u.getEmployee() != null)
+                .map(u -> u.getEmployee().getId())
+                .collect(Collectors.toSet());
+    }
+
     @Transactional
     public DocumentRequestFile upload(UUID recipientId, String login, String fieldKey, MultipartFile file) throws IOException {
         DocumentRequestRecipient recipient = documentRequestRecipientRepository.findById(recipientId)
@@ -325,6 +387,23 @@ public class DocumentRequestService {
         if(caller == null) throw new EmployeeNotFoundException();
 
         if(!isOwner(recipient, caller)) throw new DocumentRequestRecipientNotFoundException();
+        return storeFile(recipient, fieldKey, file);
+    }
+
+    /**
+     * O RH anexa o arquivo no lugar do funcionário (quem não tem acesso ao
+     * portal, ou entregou em papel). Sem a checagem de dono — quem chama é o RH,
+     * com permissão da tela —, e o arquivo vai para a pasta DO FUNCIONÁRIO.
+     */
+    @Transactional
+    public DocumentRequestFile uploadOnBehalf(UUID recipientId, String fieldKey, MultipartFile file) throws IOException {
+        DocumentRequestRecipient recipient = documentRequestRecipientRepository.findById(recipientId)
+                .orElseThrow(DocumentRequestRecipientNotFoundException::new);
+        return storeFile(recipient, fieldKey, file);
+    }
+
+    /** O mesmo caminho para o funcionário e para o RH: aberta, ainda respondível, campo de arquivo. */
+    private DocumentRequestFile storeFile(DocumentRequestRecipient recipient, String fieldKey, MultipartFile file) throws IOException {
         requireOpen(recipient);
         if(recipient.getStatus() != RecipientStatus.PENDING && recipient.getStatus() != RecipientStatus.RETURNED)
             throw new InvalidStatusTransitionException("Esta resposta já foi enviada; aguarde a conferência do RH.");
@@ -344,7 +423,7 @@ public class DocumentRequestService {
             documentRequestFileRepository.saveAndFlush(old);
         });
 
-        String storagePath = storage.save(file.getBytes(), caller.getCodParceiro(), file.getOriginalFilename());
+        String storagePath = storage.save(file.getBytes(), recipient.getEmployee().getCodParceiro(), file.getOriginalFilename());
 
         // O disco não participa da transação: recusado no banco, o arquivo é apagado à mão.
         try{
@@ -490,13 +569,15 @@ public class DocumentRequestService {
                 .collect(Collectors.groupingBy(f -> f.getDocumentRequestRecipient().getId(),
                         Collectors.mapping(f -> new RequestFileDTO(f.getId(), f.getFieldKey(), f.getOriginalFilename(), f.getUploadedAt()),
                                 Collectors.toList())));
+        Set<UUID> withLogin = withLogin(recipients.stream().map(DocumentRequestRecipient::getEmployee).distinct().toList());
         return recipients.stream().map(r -> {
             DocumentRequest request = r.getDocumentRequest();
             return new RecipientDTO(r.getId(), request.getId(), request.getTitle(), request.getInstructions(),
                     request.getDueDate(), request.getStatus(), request.getForm(), request.getTemplateFilename(),
                     r.getEmployee().getId(), r.getEmployee().getName(), r.getStatus(), r.getAnswers(),
                     r.getAddedAt(), r.getSubmittedAt(), r.getReviewedBy(), r.getReviewedAt(), r.getReturnReason(),
-                    files.getOrDefault(r.getId(), List.of()));
+                    files.getOrDefault(r.getId(), List.of()),
+                    withLogin.contains(r.getEmployee().getId()), r.getRegisteredBy());
         }).toList();
     }
 
@@ -547,7 +628,10 @@ public class DocumentRequestService {
      * O setor vem pela EQUIPE: `Employee.department` é o enum antigo.
      */
     private List<Employee> resolveAudience(boolean all, Set<UUID> companyIds, Set<UUID> departmentsIds, Set<UUID> employeeIds){
-        List<Employee> eligible = employeeRepository.findInvitable();
+        // Todos os ativos, com login ou sem (decisão de 2026-10-08): quem não tem
+        // acesso recebe também, e o RH registra a resposta dele. O aviso continua
+        // indo só para quem tem login (notifyEmployees).
+        List<Employee> eligible = employeeRepository.findByAtivoTrue();
         if(all)
             return eligible;
 

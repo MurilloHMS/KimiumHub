@@ -34,6 +34,10 @@ public record RecipientDTO(
         String reviewedBy,
         LocalDateTime reviewedAt,
         String returnReason,
-        List<RequestFileDTO> files
+        List<RequestFileDTO> files,
+        /** Tem login ativo: recebe pelo portal. Sem acesso, o RH registra a resposta. */
+        boolean hasAccess,
+        /** Login do RH que registrou no lugar do funcionário; nulo = ele respondeu pelo portal. */
+        String registeredBy
 ) {
 }
