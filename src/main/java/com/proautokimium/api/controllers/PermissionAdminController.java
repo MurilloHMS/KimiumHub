@@ -51,6 +51,13 @@ public class PermissionAdminController {
         return ResponseEntity.ok(service.screens());
     }
 
+    /** Quem acessa cada tela: a aba Telas. Só lê. */
+    @GetMapping("/screen-access")
+    @PreAuthorize("hasAuthority('" + ADMIN + ":CONSULTAR')")
+    public ResponseEntity<ScreenAccessOverviewDTO> screenAccess() {
+        return ResponseEntity.ok(service.screenAccess());
+    }
+
     // ─── Modelos ─────────────────────────────────────────────────────────────
 
     /** A lista de modelos. A aba Modelos e o "aplicar modelo" a leem. */

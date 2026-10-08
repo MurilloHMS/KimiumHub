@@ -55,6 +55,9 @@ class PermissionAdminServiceTest {
     // testes afirmam e a leitura da grade.
     @Mock private PermissionProvisioningService permissionProvisioning;
 
+    // As ações de cada tela. Lidas dos @PreAuthorize na aplicação; aqui, ditas pelo teste.
+    @Mock private ScreenActionCatalog actions;
+
     @InjectMocks private PermissionAdminService service;
 
     private static final String WESLLEY = "u-weslley";
@@ -648,5 +651,72 @@ class PermissionAdminServiceTest {
 
         assertThat(resultado.users()).isEqualTo(1);
         verify(userCells, never()).findAllOfUser("u-dev");
+    }
+
+    // ─── Quem acessa cada tela ───────────────────────────────────────────────
+
+    /**
+     * Produtos usa Incluir, Alterar e Excluir. ESTOQUE dá Incluir e Excluir.
+     * Weslley tem ESTOQUE, mais Alterar à mão, e alguém tirou o Excluir dele.
+     * Ricardo não tem modelo e teve tudo desligado. O desenvolvedor tem tudo.
+     */
+    private void quemAcessaProdutos() {
+        when(actions.actionsOf(PRODUTOS)).thenReturn(List.of(Permission.ALTERAR, Permission.EXCLUIR, Permission.INCLUIR));
+        when(screens.findByActiveTrueOrderByModuleAscSortOrderAsc()).thenReturn(List.of(tela(PRODUTOS)));
+        when(users.findAllWithEmployee()).thenReturn(List.of(
+                funcionario(WESLLEY), funcionario(RICARDO), desenvolvedor("u-dev")));
+        when(templates.findAll()).thenReturn(List.of(modelo(ESTOQUE, "ESTOQUE")));
+        when(templateCells.findByTemplateIdAndAllowedTrue(ESTOQUE)).thenReturn(List.of(
+                celulaDoModelo(ESTOQUE, PRODUTOS, Permission.INCLUIR),
+                celulaDoModelo(ESTOQUE, PRODUTOS, Permission.EXCLUIR)));
+        when(applied.findAll()).thenReturn(List.of(new UserTemplate(WESLLEY, ESTOQUE, "murillo", ApplyMode.SOMAR)));
+        when(userCells.findByUserIdIn(any())).thenReturn(List.of(
+                celula(WESLLEY, PRODUTOS, Permission.INCLUIR, true),
+                celula(WESLLEY, PRODUTOS, Permission.ALTERAR, true),
+                celula(WESLLEY, PRODUTOS, Permission.EXCLUIR, false),
+                // Escondida: Produtos não usa CONSULTAR. Ligada, mas não dá acesso a nada.
+                celula(RICARDO, PRODUTOS, Permission.CONSULTAR, true),
+                celula(RICARDO, PRODUTOS, Permission.INCLUIR, false)));
+    }
+
+    @Test
+    @DisplayName("quem acessa: as ações, o modelo que dá, e o que foi liberado ou tirado à mão")
+    void quemAcessaDizDeOndeVem() {
+        quemAcessaProdutos();
+
+        ScreenAccessOverviewDTO visao = service.screenAccess();
+        ScreenAccessPersonDTO weslley = visao.screens().get(0).people().get(0);
+
+        assertThat(weslley.id()).isEqualTo(WESLLEY);
+        assertThat(weslley.actions()).containsExactly("ALTERAR", "INCLUIR");
+        assertThat(weslley.templates()).containsExactly("ESTOQUE");
+        assertThat(weslley.addedByHand()).containsExactly("ALTERAR");
+        assertThat(weslley.removedByHand()).containsExactly("EXCLUIR");
+    }
+
+    /**
+     * **Célula escondida não é acesso.** O Ricardo tem CONSULTAR ligado em
+     * Produtos, uma ação que a tela não usa. Contá-lo diria que ele acessa uma
+     * tela que não abre para ele.
+     */
+    @Test
+    @DisplayName("quem acessa: célula de ação que a tela não usa não conta")
+    void celulaEscondidaNaoConta() {
+        quemAcessaProdutos();
+
+        List<ScreenAccessPersonDTO> pessoas = service.screenAccess().screens().get(0).people();
+
+        assertThat(pessoas).extracting(ScreenAccessPersonDTO::id).containsExactly(WESLLEY);
+    }
+
+    @Test
+    @DisplayName("quem acessa: o desenvolvedor é contado à parte, e não entra nas listas")
+    void desenvolvedorAParte() {
+        quemAcessaProdutos();
+
+        ScreenAccessOverviewDTO visao = service.screenAccess();
+
+        assertThat(visao.developers()).isEqualTo(1);
+        assertThat(visao.screens().get(0).people()).extracting(ScreenAccessPersonDTO::id).doesNotContain("u-dev");
     }
 }

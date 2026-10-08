@@ -410,6 +410,98 @@ public class PermissionAdminService {
     }
 
     /**
+     * Quem acessa cada tela — a aba Telas da administração.
+     *
+     * É a mesma informação da grade de cada pessoa, virada de lado: em vez de
+     * "o que o Ricardo pode", "quem pode o checklist". Por isso a conta de "de
+     * onde vem" é a mesma do ponto laranja: o que os modelos aplicados dão,
+     * comparado com o que está gravado.
+     *
+     * Só conta o que a tela usa ({@link ScreenActionCatalog}): uma célula
+     * escondida não dá acesso a nada, e contá-la diria que alguém acessa uma
+     * tela que não abre. Desenvolvedor e cliente ficam fora — um tem tudo por
+     * definição, o outro não tem grade.
+     */
+    @Transactional(readOnly = true)
+    public ScreenAccessOverviewDTO screenAccess() {
+        List<User> todos = users.findAllWithEmployee();
+        int desenvolvedores = (int) todos.stream()
+                .filter(u -> u.getRoles().contains(UserRole.DEVELOPER)).count();
+        List<User> pessoas = todos.stream()
+                .filter(u -> !u.getRoles().contains(UserRole.DEVELOPER))
+                .filter(u -> !u.getRoles().contains(UserRole.CLIENTE))
+                .sorted(Comparator.comparing(PermissionAdminService::displayName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+
+        // O que cada pessoa tem ligado, e o que cada modelo dá — lidos uma vez.
+        Map<String, Set<String>> ligadas = new HashMap<>();
+        List<String> ids = pessoas.stream().map(User::getId).toList();
+        if (!ids.isEmpty()) {
+            for (UserPermission cell : userCells.findByUserIdIn(ids)) {
+                if (cell.isAllowed()) {
+                    ligadas.computeIfAbsent(cell.getUserId(), id -> new HashSet<>())
+                            .add(key(cell.getScreenCode(), cell.getPermission()));
+                }
+            }
+        }
+
+        Map<UUID, String> nomeDoModelo = new HashMap<>();
+        Map<UUID, Set<String>> doModelo = new HashMap<>();
+        for (PermissionTemplate template : templates.findAll()) {
+            nomeDoModelo.put(template.getId(), template.getName());
+            doModelo.put(template.getId(), allowedKeysOfTemplate(template.getId()));
+        }
+
+        Map<String, List<UUID>> modelosDaPessoa = new HashMap<>();
+        for (UserTemplate registro : applied.findAll()) {
+            modelosDaPessoa.computeIfAbsent(registro.getUserId(), id -> new ArrayList<>())
+                    .add(registro.getTemplateId());
+        }
+
+        List<ScreenAccessDTO> telas = new ArrayList<>();
+        for (Screen screen : screens.findByActiveTrueOrderByModuleAscSortOrderAsc()) {
+            List<Permission> acoes = actions.actionsOf(screen.getCode());
+            List<ScreenAccessPersonDTO> quem = new ArrayList<>();
+
+            for (User user : pessoas) {
+                Set<String> dela = ligadas.getOrDefault(user.getId(), Set.of());
+                List<UUID> seusModelos = modelosDaPessoa.getOrDefault(user.getId(), List.of());
+
+                List<String> liberadas = new ArrayList<>();
+                List<String> aMao = new ArrayList<>();
+                List<String> tiradas = new ArrayList<>();
+                Set<String> modelosQueDao = new TreeSet<>();
+
+                for (Permission acao : acoes) {
+                    String chave = key(screen.getCode(), acao);
+                    boolean ligada = dela.contains(chave);
+                    List<String> quemDa = seusModelos.stream()
+                            .filter(t -> doModelo.getOrDefault(t, Set.of()).contains(chave))
+                            .map(t -> nomeDoModelo.getOrDefault(t, "?"))
+                            .toList();
+
+                    if (ligada) {
+                        liberadas.add(acao.name());
+                        if (quemDa.isEmpty()) aMao.add(acao.name());
+                        else modelosQueDao.addAll(quemDa);
+                    } else if (!quemDa.isEmpty()) {
+                        tiradas.add(acao.name());
+                    }
+                }
+
+                // "Quem acessa": tem pelo menos uma ação. Quem teve tudo tirado
+                // à mão não acessa, e listá-lo aqui diria o contrário.
+                if (!liberadas.isEmpty()) {
+                    quem.add(new ScreenAccessPersonDTO(user.getId(), displayName(user), user.getLogin(),
+                            user.isActive(), liberadas, List.copyOf(modelosQueDao), aMao, tiradas));
+                }
+            }
+            telas.add(new ScreenAccessDTO(screen.getCode(), quem));
+        }
+        return new ScreenAccessOverviewDTO(desenvolvedores, telas);
+    }
+
+    /**
      * O que o "Reaplicar" vai fazer com cada pessoa que recebeu este modelo.
      *
      * Existe para a confirmação dizer "Weslley perde 1 ajuste: volta a poder
