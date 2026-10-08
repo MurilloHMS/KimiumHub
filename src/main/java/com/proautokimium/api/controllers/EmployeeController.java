@@ -48,7 +48,9 @@ public class EmployeeController {
             "hasAnyAuthority('rh/employees:CONSULTAR', 'rh/calculators:CONSULTAR', "
             + "'rh/equipment-assignments:CONSULTAR', 'rh/notifications:CONSULTAR', "
             + "'rh/reimbursements:CONSULTAR', 'rh/vacation-requests:CONSULTAR', "
-            + "'stock/alerts:CONSULTAR', 'communication/email:CONSULTAR')";
+            + "'stock/alerts:CONSULTAR', 'communication/email:CONSULTAR', "
+            // A administração escolhe o funcionário ao vincular uma conta.
+            + "'settings/admin:CONSULTAR')";
 
 
 	private final EmployeeService service;

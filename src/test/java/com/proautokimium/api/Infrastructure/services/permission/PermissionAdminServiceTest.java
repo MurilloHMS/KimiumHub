@@ -571,4 +571,82 @@ class PermissionAdminServiceTest {
 
         assertThat(service.userGrid("u-dev").developer()).isTrue();
     }
+
+    // ─── Reaplicar ───────────────────────────────────────────────────────────
+
+    /**
+     * O Weslley tem Base e ESTOQUE. Base dá consultar movimentações; ESTOQUE,
+     * na versão nova, dá consultar produtos. À mão alguém lhe deu excluir
+     * produtos, que nenhum modelo dá.
+     */
+    private void weslleyComBaseEEstoqueEUmAjuste() {
+        when(templates.findById(BASE)).thenReturn(Optional.of(modelo(BASE, "Base")));
+        when(templateCells.findByTemplateIdAndAllowedTrue(BASE)).thenReturn(List.of(
+                celulaDoModelo(BASE, MOVIMENTACOES, Permission.CONSULTAR)));
+        when(templateCells.findByTemplateIdAndAllowedTrue(ESTOQUE)).thenReturn(List.of(
+                celulaDoModelo(ESTOQUE, PRODUTOS, Permission.CONSULTAR)));
+
+        when(applied.findByTemplateId(ESTOQUE)).thenReturn(List.of(
+                new UserTemplate(WESLLEY, ESTOQUE, "murillo", ApplyMode.SOMAR)));
+        when(applied.findByUserId(WESLLEY)).thenReturn(List.of(
+                new UserTemplate(WESLLEY, ESTOQUE, "murillo", ApplyMode.SOMAR),
+                new UserTemplate(WESLLEY, BASE, "murillo", ApplyMode.SOMAR)));
+
+        when(userCells.findAllOfUser(WESLLEY)).thenReturn(new ArrayList<>(List.of(
+                celula(WESLLEY, MOVIMENTACOES, Permission.CONSULTAR, true),
+                celula(WESLLEY, PRODUTOS, Permission.CONSULTAR, false),
+                celula(WESLLEY, PRODUTOS, Permission.EXCLUIR, true))));
+    }
+
+    /**
+     * **O defeito que o "Reaplicar" tinha até 2026-10-08.**
+     *
+     * Ele deixava a pessoa igual a ESTE modelo: reaplicar ESTOQUE no Weslley
+     * tirava o que vinha do Base, e o chip "Base" continuava na tela.
+     */
+    @Test
+    @DisplayName("reaplicar mantém o que os outros modelos da pessoa dão")
+    void reaplicarMantemOsOutrosModelos() {
+        weslleyComBaseEEstoqueEUmAjuste();
+
+        service.reapply(ESTOQUE, "murillo");
+
+        List<UserPermission> cells = userCells.findAllOfUser(WESLLEY);
+        assertThat(ligada(cells, MOVIMENTACOES, Permission.CONSULTAR))
+                .as("veio do Base: reaplicar ESTOQUE não pode tirar").isTrue();
+        assertThat(ligada(cells, PRODUTOS, Permission.CONSULTAR))
+                .as("a versão nova de ESTOQUE chega").isTrue();
+        assertThat(ligada(cells, PRODUTOS, Permission.EXCLUIR))
+                .as("o ajuste à mão se perde, como a confirmação avisou").isFalse();
+        verify(permissions).forget(WESLLEY);
+    }
+
+    @Test
+    @DisplayName("a prévia diz, por pessoa, o ajuste que se perde e o que o modelo passou a dar")
+    void previaDizOQueMuda() {
+        weslleyComBaseEEstoqueEUmAjuste();
+
+        ReapplyPreviewDTO previa = service.reapplyPreview(ESTOQUE);
+
+        assertThat(previa.people()).hasSize(1);
+        assertThat(previa.people().get(0).loses()).containsExactly(PRODUTOS + ":EXCLUIR");
+        assertThat(previa.people().get(0).gains()).containsExactly(PRODUTOS + ":CONSULTAR");
+        verify(userCells, never()).saveAll(any());
+    }
+
+    /** A grade do desenvolvedor não é escrita: ele fica fora do reaplicar, sem derrubar os outros. */
+    @Test
+    @DisplayName("reaplicar pula o desenvolvedor em vez de falhar")
+    void reaplicarPulaDesenvolvedor() {
+        weslleyComBaseEEstoqueEUmAjuste();
+        when(users.findById("u-dev")).thenReturn(Optional.of(desenvolvedor("u-dev")));
+        when(applied.findByTemplateId(ESTOQUE)).thenReturn(List.of(
+                new UserTemplate(WESLLEY, ESTOQUE, "murillo", ApplyMode.SOMAR),
+                new UserTemplate("u-dev", ESTOQUE, "murillo", ApplyMode.SOMAR)));
+
+        ApplyResultDTO resultado = service.reapply(ESTOQUE, "murillo");
+
+        assertThat(resultado.users()).isEqualTo(1);
+        verify(userCells, never()).findAllOfUser("u-dev");
+    }
 }

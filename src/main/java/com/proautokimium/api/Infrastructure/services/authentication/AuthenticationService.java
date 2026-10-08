@@ -5,14 +5,17 @@ import com.proautokimium.api.Application.DTOs.authentication.ResetPasswordDTO;
 import com.proautokimium.api.Application.DTOs.user.AuthenticationDTO;
 import com.proautokimium.api.Application.DTOs.user.LinkEmployeeRequest;
 import com.proautokimium.api.Application.DTOs.user.RegisterDTO;
+import com.proautokimium.api.Application.DTOs.user.UpdateUserRequest;
 import com.proautokimium.api.Application.DTOs.user.UserResponseDTO;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserBlockedException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.CredentialsIncorrectException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.UserAlreadyExistsException;
+import com.proautokimium.api.Infrastructure.exceptions.auth.EmailAlreadyInUseException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.token.TokenExpiredException;
 import com.proautokimium.api.Infrastructure.exceptions.auth.token.TokenInvalidException;
 import com.proautokimium.api.Infrastructure.repositories.CustomerRepository;
 import com.proautokimium.api.Infrastructure.services.permission.PermissionProvisioningService;
+import com.proautokimium.api.Infrastructure.services.permission.PermissionAdminService;
 import com.proautokimium.api.Infrastructure.repositories.EmployeeRepository;
 import com.proautokimium.api.Infrastructure.repositories.PasswordResetTokenRepository;
 import com.proautokimium.api.Infrastructure.repositories.UserRepository;
@@ -40,6 +43,7 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import com.proautokimium.api.Application.DTOs.user.LoginResponseDTO;
 import com.proautokimium.api.domain.exceptions.auth.RefreshTokenInvalidoException;
@@ -57,8 +61,9 @@ public class AuthenticationService {
     private final CustomerRepository customerRepository;
     private final PermissionProvisioningService permissionProvisioning;
     private final RefreshTokenService refreshTokens;
+    private final PermissionAdminService permissionAdmin;
 
-    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository, TokenService tokenService, Clock clock, AuthEmailService authEmailService, CustomerRepository customerRepository, PermissionProvisioningService permissionProvisioning, RefreshTokenService refreshTokens) {
+    public AuthenticationService(AuthenticationManager authenticationManager, UserRepository repository, EmployeeRepository employeeRepository, TokenAuthService accessTokenService, PasswordResetTokenRepository passwordResetTokenRepository, TokenService tokenService, Clock clock, AuthEmailService authEmailService, CustomerRepository customerRepository, PermissionProvisioningService permissionProvisioning, RefreshTokenService refreshTokens, PermissionAdminService permissionAdmin) {
         this.authenticationManager = authenticationManager;
         this.repository = repository;
         this.employeeRepository = employeeRepository;
@@ -70,6 +75,7 @@ public class AuthenticationService {
         this.customerRepository = customerRepository;
         this.permissionProvisioning = permissionProvisioning;
         this.refreshTokens = refreshTokens;
+        this.permissionAdmin = permissionAdmin;
     }
 
     public LoginResponseDTO login(AuthenticationDTO dto){
@@ -146,6 +152,8 @@ public class AuthenticationService {
     public User signIn(RegisterDTO dto){
         if(repository.findByLogin(dto.login()) != null)
             throw new UserAlreadyExistsException();
+        if(dto.email() != null && repository.existsByEmailIgnoringUser(dto.email().trim(), null))
+            throw new EmailAlreadyInUseException();
 
         String encryptedPassword = new BCryptPasswordEncoder().encode(dto.password());
         User newUser = new User(dto.login(), dto.email(), encryptedPassword, dto.roles());
@@ -282,15 +290,41 @@ public class AuthenticationService {
     }
 
     public List<UserResponseDTO> getUsers(){
-        List<User> users = repository.findAllWithEmployee();
+        Map<String, List<String>> modelos = permissionAdmin.templateNamesByUser();
 
-        return users.stream().map(u -> new UserResponseDTO(
-                u.getLogin(),
-                u.getRoles(),
-                u.getEmployee() != null
-                        ? u.getEmployee().getCodParceiro()
-                        : null,
-                u.isActive())).toList();
+        return repository.findAllWithEmployee().stream()
+                .map(u -> new UserResponseDTO(
+                        u.getId(),
+                        u.getLogin(),
+                        u.getEmail(),
+                        u.getRoles(),
+                        u.getEmployee() != null ? u.getEmployee().getCodParceiro() : null,
+                        u.getEmployee() != null ? u.getEmployee().getName() : null,
+                        u.isActive(),
+                        u.getRoles().contains(UserRole.DEVELOPER),
+                        u.getRoles().contains(UserRole.CLIENTE),
+                        modelos.getOrDefault(u.getId(), List.of())))
+                .toList();
+    }
+
+    /**
+     * Troca o e-mail de uma conta.
+     *
+     * O e-mail também é identificador de login ({@code getUserByIdentifier}), e
+     * por isso é único. Conferir antes do `save` é o que transforma a violação do
+     * índice — um 500 sem explicação — num 409 que a tela consegue mostrar.
+     * Comparado sem caixa: "Ana@x" e "ana@x" são a mesma caixa de entrada.
+     */
+    @Transactional
+    public void updateUser(String login, UpdateUserRequest request) {
+        User user = repository.findByLoginWithEmployee(login).orElseThrow(UserNotFoundException::new);
+        String email = request.email().trim();
+
+        if (repository.existsByEmailIgnoringUser(email, user.getId())) {
+            throw new EmailAlreadyInUseException();
+        }
+        user.setEmail(email);
+        repository.save(user);
     }
 
     @Transactional

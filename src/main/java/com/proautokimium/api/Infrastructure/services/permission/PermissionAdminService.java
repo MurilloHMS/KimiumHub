@@ -40,6 +40,7 @@ public class PermissionAdminService {
     private final UserRepository users;
     private final PermissionService permissions;
     private final PermissionProvisioningService permissionProvisioning;
+    private final ScreenActionCatalog actions;
 
     public PermissionAdminService(ScreenRepository screens,
                                   PermissionTemplateRepository templates,
@@ -48,7 +49,8 @@ public class PermissionAdminService {
                                   UserTemplateRepository applied,
                                   UserRepository users,
                                   PermissionService permissions,
-                                  PermissionProvisioningService permissionProvisioning) {
+                                  PermissionProvisioningService permissionProvisioning,
+                                  ScreenActionCatalog actions) {
         this.screens = screens;
         this.templates = templates;
         this.templateCells = templateCells;
@@ -57,6 +59,7 @@ public class PermissionAdminService {
         this.users = users;
         this.permissions = permissions;
         this.permissionProvisioning = permissionProvisioning;
+        this.actions = actions;
     }
 
     // ─── Catálogo ────────────────────────────────────────────────────────────
@@ -64,7 +67,8 @@ public class PermissionAdminService {
     @Transactional(readOnly = true)
     public List<ScreenDTO> screens() {
         return screens.findByActiveTrueOrderByModuleAscSortOrderAsc().stream()
-                .map(s -> new ScreenDTO(s.getCode(), s.getLabel(), s.getModule(), s.getSortOrder()))
+                .map(s -> new ScreenDTO(s.getCode(), s.getLabel(), s.getModule(), s.getSortOrder(),
+                        actions.actionsOf(s.getCode()).stream().map(Enum::name).toList()))
                 .toList();
     }
 
@@ -232,6 +236,26 @@ public class PermissionAdminService {
      */
     @Transactional(readOnly = true)
     public List<UserSummaryDTO> users() {
+        Map<String, List<String>> modelosDaPessoa = templateNamesByUser();
+
+        return users.findAllWithEmployee().stream()
+                .filter(u -> !u.getRoles().contains(UserRole.CLIENTE))
+                .sorted(Comparator.comparing(PermissionAdminService::displayName,
+                        String.CASE_INSENSITIVE_ORDER))
+                .map(u -> new UserSummaryDTO(u.getId(), displayName(u), u.getLogin(),
+                        u.isActive(), u.getRoles().contains(UserRole.DEVELOPER),
+                        modelosDaPessoa.getOrDefault(u.getId(), List.of())))
+                .toList();
+    }
+
+    /**
+     * Os nomes dos modelos aplicados em cada pessoa, em ordem alfabética.
+     *
+     * Público porque a lista da tela de administração também mostra os chips,
+     * e ela vem do `AuthenticationService`.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, List<String>> templateNamesByUser() {
         Map<UUID, String> nomeDoModelo = new HashMap<>();
         templates.findAll().forEach(t -> nomeDoModelo.put(t.getId(), t.getName()));
 
@@ -240,15 +264,8 @@ public class PermissionAdminService {
             modelosDaPessoa.computeIfAbsent(registro.getUserId(), id -> new ArrayList<>())
                     .add(nomeDoModelo.getOrDefault(registro.getTemplateId(), "?"));
         }
-
-        return users.findAllWithEmployee().stream()
-                .filter(u -> !u.getRoles().contains(UserRole.CLIENTE))
-                .sorted(Comparator.comparing(PermissionAdminService::displayName,
-                        String.CASE_INSENSITIVE_ORDER))
-                .map(u -> new UserSummaryDTO(u.getId(), displayName(u), u.getLogin(),
-                        u.isActive(), u.getRoles().contains(UserRole.DEVELOPER),
-                        modelosDaPessoa.getOrDefault(u.getId(), List.of()).stream().sorted().toList()))
-                .toList();
+        modelosDaPessoa.replaceAll((id, nomes) -> nomes.stream().sorted().toList());
+        return modelosDaPessoa;
     }
 
     /**
@@ -393,6 +410,74 @@ public class PermissionAdminService {
     }
 
     /**
+     * O que o "Reaplicar" vai fazer com cada pessoa que recebeu este modelo.
+     *
+     * Existe para a confirmação dizer "Weslley perde 1 ajuste: volta a poder
+     * Excluir em Produtos" em vez de "isto apaga ajustes individuais". Quem
+     * clica precisa saber o quê, e de quem, antes: depois não tem desfazer.
+     *
+     * Desenvolvedor fica de fora: a grade dele não é escrita (ver
+     * {@link #requireEditableUser}).
+     */
+    @Transactional(readOnly = true)
+    public ReapplyPreviewDTO reapplyPreview(UUID templateId) {
+        templates.findById(templateId).orElseThrow(PermissionTemplateNotFoundException::new);
+
+        List<ReapplyPersonDTO> pessoas = new ArrayList<>();
+        for (User user : reachedEditableUsers(templateId)) {
+            Set<String> atual = allowedKeysOfUser(user.getId());
+            Set<String> esperado = allowedKeysOfAppliedTemplates(user.getId());
+
+            List<String> perde = atual.stream().filter(k -> !esperado.contains(k)).sorted().toList();
+            List<String> ganha = esperado.stream().filter(k -> !atual.contains(k)).sorted().toList();
+            pessoas.add(new ReapplyPersonDTO(user.getId(), displayName(user), perde, ganha));
+        }
+        pessoas.sort(Comparator.comparing(ReapplyPersonDTO::name, String.CASE_INSENSITIVE_ORDER));
+        return new ReapplyPreviewDTO(pessoas);
+    }
+
+    /**
+     * Leva a versão nova do modelo a quem já o recebeu.
+     *
+     * **Refaz cada pessoa pela soma de TODOS os modelos dela**, e não só por
+     * este. Até 2026-10-08 o "Reaplicar" chamava o {@link #apply} com
+     * SUBSTITUIR, que deixava a pessoa igual a este modelo e nada mais:
+     * reaplicar ALMOXARIFADO no Weslley tirava o que vinha do Base, enquanto o
+     * chip "Base" continuava na tela dizendo o contrário.
+     *
+     * O que se perde é só o que não vem de modelo nenhum (o ajuste à mão), e
+     * é exatamente o que o {@link #reapplyPreview} mostrou antes.
+     */
+    @Transactional
+    public ApplyResultDTO reapply(UUID templateId, String appliedBy) {
+        templates.findById(templateId).orElseThrow(PermissionTemplateNotFoundException::new);
+
+        List<User> alcancados = reachedEditableUsers(templateId);
+        int alteradas = 0;
+        for (User user : alcancados) {
+            Set<String> esperado = allowedKeysOfAppliedTemplates(user.getId());
+
+            List<UserPermission> cells = userCells.findAllOfUser(user.getId());
+            for (UserPermission cell : cells) {
+                boolean deveria = esperado.contains(key(cell.getScreenCode(), cell.getPermission()));
+                if (cell.isAllowed() != deveria) {
+                    cell.setAllowed(deveria);
+                    alteradas++;
+                }
+            }
+            userCells.saveAll(cells);
+
+            // A data da aplicação passa a ser hoje: é a versão de hoje que ela tem.
+            ApplyMode modo = applied.findByUserId(user.getId()).stream()
+                    .filter(r -> r.getTemplateId().equals(templateId))
+                    .map(UserTemplate::getMode).findFirst().orElse(ApplyMode.SOMAR);
+            applied.save(new UserTemplate(user.getId(), templateId, appliedBy, modo));
+            permissions.forget(user.getId());
+        }
+        return new ApplyResultDTO(alcancados.size(), alteradas);
+    }
+
+    /**
      * "Deixa o Pedro igual ao João."
      *
      * Copia a grade **e a lista de modelos aplicados**. Copiar só a grade
@@ -521,6 +606,35 @@ public class PermissionAdminService {
             throw new DeveloperPermissionsAreLockedException();
         }
         return user;
+    }
+
+    /** Quem recebeu este modelo e pode ter a grade escrita: sem desenvolvedor nem cliente. */
+    private List<User> reachedEditableUsers(UUID templateId) {
+        List<User> alcancados = new ArrayList<>();
+        for (UserTemplate registro : applied.findByTemplateId(templateId)) {
+            users.findById(registro.getUserId())
+                    .filter(u -> !u.getRoles().contains(UserRole.DEVELOPER))
+                    .filter(u -> !u.getRoles().contains(UserRole.CLIENTE))
+                    .ifPresent(alcancados::add);
+        }
+        return alcancados;
+    }
+
+    private Set<String> allowedKeysOfUser(String userId) {
+        Set<String> chaves = new HashSet<>();
+        for (UserPermission cell : userCells.findAllOfUser(userId)) {
+            if (cell.isAllowed()) chaves.add(key(cell.getScreenCode(), cell.getPermission()));
+        }
+        return chaves;
+    }
+
+    /** A soma do que os modelos aplicados nesta pessoa liberam, na versão de agora. */
+    private Set<String> allowedKeysOfAppliedTemplates(String userId) {
+        Set<String> chaves = new HashSet<>();
+        for (UserTemplate registro : applied.findByUserId(userId)) {
+            chaves.addAll(allowedKeysOfTemplate(registro.getTemplateId()));
+        }
+        return chaves;
     }
 
     private Set<String> allowedKeysOfTemplate(UUID templateId) {
