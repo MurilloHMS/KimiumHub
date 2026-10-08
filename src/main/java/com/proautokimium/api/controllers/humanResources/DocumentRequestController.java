@@ -1,9 +1,12 @@
 package com.proautokimium.api.controllers.humanResources;
 
 import com.proautokimium.api.Application.DTOs.events.EventAttendanceDTOs.AudienceOptionsDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.AudiencePreviewDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.CreateDocumentRequestDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.DocumentRequestDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.RecipientDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.RegisterAnswersDTO;
+import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.RequestAudienceOptionsDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.RequestFileDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.ReturnAnswerDTO;
 import com.proautokimium.api.Application.DTOs.humanResources.DocumentRequest.SendDocumentRequestDTO;
@@ -143,11 +146,23 @@ public class DocumentRequestController {
         return ResponseEntity.ok(java.util.Map.of("reminded", service.remindPending(id)));
     }
 
-    /** As opções do seletor de público: as mesmas dos Eventos, com quem pode receber. */
+    /**
+     * As opções do seletor de público: empresas e setores dos Eventos, e TODOS os
+     * ativos (com login ou sem), marcando quem não tem acesso ao portal.
+     */
     @GetMapping("/audience-options")
     @PreAuthorize("hasAuthority('rh/document-requests:CONSULTAR')")
-    public ResponseEntity<AudienceOptionsDTO> audienceOptions() {
-        return ResponseEntity.ok(audience.audienceOptions());
+    public ResponseEntity<RequestAudienceOptionsDTO> audienceOptions() {
+        AudienceOptionsDTO base = audience.audienceOptions();
+        return ResponseEntity.ok(new RequestAudienceOptionsDTO(base.companies(), base.departments(), service.audiencePeople()));
+    }
+
+    /** A confirmação do envio: quantos recebem pelo portal, e quem o RH vai registrar. */
+    @PostMapping("/audience-preview")
+    @PreAuthorize("hasAuthority('rh/document-requests:CONSULTAR')")
+    public ResponseEntity<AudiencePreviewDTO> audiencePreview(@RequestBody SendDocumentRequestDTO body) {
+        return ResponseEntity.ok(service.previewAudience(body.all(), orEmpty(body.companyIds()),
+                orEmpty(body.departmentIds()), orEmpty(body.employeeIds())));
     }
 
     @GetMapping("/{id}/recipients")
@@ -169,6 +184,28 @@ public class DocumentRequestController {
     @Operation(summary = "Aprova a resposta", description = "Arquivos de campo com tipo viram documento do funcionário")
     public ResponseEntity<RecipientDTO> approve(@PathVariable UUID recipientId, Authentication auth) {
         service.approve(recipientId, auth.getName());
+        return ResponseEntity.ok(service.getRecipient(recipientId));
+    }
+
+    /** O RH anexa o arquivo no lugar do funcionário (sem acesso, ou entregou em papel). */
+    @PostMapping(value = "/recipients/{recipientId}/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('rh/document-requests:ALTERAR')")
+    @Operation(summary = "Anexa no lugar do funcionário", description = "Um por campo; reenviar substitui. 10 MB, PDF, JPG ou PNG")
+    public ResponseEntity<RequestFileDTO> uploadOnBehalf(@PathVariable UUID recipientId,
+                                                         @RequestParam String fieldKey,
+                                                         @RequestParam("file") MultipartFile file) throws IOException {
+        DocumentRequestFile saved = service.uploadOnBehalf(recipientId, fieldKey, file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                new RequestFileDTO(saved.getId(), saved.getFieldKey(), saved.getOriginalFilename(), saved.getUploadedAt()));
+    }
+
+    /** O RH registra a resposta no lugar do funcionário; com {@code approve}, já aprova. */
+    @PostMapping("/recipients/{recipientId}/register")
+    @PreAuthorize("hasAuthority('rh/document-requests:ALTERAR')")
+    @Operation(summary = "Registra a resposta no lugar do funcionário", description = "Mesmas conferências do portal; quem registrou fica gravado")
+    public ResponseEntity<RecipientDTO> registerOnBehalf(@PathVariable UUID recipientId, @RequestBody RegisterAnswersDTO body,
+                                                         Authentication auth) {
+        service.registerOnBehalf(recipientId, auth.getName(), body.answers(), body.approve());
         return ResponseEntity.ok(service.getRecipient(recipientId));
     }
 

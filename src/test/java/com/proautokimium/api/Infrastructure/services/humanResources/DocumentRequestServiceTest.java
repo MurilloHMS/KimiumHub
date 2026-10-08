@@ -102,8 +102,8 @@ class DocumentRequestServiceTest {
 
         // when(...).thenReturn(...): "quando chamarem isto, devolva aquilo".
         when(requestRepository.findById(requestId)).thenReturn(Optional.of(request));
-        // findInvitable: quem pode receber (ativo e com login). "Todos" = esta lista inteira.
-        when(employeeRepository.findInvitable()).thenReturn(List.of(funcionario(anaId), funcionario(brunoId)));
+        // findByAtivoTrue: quem pode receber (todo ativo, com login ou sem). "Todos" = esta lista inteira.
+        when(employeeRepository.findByAtivoTrue()).thenReturn(List.of(funcionario(anaId), funcionario(brunoId)));
         // O save devolve o próprio objeto que recebeu, como o banco faria.
         when(requestRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
 
@@ -163,7 +163,7 @@ class DocumentRequestServiceTest {
         DocumentRequest jaEnviada = rascunhoComCampo();
         jaEnviada.send(AGORA);
         when(requestRepository.findById(requestId)).thenReturn(Optional.of(jaEnviada));
-        when(employeeRepository.findInvitable()).thenReturn(List.of(funcionario(UUID.randomUUID())));
+        when(employeeRepository.findByAtivoTrue()).thenReturn(List.of(funcionario(UUID.randomUUID())));
 
         assertThrows(InvalidStatusTransitionException.class,
                 () -> service.send(requestId, true, Set.of(), Set.of(), Set.of()));
@@ -499,7 +499,7 @@ class DocumentRequestServiceTest {
     private List<Employee> enviarPara(List<Employee> elegiveis, Set<UUID> empresas, Set<UUID> setores, Set<UUID> pessoas) {
         UUID requestId = UUID.randomUUID();
         when(requestRepository.findById(requestId)).thenReturn(Optional.of(rascunhoComCampo()));
-        when(employeeRepository.findInvitable()).thenReturn(elegiveis);
+        when(employeeRepository.findByAtivoTrue()).thenReturn(elegiveis);
         when(requestRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
 
         service.send(requestId, false, empresas, setores, pessoas);
@@ -573,7 +573,7 @@ class DocumentRequestServiceTest {
         UUID requestId = UUID.randomUUID();
         DocumentRequest rascunho = rascunhoComCampo();
         when(requestRepository.findById(requestId)).thenReturn(Optional.of(rascunho));
-        when(employeeRepository.findInvitable()).thenReturn(List.of(funcionario(UUID.randomUUID())));
+        when(employeeRepository.findByAtivoTrue()).thenReturn(List.of(funcionario(UUID.randomUUID())));
 
         assertThrows(InvalidRequestDataException.class,
                 () -> service.send(requestId, false, Set.of(UUID.randomUUID()), Set.of(), Set.of()));
@@ -596,7 +596,7 @@ class DocumentRequestServiceTest {
     void sendNotifiesEachRecipient() {
         UUID requestId = UUID.randomUUID();
         when(requestRepository.findById(requestId)).thenReturn(Optional.of(rascunhoComCampo()));
-        when(employeeRepository.findInvitable()).thenReturn(List.of(funcionario(UUID.randomUUID()), funcionario(UUID.randomUUID())));
+        when(employeeRepository.findByAtivoTrue()).thenReturn(List.of(funcionario(UUID.randomUUID()), funcionario(UUID.randomUUID())));
         when(userRepository.findActiveByEmployeeIds(anyList())).thenReturn(List.of(usuario("ana"), usuario("bruno")));
         when(requestRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
 
@@ -613,7 +613,7 @@ class DocumentRequestServiceTest {
     void sendSurvivesNotificationFailure() {
         UUID requestId = UUID.randomUUID();
         when(requestRepository.findById(requestId)).thenReturn(Optional.of(rascunhoComCampo()));
-        when(employeeRepository.findInvitable()).thenReturn(List.of(funcionario(UUID.randomUUID())));
+        when(employeeRepository.findByAtivoTrue()).thenReturn(List.of(funcionario(UUID.randomUUID())));
         when(userRepository.findActiveByEmployeeIds(anyList())).thenReturn(List.of(usuario("ana")));
         when(notificationService.notify(any(), any(), any(), any(), any())).thenThrow(new IllegalStateException("push fora"));
         when(requestRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
@@ -883,7 +883,7 @@ class DocumentRequestServiceTest {
         when(requestRepository.findById(requestId)).thenReturn(Optional.of(aberta));
         when(recipientRepository.findByDocumentRequestOrderByAddedAtDesc(aberta))
                 .thenReturn(List.of(DocumentRequestRecipient.create(aberta, ana, AGORA)));
-        when(employeeRepository.findInvitable()).thenReturn(List.of(ana, novato));
+        when(employeeRepository.findByAtivoTrue()).thenReturn(List.of(ana, novato));
         when(userRepository.findActiveByEmployeeIds(List.of(novato.id))).thenReturn(List.of(usuario("novato")));
 
         int added = service.addRecipients(requestId, true, Set.of(), Set.of(), Set.of());
@@ -904,7 +904,7 @@ class DocumentRequestServiceTest {
         when(requestRepository.findById(requestId)).thenReturn(Optional.of(aberta));
         when(recipientRepository.findByDocumentRequestOrderByAddedAtDesc(aberta))
                 .thenReturn(List.of(DocumentRequestRecipient.create(aberta, ana, AGORA)));
-        when(employeeRepository.findInvitable()).thenReturn(List.of(ana));
+        when(employeeRepository.findByAtivoTrue()).thenReturn(List.of(ana));
 
         assertThrows(InvalidRequestDataException.class,
                 () -> service.addRecipients(requestId, true, Set.of(), Set.of(), Set.of()));
@@ -1021,5 +1021,136 @@ class DocumentRequestServiceTest {
         assertThrows(com.proautokimium.api.Infrastructure.exceptions.humanResources.DocumentRequestFileNotFoundException.class,
                 () -> service.readTemplate(requestId, "ana", false));
         verifyNoInteractions(storage);
+    }
+
+    // ── Sem acesso (V123): todos os ativos recebem; o RH registra no lugar ──
+
+    private static Employee pessoa(String nome, String codParceiro) {
+        Employee e = funcionario(UUID.randomUUID());
+        e.setName(nome);
+        e.setCodParceiro(codParceiro);
+        return e;
+    }
+
+    private static User loginDe(Employee e, String login) {
+        User u = usuario(login);
+        u.setEmployee(e);
+        return u;
+    }
+
+    /** Uma resposta de quem não tem login, numa solicitação aberta com o campo "rg" (arquivo obrigatório). */
+    private DocumentRequestRecipient respostaDe(Employee e, UUID recipientId) {
+        DocumentRequestRecipient recipient = DocumentRequestRecipient.create(abertaComCampo(), e, AGORA);
+        when(recipientRepository.findById(recipientId)).thenReturn(Optional.of(recipient));
+        return recipient;
+    }
+
+    @Test
+    @DisplayName("quem não tem login também entra no público; o aviso vai só para quem tem")
+    void audienceIncludesEmployeesWithoutLogin() {
+        UUID requestId = UUID.randomUUID();
+        Employee ana = pessoa("Ana", "0001"), bruno = pessoa("Bruno", "0002");
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(rascunhoComCampo()));
+        when(employeeRepository.findByAtivoTrue()).thenReturn(List.of(ana, bruno));
+        when(userRepository.findActiveByEmployeeIds(any())).thenReturn(List.of(loginDe(ana, "ana")));
+        when(requestRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        service.send(requestId, true, Set.of(), Set.of(), Set.of());
+
+        verify(recipientRepository, times(2)).save(any(DocumentRequestRecipient.class));
+        verify(notificationService).notify(eq("ana"), any(), any(), any(), any());
+        verify(notificationService, times(1)).notify(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("a prévia do envio separa quem recebe pelo portal de quem o RH vai registrar")
+    void previewSplitsByAccess() {
+        Employee ana = pessoa("Ana", "0001"), bruno = pessoa("Bruno", "0002");
+        when(employeeRepository.findByAtivoTrue()).thenReturn(List.of(ana, bruno));
+        when(userRepository.findActiveByEmployeeIds(any())).thenReturn(List.of(loginDe(ana, "ana")));
+
+        var preview = service.previewAudience(true, Set.of(), Set.of(), Set.of());
+
+        assertThat(preview.total()).isEqualTo(2);
+        assertThat(preview.withAccess()).isEqualTo(1);
+        assertThat(preview.withoutAccess()).extracting(p -> p.name()).containsExactly("Bruno");
+    }
+
+    @Test
+    @DisplayName("o RH registra a resposta de quem não tem login: sem checar dono, e fica quem registrou")
+    void registerOnBehalfSkipsOwnerCheck() {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = respostaDe(pessoa("Bruno", "0002"), recipientId);
+        when(fileRepository.findByDocumentRequestRecipientAndReplacedAtIsNull(recipient))
+                .thenReturn(List.of(DocumentRequestFile.create(recipient, "rg", "rg.jpg", "0002/rg.jpg", AGORA)));
+        when(recipientRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        service.registerOnBehalf(recipientId, "ana.rh", Map.of(), false);
+
+        assertThat(recipient.getStatus()).isEqualTo(RecipientStatus.SUBMITTED);
+        assertThat(recipient.getRegisteredBy()).isEqualTo("ana.rh");
+        verify(employeeRepository, never()).findByUsername(any());
+    }
+
+    @Test
+    @DisplayName("registrar e aprovar: aprova na mesma hora, com o RH como quem conferiu")
+    void registerAndApprove() {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = respostaDe(pessoa("Bruno", "0002"), recipientId);
+        when(fileRepository.findByDocumentRequestRecipientAndReplacedAtIsNull(recipient))
+                .thenReturn(List.of(DocumentRequestFile.create(recipient, "rg", "rg.jpg", "0002/rg.jpg", AGORA)));
+        when(recipientRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        service.registerOnBehalf(recipientId, "ana.rh", Map.of(), true);
+
+        assertThat(recipient.getStatus()).isEqualTo(RecipientStatus.APPROVED);
+        assertThat(recipient.getReviewedBy()).isEqualTo("ana.rh");
+        assertThat(recipient.getRegisteredBy()).isEqualTo("ana.rh");
+    }
+
+    @Test
+    @DisplayName("registrar sem o arquivo obrigatório é recusado, como no portal")
+    void registerOnBehalfRequiresFiles() {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = respostaDe(pessoa("Bruno", "0002"), recipientId);
+        when(fileRepository.findByDocumentRequestRecipientAndReplacedAtIsNull(recipient)).thenReturn(List.of());
+
+        assertThrows(InvalidRequestDataException.class, () -> service.registerOnBehalf(recipientId, "ana.rh", Map.of(), false));
+        assertThat(recipient.getStatus()).isEqualTo(RecipientStatus.PENDING);
+    }
+
+    @Test
+    @DisplayName("o RH anexa o arquivo no lugar da pessoa: vai para a pasta DELA, sem checar dono")
+    void uploadOnBehalfUsesEmployeeFolder() throws Exception {
+        UUID recipientId = UUID.randomUUID();
+        DocumentRequestRecipient recipient = respostaDe(pessoa("Bruno", "0077"), recipientId);
+        when(fileRepository.findByDocumentRequestRecipientAndFieldKeyAndReplacedAtIsNull(recipient, "rg")).thenReturn(Optional.empty());
+        when(storage.save(any(), eq("0077"), eq("rg.pdf"))).thenReturn("0077/abc-rg.pdf");
+        when(fileRepository.save(any())).thenAnswer(chamada -> chamada.getArgument(0));
+
+        DocumentRequestFile saved = service.uploadOnBehalf(recipientId, "rg", rgPdf());
+
+        assertThat(saved.getStoragePath()).isEqualTo("0077/abc-rg.pdf");
+        verify(employeeRepository, never()).findByUsername(any());
+    }
+
+    @Test
+    @DisplayName("a linha diz se a pessoa tem acesso e quem registrou")
+    void recipientRowShowsAccessAndRegistrar() {
+        UUID requestId = UUID.randomUUID();
+        DocumentRequest request = abertaComCampo();
+        Employee ana = pessoa("Ana", "0001"), bruno = pessoa("Bruno", "0002");
+        DocumentRequestRecipient daAna = DocumentRequestRecipient.create(request, ana, AGORA);
+        DocumentRequestRecipient doBruno = DocumentRequestRecipient.create(request, bruno, AGORA);
+        doBruno.registerOnBehalf(Map.of(), "ana.rh", AGORA);
+        when(requestRepository.findById(requestId)).thenReturn(Optional.of(request));
+        when(recipientRepository.findByDocumentRequestOrderByAddedAtDesc(request)).thenReturn(List.of(daAna, doBruno));
+        when(userRepository.findActiveByEmployeeIds(any())).thenReturn(List.of(loginDe(ana, "ana")));
+
+        var rows = service.listRecipients(requestId);
+
+        assertThat(rows).extracting(r -> r.employeeName(), r -> r.hasAccess(), r -> r.registeredBy())
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("Ana", true, null),
+                        org.assertj.core.groups.Tuple.tuple("Bruno", false, "ana.rh"));
     }
 }
