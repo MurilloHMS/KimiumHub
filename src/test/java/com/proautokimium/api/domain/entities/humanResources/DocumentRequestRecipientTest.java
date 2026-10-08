@@ -7,6 +7,9 @@ import com.proautokimium.api.domain.exceptions.humanResources.InvalidStatusTrans
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -95,5 +98,50 @@ class DocumentRequestRecipientTest {
 
         assertThat(recipient.getStatus()).isEqualTo(RecipientStatus.SUBMITTED);
         assertThat(recipient.getAnswers()).containsEntry("calca", "42");
+    }
+
+    // ── Registrar no lugar do funcionário (V123, "sem acesso") ──
+
+    @Test
+    @DisplayName("o RH registra a resposta: fica SUBMITTED, com as respostas e quem registrou")
+    void registerOnBehalfRecordsRegistrar() {
+        recipient.registerOnBehalf(Map.of("tamanho", "G"), "ana.rh", AGORA.plusHours(2));
+
+        assertThat(recipient.getStatus()).isEqualTo(RecipientStatus.SUBMITTED);
+        assertThat(recipient.getAnswers()).containsEntry("tamanho", "G");
+        assertThat(recipient.getSubmittedAt()).isEqualTo(AGORA.plusHours(2));
+        assertThat(recipient.getRegisteredBy()).isEqualTo("ana.rh");
+    }
+
+    @Test
+    @DisplayName("registrar o que já foi respondido é recusado, e nada muda")
+    void registerOnBehalfAfterSubmitRefused() {
+        recipient.submit(Map.of("tamanho", "M"), AGORA);
+
+        assertThrows(InvalidStatusTransitionException.class,
+                () -> recipient.registerOnBehalf(Map.of("tamanho", "G"), "ana.rh", AGORA.plusHours(1)));
+        assertThat(recipient.getAnswers()).containsEntry("tamanho", "M");
+        assertThat(recipient.getRegisteredBy()).isNull();
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    @DisplayName("registrar sem dizer quem registrou é recusado: a linha precisa mostrar quem foi")
+    void registerOnBehalfWithoutRegistrarRefused(String registrar) {
+        assertThrows(InvalidRequestDataException.class,
+                () -> recipient.registerOnBehalf(Map.of("tamanho", "G"), registrar, AGORA));
+        assertThat(recipient.getStatus()).isEqualTo(RecipientStatus.PENDING);
+    }
+
+    @Test
+    @DisplayName("o RH registrou, devolveu, e o funcionário respondeu pelo portal: a resposta passa a ser dele")
+    void employeeAnswerClearsRegistrar() {
+        recipient.registerOnBehalf(Map.of("tamanho", "G"), "ana.rh", AGORA);
+        recipient.giveBack("rita", "Foto do RG ilegível", AGORA.plusHours(1));
+
+        recipient.submit(Map.of("tamanho", "M"), AGORA.plusHours(2));
+
+        assertThat(recipient.getRegisteredBy()).isNull();
     }
 }

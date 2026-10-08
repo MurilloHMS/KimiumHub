@@ -52,6 +52,9 @@ public class DocumentRequestRecipient extends com.proautokimium.api.domain.abstr
     @Column(name = "return_reason", length = 500)
     private String returnReason;
 
+    @Column(name = "registered_by", length = 100)
+    private String registeredBy;
+
     // Constructor
     private DocumentRequestRecipient(DocumentRequest request, Employee employee, LocalDateTime now){
         this.documentRequest = request;
@@ -74,6 +77,23 @@ public class DocumentRequestRecipient extends com.proautokimium.api.domain.abstr
         this.answers = new HashMap<>(answers);
         this.submittedAt = now;
         this.status = RecipientStatus.SUBMITTED;
+        // Quem responde pelo portal é o próprio funcionário: um registro antigo
+        // do RH (antes de uma devolução) deixa de valer.
+        this.registeredBy = null;
+    }
+
+    /**
+     * O RH responde no lugar do funcionário (quem não tem acesso ao portal, ou
+     * entregou em papel). Mesma regra do {@link #submit}, mais quem registrou.
+     */
+    public void registerOnBehalf(Map<String, Object> answers, String registrar, LocalDateTime now){
+        // Faltar quem registrou é dado inválido (400), não estado errado (409).
+        if(registrar == null || registrar.isBlank()) throw new InvalidRequestDataException("Informe quem registrou a resposta.");
+
+        // A guarda de status mora num lugar só. Gravar quem registrou DEPOIS:
+        // o submit limpa o campo.
+        submit(answers, now);
+        this.registeredBy = registrar;
     }
 
     public void approve(String reviewer, LocalDateTime now){
