@@ -1,13 +1,14 @@
 package com.proautokimium.api.Application.DTOs.partners;
 
-import java.time.LocalDate;
-import java.util.UUID;
-
 import com.proautokimium.api.domain.enums.Department;
-import com.proautokimium.api.domain.enums.Hierarchy;
+import com.proautokimium.api.domain.enums.SiteAccess;
 import com.proautokimium.api.domain.enums.humanResources.ContractType;
 import com.proautokimium.api.domain.enums.humanResources.TransportType;
+
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 public record EmployeeResponseDTO(
 		UUID id,
@@ -35,5 +36,8 @@ public record EmployeeResponseDTO(
 		BigDecimal ticketPrice,
 		BigDecimal vehicleKmPerLiter,
 		BigDecimal dailyDistanceKm,
-		Integer vacationBalanceDays
+		Integer vacationBalanceDays,
+		SiteAccess siteAccess,
+		String siteLogin,
+		LocalDateTime firstAccessRequestedAt
 		) {}

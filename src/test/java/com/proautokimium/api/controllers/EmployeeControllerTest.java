@@ -41,6 +41,7 @@ class EmployeeControllerTest {
     @Autowired ObjectMapper objectMapper;
     @MockitoBean EmployeeService employeeService;
     @MockitoBean com.proautokimium.api.Infrastructure.services.partner.ErpPartnerLookupService erpPartnerLookup;
+    @MockitoBean com.proautokimium.api.Infrastructure.services.partner.PendingSiteAccessReportService pendingSiteAccessReport;
     @MockitoBean TokenService tokenService;
     // O SecurityFilter passa a somar as permissões de tela às roles.
     @MockitoBean PermissionService permissionService;
@@ -66,7 +67,8 @@ class EmployeeControllerTest {
         return new EmployeeResponseDTO(UUID.randomUUID(), "EMP001", "12345678900", "Funcionario Teste",
                 "func@teste.com", true, "MGR001", null, null, null, null, null,
                 null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null,
+                null, null, null);
     }
 
     @Test
@@ -185,5 +187,80 @@ class EmployeeControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(erpPartnerLookup, never()).byCode(anyInt());
+    }
+
+    // ─── Relatório dos sem acesso ao site ────────────────────────────────────
+
+    /**
+     * Consultar funcionários não basta: o relatório é BAIXAR. Quem recebe essa
+     * ação é a V125, para quem já consultava.
+     */
+    @Test
+    @DisplayName("o relatório dos sem acesso exige BAIXAR, e não só CONSULTAR")
+    @WithMockUser(authorities = {"rh/employees:CONSULTAR"})
+    void relatorioExigeBaixar() throws Exception {
+        mockMvc.perform(get("/api/employee/site-access/pending/report").param("format", "xlsx"))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(pendingSiteAccessReport);
+    }
+
+    @Test
+    @DisplayName("o relatório em Excel sai com o tipo e o nome do arquivo")
+    @WithMockUser(authorities = {"rh/employees:BAIXAR"})
+    void relatorioExcel() throws Exception {
+        when(pendingSiteAccessReport.excel()).thenReturn(new byte[] {1, 2});
+        when(pendingSiteAccessReport.fileName("xlsx")).thenReturn("funcionarios-sem-acesso-2026-10-08.xlsx");
+
+        mockMvc.perform(get("/api/employee/site-access/pending/report").param("format", "xlsx"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition",
+                        org.hamcrest.Matchers.containsString("funcionarios-sem-acesso-2026-10-08.xlsx")))
+                .andExpect(content().contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+    }
+
+    @Test
+    @DisplayName("o relatório em PDF chama o PDF")
+    @WithMockUser(authorities = {"rh/employees:BAIXAR"})
+    void relatorioPdf() throws Exception {
+        when(pendingSiteAccessReport.pdf()).thenReturn(new byte[] {1});
+        when(pendingSiteAccessReport.fileName("pdf")).thenReturn("x.pdf");
+
+        mockMvc.perform(get("/api/employee/site-access/pending/report").param("format", "pdf"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF));
+        verify(pendingSiteAccessReport, never()).excel();
+    }
+
+    @Test
+    @DisplayName("formato desconhecido é 400, sem gerar nada")
+    @WithMockUser(authorities = {"rh/employees:BAIXAR"})
+    void formatoDesconhecido() throws Exception {
+        mockMvc.perform(get("/api/employee/site-access/pending/report").param("format", "csv"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(pendingSiteAccessReport);
+    }
+
+    // ─── CORS ────────────────────────────────────────────────────────────────
+
+    /**
+     * **O defeito que só aparecia em produção.** O site e a API ficam em
+     * domínios diferentes, e o navegador pergunta (OPTIONS) antes de um PATCH.
+     * Sem PATCH na lista, renomear modelo, editar remetente e trocar o e-mail de
+     * uma conta eram recusados no navegador, sem chegar à API. Está aqui porque
+     * esta fatia já carrega a SecurityConfiguration.
+     */
+    @Test
+    @DisplayName("o preflight de PATCH vindo do site é aceito, e o nome do arquivo é exposto")
+    void corsAceitaPatch() throws Exception {
+        mockMvc.perform(options("/api/employee")
+                        .header("Origin", "https://proautokimium.com.br")
+                        .header("Access-Control-Request-Method", "PATCH"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Methods", org.hamcrest.Matchers.containsString("PATCH")));
+
+        mockMvc.perform(get("/api/employee").header("Origin", "https://proautokimium.com.br"))
+                .andExpect(header().string("Access-Control-Expose-Headers", org.hamcrest.Matchers.containsString("Content-Disposition")));
     }
 }
